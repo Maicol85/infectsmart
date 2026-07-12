@@ -192,6 +192,31 @@ label{font-size:12px;color:var(--muted);display:block;margin-bottom:3px}
 @media(max-width:700px){.stats-grid{grid-template-columns:1fr}.field-row.four,.field-row.three{grid-template-columns:1fr 1fr}}
 .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px;box-shadow:var(--shadow)}
 .stat-card h4{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:10px}
+/* Referencias */
+.ref-search{margin-bottom:16px}
+.ref-search input{padding:10px 14px;font-size:14px}
+.ref-section-title{font-size:15px;font-weight:800;color:var(--text);margin:22px 0 10px;display:flex;align-items:center;gap:8px;letter-spacing:-.2px}
+.ref-section-title:first-child{margin-top:4px}
+.fiche{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);margin-bottom:8px;overflow:hidden;box-shadow:var(--shadow)}
+.fiche-head{display:flex;align-items:center;gap:9px;padding:12px 14px;cursor:pointer;font-weight:600;font-size:14px;color:var(--text);user-select:none;transition:background .15s}
+.fiche-head:hover{background:var(--teal-dim2)}
+.fiche-head .fic{font-size:16px}
+.fiche-head .caret{margin-left:auto;color:var(--muted);transition:transform .2s;font-size:12px}
+.fiche.open .fiche-head{background:var(--teal-dim);color:var(--teal);border-bottom:1px solid var(--border)}
+.fiche.open .caret{transform:rotate(90deg)}
+.fiche-body{display:none;padding:14px;font-size:13px;line-height:1.65;color:var(--text)}
+.fiche.open .fiche-body{display:block}
+.fiche-body h5{font-size:12px;font-weight:700;color:var(--teal);text-transform:uppercase;letter-spacing:.4px;margin:12px 0 5px}
+.fiche-body h5:first-child{margin-top:0}
+.fiche-body ul{margin:4px 0 8px 18px}
+.fiche-body li{margin-bottom:3px}
+.fiche-body p{margin-bottom:6px}
+.fiche-body b{color:var(--text)}
+.fiche-body a{color:var(--teal);text-decoration:none}
+.fiche-body a:hover{text-decoration:underline}
+.ref-tag{display:inline-block;font-size:10px;font-weight:700;padding:1px 7px;border-radius:20px;background:var(--surface2);color:var(--muted);border:1px solid var(--border);margin-left:6px}
+.ref-tag.res{background:var(--red-dim);color:var(--red);border-color:var(--red)}
+.ref-none{text-align:center;color:var(--muted);padding:26px;font-size:13px}
 .stats-big{font-size:26px;font-weight:800;color:var(--text)}
 .stats-bars{display:flex;flex-direction:column;gap:6px;margin-top:4px}
 .stats-bar-row{display:flex;align-items:center;gap:8px}
@@ -312,6 +337,7 @@ footer{text-align:center;padding:16px;color:var(--muted);font-size:11px;border-t
     <button class="main-tab" data-tab="alertas" onclick="showMain('alertas',this)">🚨 Alertas <span id="alertCount"></span></button>
     <button class="main-tab" data-tab="stats" onclick="showMain('stats',this)">📊 Estadísticas</button>
     <button class="main-tab" data-tab="egresados" onclick="showMain('egresados',this)">📤 Egresados</button>
+    <button class="main-tab" data-tab="referencias" onclick="showMain('referencias',this)">📚 Referencias</button>
   </div>
 
   <div id="panel-areas" class="panel active">
@@ -355,6 +381,7 @@ footer{text-align:center;padding:16px;color:var(--muted);font-size:11px;border-t
   <div id="panel-alertas" class="panel"></div>
   <div id="panel-stats" class="panel"></div>
   <div id="panel-egresados" class="panel"></div>
+  <div id="panelReferencias" class="panel"></div>
 
   <footer>© 2026 Dr. M. D. S. y col. · InfectSmart · Todos los derechos reservados · Uso clínico exclusivo</footer>
 </div>
@@ -865,7 +892,8 @@ function showMain(tab,btn){
   document.querySelectorAll('.main-tab').forEach(function(b){ b.classList.remove('active'); });
   if(btn) btn.classList.add('active');
   document.querySelectorAll('.panel').forEach(function(p){ p.classList.remove('active'); });
-  document.getElementById('panel-'+tab).classList.add('active');
+  var pid=(tab==='referencias')?'panelReferencias':'panel-'+tab;
+  document.getElementById(pid).classList.add('active');
   if(tab==='areas') renderAreas();
   else if(tab==='pacientes') renderPatientPanel();
   else if(tab==='micro') renderMicro();
@@ -873,6 +901,7 @@ function showMain(tab,btn){
   else if(tab==='alertas') renderAlertas();
   else if(tab==='stats') renderStats();
   else if(tab==='egresados') renderEgresados();
+  else if(tab==='referencias') renderReferencias();
 }
 function renderAll(){ renderAreas(); updateAlertBadge(); }
 
@@ -1989,6 +2018,403 @@ function exportStatsPDF(){
   doc.save('InfectSmart_estadisticas_'+todayStr()+'.pdf');
   logInforme('Estadísticas '+perTxt);
   toast('PDF de estadísticas generado');
+}
+
+/* ============================================================
+   📚 REFERENCIAS
+   ============================================================ */
+function refFiche(icon,title,tag,bodyHtml){
+  return {icon:icon,title:title,tag:tag||'',body:bodyHtml};
+}
+function refTag(t){ if(!t) return ''; var cls=(/resist|MDR|BLEE|KPC|VRE|carbapenem/i.test(t))?'ref-tag res':'ref-tag'; return '<span class="'+cls+'">'+esc(t)+'</span>'; }
+
+/* ---- Contenido: cada sección = {icon,title,fiches:[...]} ---- */
+function refSections(){
+  return [
+  /* 1 · TOMA DE MUESTRAS */
+  {icon:'🧫',title:'TOMA DE MUESTRAS PARA CULTIVOS',fiches:[
+    refFiche('🩸','Hemocultivos','2 pares',
+      '<h5>Indicación</h5><ul><li>Sospecha de bacteriemia/sepsis, fiebre + escalofríos, endocarditis, fiebre en neutropénico.</li></ul>'+
+      '<h5>Técnica</h5><ul><li><b>2 pares</b> (aerobio + anaerobio) de <b>sitios de punción distintos</b>.</li><li><b>≥10 ml por frasco</b> en adulto (relación sangre/medio 1:5–1:10).</li><li>Antisepsia con clorhexidina/alcohol; dejar secar.</li><li>Extraer <b>antes del ATB</b>; en endocarditis, 3 pares con intervalo de 30–60 min.</li></ul>'+
+      '<h5>Transporte / conservación</h5><ul><li>A temperatura ambiente, al laboratorio en &lt;2 h. No refrigerar.</li></ul>'+
+      '<h5>Errores frecuentes</h5><ul><li>Volumen insuficiente (baja sensibilidad), 1 solo frasco, contaminación cutánea (SCN), tomar de catéter sin par periférico.</li></ul>'),
+    refFiche('💧','Urocultivo','chorro medio',
+      '<h5>Técnica (chorro medio)</h5><ul><li>Higiene genital previa, <b>descartar el 1er chorro</b>, recoger chorro medio.</li><li>Sondado: puerto del catéter, nunca de la bolsa.</li></ul>'+
+      '<h5>Transporte</h5><ul><li>&lt;2 h a T° ambiente o refrigerado (4 °C) hasta 24 h.</li></ul>'+
+      '<h5>Interpretación</h5><ul><li>Chorro medio ≥10⁵ UFC/ml; sondado ≥10³; punción suprapúbica: cualquier recuento.</li></ul>'+
+      '<h5>Errores</h5><ul><li>Muestra de bolsa colectora, demora sin refrigerar (sobrecrecimiento).</li></ul>'),
+    refFiche('🧠','LCR (punción lumbar)','tubos 1-2-3-4',
+      '<h5>Orden de tubos</h5><ul><li><b>Tubo 1</b>: químico. <b>Tubo 2</b>: microbiología (Gram + cultivo). <b>Tubo 3</b>: citológico. <b>Tubo 4</b>: reservado / repetir recuento (descarta punción traumática).</li></ul>'+
+      '<h5>Transporte</h5><ul><li><b>Inmediato</b>, a T° ambiente. <b>NO refrigerar</b> (mata Neisseria/Haemophilus).</li></ul>'+
+      '<h5>Errores</h5><ul><li>Refrigerar, demora, volumen escaso.</li></ul>'),
+    refFiche('🫁','Esputo','>25 PMN / <10 epit.',
+      '<h5>Técnica</h5><ul><li>Muestra <b>matutina</b>, enjuague bucal con agua, expectoración profunda (no saliva).</li></ul>'+
+      '<h5>Calidad (criterios de Murray-Washington)</h5><ul><li>Válida: <b>&gt;25 PMN y &lt;10 células epiteliales</b> por campo (bajo aumento).</li></ul>'+
+      '<h5>Transporte</h5><ul><li>&lt;2 h; refrigerar si demora.</li></ul>'),
+    refFiche('🩹','Secreciones y heridas','aspirado > hisopo',
+      '<h5>Técnica</h5><ul><li>Preferir <b>aspirado o biopsia</b> sobre hisopo. Limpiar la superficie, tomar del <b>fondo/borde activo</b>, no del exudado superficial.</li></ul>'+
+      '<h5>Transporte</h5><ul><li>Medio de transporte (Amies/Stuart); si anaerobios, medio anaerobio / jeringa sin aire.</li></ul>'),
+    refFiche('🧴','Líquidos estériles y tejidos','frasco estéril',
+      '<h5>Líquidos (pleural, ascítico, articular, peritoneal)</h5><ul><li>Aspiración aséptica; inocular parte en frasco de hemocultivo mejora rendimiento.</li></ul>'+
+      '<h5>Tejidos</h5><ul><li>Enviar <b>en fresco</b> en frasco estéril con unas gotas de solución salina; <b>no en formol</b>.</li><li>Transporte inmediato.</li></ul>'),
+    refFiche('📋','Tabla resumen muestra / técnica / transporte','resumen',
+      '<div style="overflow-x:auto"><table class="data-table" style="font-size:11px"><thead><tr><th>Muestra</th><th>Técnica</th><th>Transporte / conservación</th><th>Tiempo máx.</th></tr></thead><tbody>'+
+      '<tr><td>Hemocultivo</td><td>2 pares, ≥10 ml/frasco, sitios distintos</td><td>T° ambiente, no refrigerar</td><td>&lt;2 h</td></tr>'+
+      '<tr><td>Urocultivo</td><td>Chorro medio, higiene, descartar 1er chorro</td><td>Ambiente &lt;2 h ó 4 °C</td><td>24 h (refrig.)</td></tr>'+
+      '<tr><td>LCR</td><td>Tubos 1-2-3-4</td><td>Inmediato, NO refrigerar</td><td>&lt;15 min</td></tr>'+
+      '<tr><td>Esputo</td><td>Matutino, &gt;25 PMN &lt;10 epit.</td><td>Refrigerar si demora</td><td>&lt;2 h</td></tr>'+
+      '<tr><td>Herida</td><td>Aspirado/biopsia del fondo</td><td>Medio Amies/Stuart</td><td>&lt;2 h</td></tr>'+
+      '<tr><td>Líquidos</td><td>Aspiración aséptica</td><td>Frasco estéril / hemocultivo</td><td>&lt;2 h</td></tr>'+
+      '<tr><td>Tejido</td><td>En fresco + salina, no formol</td><td>Frasco estéril</td><td>Inmediato</td></tr>'+
+      '</tbody></table></div>')
+  ]},
+
+  /* 2 · MICROBIOLOGÍA CLÍNICA */
+  {icon:'🦠',title:'MICROBIOLOGÍA CLÍNICA',fiches:[
+    refFiche('🟣','S. aureus (MSSA / MRSA)','MRSA',
+      '<h5>Características</h5><ul><li>Coco Gram+ en racimos, catalasa+, coagulasa+.</li></ul><h5>Hábitat</h5><ul><li>Piel y fosas nasales (portación).</li></ul>'+
+      '<h5>Infecciones</h5><ul><li>Piel/partes blandas, bacteriemia, endocarditis, osteomielitis, neumonía.</li></ul>'+
+      '<h5>Resistencias</h5><ul><li><b>MSSA</b>: cefazolina/oxacilina. <b>MRSA</b>: resistente a betalactámicos (mecA/PBP2a) → vancomicina, daptomicina, linezolid.</li></ul>'),
+    refFiche('⚪','Staphylococcus coagulasa negativo (SCN)','',
+      '<h5>Características</h5><ul><li>Coco Gram+, coagulasa−. Ej. S. epidermidis.</li></ul><h5>Hábitat</h5><ul><li>Flora cutánea.</li></ul>'+
+      '<h5>Infecciones</h5><ul><li>Catéteres, prótesis, biofilm. Frecuente <b>contaminante</b> de hemocultivo.</li></ul><h5>Resistencias</h5><ul><li>Meticilino-R frecuente → vancomicina.</li></ul>'),
+    refFiche('🔴','S. pyogenes (Grupo A)','',
+      '<h5>Características</h5><ul><li>Coco Gram+ en cadenas, β-hemolítico grupo A.</li></ul>'+
+      '<h5>Infecciones</h5><ul><li>Faringitis, erisipela, fascitis necrotizante, shock tóxico.</li></ul><h5>Resistencias</h5><ul><li>Siempre sensible a <b>penicilina</b>; añadir clindamicina en formas graves.</li></ul>'),
+    refFiche('🟢','S. pneumoniae','',
+      '<h5>Características</h5><ul><li>Diplococo Gram+ lanceolado, α-hemolítico, optoquina+.</li></ul>'+
+      '<h5>Infecciones</h5><ul><li>Neumonía, meningitis, otitis, sinusitis.</li></ul><h5>Resistencias</h5><ul><li>Resistencia a penicilina por alteración de PBP; ceftriaxona ± vancomicina en meningitis.</li></ul>'),
+    refFiche('🟤','S. viridans','',
+      '<h5>Características</h5><ul><li>Cocos Gram+ α-hemolíticos, flora orofaríngea.</li></ul>'+
+      '<h5>Infecciones</h5><ul><li>Endocarditis subaguda, abscesos.</li></ul><h5>Resistencias</h5><ul><li>Generalmente sensible a penicilina.</li></ul>'),
+    refFiche('🟠','Enterococcus faecalis / faecium (VRE)','VRE',
+      '<h5>Características</h5><ul><li>Coco Gram+, PYR+. Resistencia intrínseca a cefalosporinas.</li></ul>'+
+      '<h5>Infecciones</h5><ul><li>ITU, endocarditis, intraabdominal, bacteriemia.</li></ul>'+
+      '<h5>Resistencias</h5><ul><li><b>E. faecium</b> más resistente. <b>VRE</b> (vanA/vanB) → linezolid, daptomicina. Sinergia ampicilina+aminoglucósido en endocarditis.</li></ul>'),
+    refFiche('🟡','C. difficile','',
+      '<h5>Características</h5><ul><li>Bacilo Gram+ anaerobio esporulado, toxinas A/B.</li></ul>'+
+      '<h5>Infecciones</h5><ul><li>Colitis pseudomembranosa post-ATB.</li></ul><h5>Tratamiento</h5><ul><li>Vancomicina VO o fidaxomicina; suspender ATB desencadenante; <b>aislamiento de contacto</b>.</li></ul>'),
+    refFiche('🟡','C. perfringens','',
+      '<h5>Características</h5><ul><li>Bacilo Gram+ anaerobio esporulado.</li></ul>'+
+      '<h5>Infecciones</h5><ul><li>Gangrena gaseosa, toxiinfección alimentaria.</li></ul><h5>Tratamiento</h5><ul><li>Penicilina + clindamicina, desbridamiento.</li></ul>'),
+    refFiche('⚫','Peptostreptococcus','',
+      '<h5>Características</h5><ul><li>Coco Gram+ anaerobio.</li></ul><h5>Infecciones</h5><ul><li>Abscesos polimicrobianos, infección odontógena.</li></ul><h5>Tratamiento</h5><ul><li>Penicilina, clindamicina, metronidazol.</li></ul>'),
+    refFiche('🟩','E. coli (BLEE / carbapenemasa)','BLEE',
+      '<h5>Características</h5><ul><li>Bacilo Gram− enterobacteria, lactosa+.</li></ul>'+
+      '<h5>Infecciones</h5><ul><li>ITU, sepsis urinaria, intraabdominal, colangitis.</li></ul>'+
+      '<h5>Resistencias</h5><ul><li><b>BLEE</b>: R a cefalosporinas 3ªG → carbapenem. <b>Carbapenemasa</b> → ceftazidima-avibactam, colistina.</li></ul>'),
+    refFiche('🟩','Klebsiella (KPC)','KPC',
+      '<h5>Características</h5><ul><li>Enterobacteria capsulada.</li></ul><h5>Infecciones</h5><ul><li>Neumonía, ITU, bacteriemia, abscesos hepáticos.</li></ul>'+
+      '<h5>Resistencias</h5><ul><li>BLEE, <b>KPC</b> (carbapenemasa) → ceftazidima-avibactam, meropenem-vaborbactam, colistina.</li></ul>'),
+    refFiche('🟩','Proteus / Enterobacter / Serratia','AmpC',
+      '<h5>Proteus</h5><ul><li>Ureasa+ (cálculos), swarming. R intrínseca a nitrofurantoína/colistina.</li></ul>'+
+      '<h5>Enterobacter / Serratia</h5><ul><li><b>AmpC</b> inducible → evitar cefalosporinas 3ªG en infección grave (usar cefepime/carbapenem).</li></ul>'),
+    refFiche('🔵','Pseudomonas aeruginosa','MDR',
+      '<h5>Características</h5><ul><li>Bacilo Gram− no fermentador, oxidasa+, pigmento.</li></ul>'+
+      '<h5>Infecciones</h5><ul><li>Neumonía nosocomial/VAP, ITU, quemados, fibrosis quística, otitis externa maligna.</li></ul>'+
+      '<h5>Resistencias</h5><ul><li>Múltiples mecanismos → piperacilina-tazobactam, cefepime, ceftazidima, meropenem, ceftolozano-tazobactam; MDR: colistina.</li></ul>'),
+    refFiche('🔵','Acinetobacter baumannii','MDR',
+      '<h5>Características</h5><ul><li>Cocobacilo Gram− no fermentador, sobrevive en superficies.</li></ul>'+
+      '<h5>Infecciones</h5><ul><li>VAP, bacteriemia por catéter en UCI.</li></ul><h5>Resistencias</h5><ul><li>Frecuentemente MDR/XDR → carbapenem, sulbactam, colistina, tigeciclina.</li></ul>'),
+    refFiche('🔵','Stenotrophomonas maltophilia','',
+      '<h5>Características</h5><ul><li>Bacilo Gram− no fermentador.</li></ul><h5>Infecciones</h5><ul><li>Nosocomial, respiratoria, en inmunodeprimidos.</li></ul>'+
+      '<h5>Resistencias</h5><ul><li>R intrínseca a carbapenems → <b>TMP-SMX</b> de elección.</li></ul>'),
+    refFiche('🟫','Bacteroides fragilis','anaerobio',
+      '<h5>Características</h5><ul><li>Bacilo Gram− anaerobio, flora colónica.</li></ul><h5>Infecciones</h5><ul><li>Abscesos intraabdominales, pélvicos.</li></ul>'+
+      '<h5>Tratamiento</h5><ul><li>Metronidazol, piperacilina-tazobactam, carbapenem.</li></ul>'),
+    refFiche('🟫','Fusobacterium','',
+      '<h5>Características</h5><ul><li>Bacilo Gram− anaerobio fusiforme.</li></ul><h5>Infecciones</h5><ul><li>Sd. de Lemierre, absceso periamigdalino.</li></ul><h5>Tratamiento</h5><ul><li>Metronidazol, betalactámico + IBL.</li></ul>'),
+    refFiche('🌫️','Atípicos (Mycoplasma, Chlamydia, Legionella)','',
+      '<h5>Mycoplasma pneumoniae</h5><ul><li>Sin pared → resistente a betalactámicos. Neumonía atípica. Tto: macrólido/doxiciclina.</li></ul>'+
+      '<h5>Chlamydia pneumoniae</h5><ul><li>Intracelular. Neumonía atípica. Tto: macrólido/doxiciclina.</li></ul>'+
+      '<h5>Legionella</h5><ul><li>Neumonía grave, hiponatremia, diarrea; antígeno urinario. Tto: <b>levofloxacina</b> o azitromicina.</li></ul>'),
+    refFiche('🍄','Candida albicans / no-albicans','',
+      '<h5>Características</h5><ul><li>Levadura. No-albicans (glabrata, krusei) con menor sensibilidad a azoles.</li></ul>'+
+      '<h5>Infecciones</h5><ul><li>Candidemia, candidiasis mucocutánea, ITU.</li></ul><h5>Tratamiento</h5><ul><li>Candidemia: equinocandina; fluconazol si estable y sensible. Krusei: R intrínseca a fluconazol.</li></ul>'),
+    refFiche('🍄','Aspergillus','',
+      '<h5>Características</h5><ul><li>Hongo filamentoso, hifas septadas en ángulo agudo.</li></ul><h5>Infecciones</h5><ul><li>Aspergilosis invasiva (neutropénicos), aspergiloma.</li></ul>'+
+      '<h5>Tratamiento</h5><ul><li><b>Voriconazol</b> de elección; isavuconazol, anfotericina.</li></ul>'),
+    refFiche('🍄','Cryptococcus neoformans','',
+      '<h5>Características</h5><ul><li>Levadura capsulada (tinta china +).</li></ul><h5>Infecciones</h5><ul><li>Meningitis en VIH avanzado.</li></ul>'+
+      '<h5>Tratamiento</h5><ul><li>Anfotericina B + flucitosina (inducción), luego fluconazol.</li></ul>'),
+    refFiche('🍄','Pneumocystis jirovecii (PCP)','',
+      '<h5>Características</h5><ul><li>Hongo atípico.</li></ul><h5>Infecciones</h5><ul><li>Neumonía en VIH CD4&lt;200, inmunosuprimidos.</li></ul>'+
+      '<h5>Tratamiento</h5><ul><li><b>TMP-SMX</b> ± corticoides si hipoxemia. Profilaxis con TMP-SMX.</li></ul>'),
+    refFiche('🦠','Micobacterias (M. tuberculosis, MAC)','',
+      '<h5>M. tuberculosis</h5><ul><li>BAAR. Tto: HRZE 2 meses + HR 4 meses. Aislamiento aéreo.</li></ul>'+
+      '<h5>MAC (M. avium complex)</h5><ul><li>Infección diseminada en VIH CD4&lt;50. Tto: macrólido + etambutol ± rifabutina.</li></ul>')
+  ]},
+
+  /* 3 · ANTIMICROBIANOS PK/PD */
+  {icon:'💊',title:'ANTIMICROBIANOS — DOSIS Y PK/PD',fiches:[
+    refFiche('🧪','Betalactámicos (penicilinas / cefalos / carbapenems)','T>CIM',
+      '<h5>PK/PD</h5><ul><li><b>Tiempo dependiente</b>: parámetro <b>T&gt;CIM</b>. Beneficio con <b>infusión extendida/continua</b>.</li></ul>'+
+      '<h5>Dosis representativas</h5><ul><li>Piperacilina-tazobactam 4.5 g c/6-8h (inf. ext.). Cefepime 2 g c/8-12h. Meropenem 1 g c/8h (2 g c/8h meningitis).</li></ul>'+
+      '<h5>Ajuste renal</h5><ul><li>Reducir frecuencia/dosis según ClCr (ver Vademécum). Efectos: alergia, convulsiones (imipenem/altas dosis).</li></ul>'),
+    refFiche('🧪','Glucopéptidos (vancomicina)','AUC/CIM',
+      '<h5>PK/PD</h5><ul><li>Objetivo <b>AUC/CIM 400–600</b>.</li></ul>'+
+      '<h5>Dosis</h5><ul><li>Carga 25–30 mg/kg; mantenimiento 15–20 mg/kg c/8–12h.</li></ul>'+
+      '<h5>Monitoreo</h5><ul><li>Nivel valle 15–20 (histórico) o AUC estimado; función renal. Efectos: nefrotoxicidad, sd. hombre rojo (infusión rápida).</li></ul>'),
+    refFiche('🧪','Aminoglucósidos (gentamicina/amikacina)','Cmax/CIM',
+      '<h5>PK/PD</h5><ul><li><b>Concentración dependiente</b>: <b>Cmax/CIM ≥8–10</b>. Efecto post-antibiótico → <b>dosis única diaria</b>.</li></ul>'+
+      '<h5>Dosis</h5><ul><li>Gentamicina 5–7 mg/kg/d; amikacina 15–20 mg/kg/d.</li></ul>'+
+      '<h5>Monitoreo</h5><ul><li><b>Pico</b> (eficacia) y <b>valle</b> (toxicidad); ajustar intervalo por ClCr. Efectos: nefro/ototoxicidad.</li></ul>'),
+    refFiche('🧪','Fluoroquinolonas','AUC/CIM',
+      '<h5>PK/PD</h5><ul><li><b>AUC/CIM</b> (y Cmax/CIM). Excelente biodisponibilidad oral.</li></ul>'+
+      '<h5>Dosis</h5><ul><li>Levofloxacina 750 mg c/24h; ciprofloxacina 400 mg IV c/12h.</li></ul>'+
+      '<h5>Ajuste / efectos</h5><ul><li>Ajuste renal. Efectos: QT largo, tendinopatía, disglucemia, interacción con cationes.</li></ul>'),
+    refFiche('🧪','Macrólidos','',
+      '<h5>Dosis</h5><ul><li>Azitromicina 500 mg/d; claritromicina 500 mg c/12h.</li></ul>'+
+      '<h5>Efectos / interacciones</h5><ul><li>QT largo, inhibición CYP3A4 (claritromicina). Sin ajuste renal (azitro).</li></ul>'),
+    refFiche('🧪','Metronidazol','',
+      '<h5>Dosis</h5><ul><li>500 mg IV/VO c/8h.</li></ul>'+
+      '<h5>Notas</h5><ul><li>Anaerobios y protozoos. Ajuste hepático en insuficiencia grave. Efecto <b>disulfiram</b> con alcohol, neuropatía.</li></ul>'),
+    refFiche('🧪','Antifúngicos (azoles/equinocandinas/anfotericina)','',
+      '<h5>Azoles</h5><ul><li>Fluconazol 400–800 mg/d (ajuste renal ClCr&lt;50: 50%). Voriconazol: monitoreo de niveles, interacciones CYP, hepatotoxicidad.</li></ul>'+
+      '<h5>Equinocandinas</h5><ul><li>Caspofungina/micafungina/anidulafungina: sin ajuste renal; elección en candidemia.</li></ul>'+
+      '<h5>Anfotericina B</h5><ul><li>Liposomal 3–5 mg/kg/d; nefrotoxicidad, hipoK/hipoMg, reacción infusional.</li></ul>'),
+    refFiche('🧪','Oxazolidinonas (linezolid)','',
+      '<h5>Dosis</h5><ul><li>600 mg c/12h IV/VO (100% biodisp.).</li></ul>'+
+      '<h5>Notas</h5><ul><li>MRSA, VRE. Sin ajuste renal. Efectos: mielosupresión (&gt;14 d), neuropatía, sd. serotoninérgico (IMAO débil).</li></ul>'),
+    refFiche('🧪','Lipopéptidos (daptomicina)','AUC/CIM',
+      '<h5>Dosis</h5><ul><li>6–10 mg/kg c/24h (ClCr&lt;30: c/48h).</li></ul>'+
+      '<h5>Notas</h5><ul><li><b>NO usar en neumonía</b> (inactivado por surfactante). Monitoreo de CPK (miopatía).</li></ul>'),
+    refFiche('🧪','Polimixinas (colistina)','',
+      '<h5>Dosis</h5><ul><li>Carga 9 MUI, luego 4.5 MUI c/12h; ajuste por ClCr.</li></ul>'+
+      '<h5>Notas</h5><ul><li>GN MDR (KPC, Acinetobacter). <b>Nefrotoxicidad</b> importante; neurotoxicidad.</li></ul>')
+  ]},
+
+  /* 4 · AISLAMIENTO */
+  {icon:'🔒',title:'AISLAMIENTO',fiches:[
+    refFiche('🧼','Precauciones estándar','todos',
+      '<h5>Aplicación</h5><ul><li>A <b>todos los pacientes</b>: higiene de manos, guantes ante fluidos, EPP según riesgo de salpicadura, manejo seguro de punzocortantes.</li></ul>'),
+    refFiche('🧤','Contacto','guantes + delantal',
+      '<h5>Gérmenes / condiciones</h5><ul><li>MRSA, KPC, BLEE, VRE, <b>C. difficile</b> (higiene con agua y jabón), escabiosis, rotavirus.</li></ul>'+
+      '<h5>EPP</h5><ul><li><b>Guantes + delantal/bata</b>. Habitación individual o cohorte. Material dedicado.</li></ul>'),
+    refFiche('😷','Gotas (droplet)','mascarilla quirúrgica',
+      '<h5>Gérmenes / condiciones</h5><ul><li>Influenza, meningococo, Mycoplasma, Bordetella (tos ferina).</li></ul>'+
+      '<h5>EPP</h5><ul><li><b>Mascarilla quirúrgica + guantes</b>; habitación individual (o ≥1 m de separación).</li></ul>'),
+    refFiche('🌬️','Aéreo (airborne)','N95 + presión negativa',
+      '<h5>Gérmenes / condiciones</h5><ul><li>TBC pulmonar, varicela, sarampión, zóster diseminado.</li></ul>'+
+      '<h5>EPP</h5><ul><li><b>Respirador N95 + delantal</b>, habitación con <b>presión negativa</b> y puerta cerrada.</li></ul>'),
+    refFiche('🛡️','Protector (inverso)','presión positiva + HEPA',
+      '<h5>Indicación</h5><ul><li>Neutropenia severa, trasplante (TMO/TOS).</li></ul>'+
+      '<h5>Medidas</h5><ul><li>Habitación con <b>presión positiva + filtro HEPA</b>; restringir plantas/frutas frescas; higiene estricta.</li></ul>'),
+    refFiche('📋','Tabla germen → aislamiento → EPP → duración','tabla',
+      '<div style="overflow-x:auto"><table class="data-table" style="font-size:11px"><thead><tr><th>Germen</th><th>Aislamiento</th><th>EPP</th><th>Duración</th></tr></thead><tbody>'+
+      '<tr><td>MRSA</td><td>Contacto</td><td>Guantes+bata</td><td>Hasta cultivos control (−)</td></tr>'+
+      '<tr><td>KPC / BLEE</td><td>Contacto</td><td>Guantes+bata</td><td>Toda la internación</td></tr>'+
+      '<tr><td>VRE</td><td>Contacto</td><td>Guantes+bata</td><td>Según protocolo local</td></tr>'+
+      '<tr><td>C. difficile</td><td>Contacto</td><td>Guantes+bata, lavado con agua/jabón</td><td>48 h post fin de diarrea</td></tr>'+
+      '<tr><td>Influenza</td><td>Gotas</td><td>Mascarilla quirúrgica</td><td>7 d o 24 h afebril</td></tr>'+
+      '<tr><td>Meningococo</td><td>Gotas</td><td>Mascarilla quirúrgica</td><td>24 h de ATB eficaz</td></tr>'+
+      '<tr><td>TBC pulmonar</td><td>Aéreo</td><td>N95, presión negativa</td><td>Ver criterios de levantamiento</td></tr>'+
+      '<tr><td>Varicela / sarampión</td><td>Aéreo</td><td>N95, presión negativa</td><td>Hasta costras / 4 d exantema</td></tr>'+
+      '</tbody></table></div>'),
+    refFiche('📋','Tabla enfermedad → cuándo levantar','tabla',
+      '<div style="overflow-x:auto"><table class="data-table" style="font-size:11px"><thead><tr><th>Enfermedad</th><th>Aislamiento</th><th>Duración</th><th>Cuándo levantar</th></tr></thead><tbody>'+
+      '<tr><td>TBC pulmonar</td><td>Aéreo</td><td>Prolongada</td><td>Mejoría clínica + 2-3 BAAR (−) + tto efectivo</td></tr>'+
+      '<tr><td>Meningococemia</td><td>Gotas</td><td>Corta</td><td>24 h de ATB eficaz</td></tr>'+
+      '<tr><td>C. difficile</td><td>Contacto</td><td>Media</td><td>48 h sin diarrea</td></tr>'+
+      '<tr><td>Influenza</td><td>Gotas</td><td>Media</td><td>24 h afebril sin antipiréticos</td></tr>'+
+      '<tr><td>MDR (KPC/BLEE/VRE)</td><td>Contacto</td><td>Prolongada</td><td>Según cultivos/protocolo institucional</td></tr>'+
+      '</tbody></table></div>')
+  ]},
+
+  /* 5 · INMUNODEFICIENCIA */
+  {icon:'🛡️',title:'INMUNODEFICIENCIA',fiches:[
+    refFiche('💉','Inmunidad humoral (hipogamma / asplenia / mieloma)','',
+      '<h5>Defecto</h5><ul><li>Déficit de anticuerpos/complemento.</li></ul>'+
+      '<h5>Riesgo</h5><ul><li>Bacterias <b>encapsuladas</b>: neumococo, Haemophilus, meningococo.</li></ul>'+
+      '<h5>Medidas</h5><ul><li>Vacunación antineumocócica/anti-Hib/antimeningocócica; en asplenia, ATB de reserva ante fiebre.</li></ul>'),
+    refFiche('🧬','Inmunidad celular — VIH por CD4','',
+      '<h5>Riesgo por CD4</h5><ul><li><b>&gt;500</b>: similar a inmunocompetente.</li><li><b>200–500</b>: TBC, neumococo, zóster.</li><li><b>&lt;200</b>: <b>PCP</b>, candidiasis esofágica.</li><li><b>&lt;50</b>: MAC, CMV, criptococo, toxoplasmosis.</li></ul>'),
+    refFiche('💊','Corticoides crónicos / biológicos / TOS','',
+      '<h5>Riesgo</h5><ul><li>Corticoides (&gt;20 mg/d prednisona &gt;2-4 sem): PCP, hongos, reactivación TBC/estrongiloides.</li><li>Anti-TNF: TBC, hongos endémicos, Listeria.</li><li>Trasplante de órgano sólido: CMV, PCP, hongos, según tiempo post-TOS.</li></ul>'),
+    refFiche('🩸','Neutropenia y neutropenia febril','febril',
+      '<h5>Clasificación (RAN)</h5><ul><li>Leve 1000–1500; moderada 500–1000; severa &lt;500; profunda &lt;100.</li></ul>'+
+      '<h5>Neutropenia febril</h5><ul><li>Definición: <b>RAN&lt;500</b> (o &lt;1000 en descenso) + <b>T≥38.3 °C única o ≥38 °C x1h</b>.</li><li>Manejo: hemocultivos + <b>ATB antipseudomonas empírico precoz</b> (piperacilina-tazobactam, cefepime o carbapenem); añadir cobertura GP/antifúngica según evolución.</li></ul>'),
+    refFiche('🔗','Inmunodeficiencia combinada (TMO / IDP)','',
+      '<h5>Riesgo</h5><ul><li>Defecto humoral + celular → espectro amplio (virus, hongos, bacterias, oportunistas).</li></ul>'+
+      '<h5>Medidas</h5><ul><li>Profilaxis múltiple y aislamiento protector.</li></ul>'),
+    refFiche('📋','Infecciones oportunistas por tipo de defecto','tabla',
+      '<div style="overflow-x:auto"><table class="data-table" style="font-size:11px"><thead><tr><th>Defecto</th><th>Oportunistas típicos</th></tr></thead><tbody>'+
+      '<tr><td>Humoral / asplenia</td><td>Neumococo, Haemophilus, meningococo</td></tr>'+
+      '<tr><td>Celular (VIH, TOS, corticoides)</td><td>PCP, TBC, hongos, CMV, criptococo, Listeria, Toxoplasma</td></tr>'+
+      '<tr><td>Neutropenia</td><td>GN (Pseudomonas), S. aureus, Candida, Aspergillus</td></tr>'+
+      '<tr><td>Combinada</td><td>Todo el espectro anterior</td></tr>'+
+      '</tbody></table></div>'),
+    refFiche('💊','Profilaxis primaria','',
+      '<ul><li><b>TMP-SMX</b>: PCP en VIH CD4&lt;200 y otros inmunosuprimidos.</li><li><b>Fluconazol / aciclovir</b>: prevención de hongos/herpes en trasplante.</li><li><b>Isoniazida</b>: LTBI (PPD/IGRA +) antes de inmunosupresión / anti-TNF.</li></ul>'),
+    refFiche('💉','Vacunación en inmunocomprometidos','',
+      '<h5>Recomendadas (inactivadas)</h5><ul><li>Antineumocócica, antigripal anual, Hib, meningococo, hepatitis B.</li></ul>'+
+      '<h5>Contraindicadas (vivas atenuadas) en inmunosupresión severa</h5><ul><li>Triple viral (SRP), varicela, fiebre amarilla, BCG, polio oral.</li></ul>')
+  ]},
+
+  /* 6 · CALCULADORAS */
+  {icon:'🧮',title:'CALCULADORAS',fiches:[
+    refFiche('🧮','ClCr (Cockcroft-Gault)','prefill',
+      '<div class="field-row three">'+
+        '<div class="field-group"><label>Edad (años)</label><input type="number" id="rc-age" oninput="rcCalcAll()"></div>'+
+        '<div class="field-group"><label>Peso (kg)</label><input type="number" id="rc-w" oninput="rcCalcAll()"></div>'+
+        '<div class="field-group"><label>Creatinina (mg/dL)</label><input type="number" step="0.1" id="rc-cr" oninput="rcCalcAll()"></div>'+
+      '</div>'+
+      '<div class="field-row"><div class="field-group"><label>Sexo</label><select id="rc-sex" onchange="rcCalcAll()"><option value="M">Masculino</option><option value="F">Femenino</option></select></div>'+
+        '<div class="field-group"><label>&nbsp;</label><button class="btn btn-outline btn-sm" onclick="rcPrefill()">↺ Usar paciente actual</button></div></div>'+
+      '<div class="field-group" style="margin-top:8px"><label>Resultado</label><div id="rc-clcr" class="calc-val">Ingrese datos</div></div>'+
+      '<p style="font-size:11px;color:var(--muted);margin-top:6px">Este ClCr alimenta también las dosis de vancomicina y aminoglucósidos de abajo.</p>'),
+    refFiche('🧮','Dosis de vancomicina','AUC/CIM',
+      '<p style="font-size:12px;color:var(--muted)">Usa peso y ClCr de la calculadora de ClCr. Objetivo AUC/CIM 400–600.</p>'+
+      '<div class="field-group" style="margin-top:6px"><label>Carga y mantenimiento sugeridos</label><div id="rc-vanco" class="calc-val">Complete edad, peso, creatinina y sexo arriba</div></div>'),
+    refFiche('🧮','Dosis de aminoglucósidos','intervalo',
+      '<div class="field-row"><div class="field-group"><label>Fármaco</label><select id="rc-ag" onchange="rcCalcAll()"><option value="genta">Gentamicina (5-7 mg/kg)</option><option value="amika">Amikacina (15-20 mg/kg)</option></select></div></div>'+
+      '<div class="field-group" style="margin-top:6px"><label>Dosis e intervalo (por peso y ClCr)</label><div id="rc-amino" class="calc-val">Complete peso y ClCr arriba</div></div>'),
+    refFiche('🧮','Índice de masa corporal (IMC)','',
+      '<div class="field-row"><div class="field-group"><label>Peso (kg)</label><input type="number" id="rc-imcw" oninput="rcCalcImc()"></div>'+
+        '<div class="field-group"><label>Talla (cm)</label><input type="number" id="rc-imch" oninput="rcCalcImc()"></div></div>'+
+      '<div class="field-group" style="margin-top:6px"><label>IMC</label><div id="rc-imc" class="calc-val">Ingrese datos</div></div>'),
+    refFiche('🧮','Índice de Charlson','comorbilidades',
+      '<p style="font-size:12px;color:var(--muted)">Calcula el Charlson del paciente actualmente seleccionado (pestaña Pacientes).</p>'+
+      '<div class="field-group" style="margin-top:6px"><label>Resultado</label><div id="rc-charlson" class="calc-val">Sin paciente seleccionado</div></div>'+
+      '<button class="btn btn-outline btn-sm" style="margin-top:8px" onclick="rcCalcCharlson()">↺ Recalcular</button>')
+  ]},
+
+  /* 7 · GUÍAS Y PROTOCOLOS */
+  {icon:'📋',title:'GUÍAS Y PROTOCOLOS',fiches:[
+    refFiche('🔗','Guías internacionales','links',
+      '<ul>'+
+      '<li><a href="https://www.idsociety.org/practice-guideline/practice-guidelines/" target="_blank" rel="noopener">IDSA — Practice Guidelines</a></li>'+
+      '<li><a href="https://www.escmid.org/research-projects/guidelines/" target="_blank" rel="noopener">ESCMID — Guidelines</a></li>'+
+      '<li><a href="https://sadi.org.ar/guias-y-recomendaciones" target="_blank" rel="noopener">SADI — Guías y recomendaciones</a></li>'+
+      '<li><a href="https://www.paho.org/es" target="_blank" rel="noopener">OPS / OMS — PAHO</a></li>'+
+      '</ul>'),
+    refFiche('📝','Protocolos institucionales (editable)','guardado local',
+      '<p style="font-size:12px;color:var(--muted)">Se guarda automáticamente por institución en este navegador.</p>'+
+      '<textarea id="rc-protocolos" rows="12" style="margin-top:6px;min-height:220px" placeholder="Escriba aquí los protocolos, esquemas empíricos, teléfonos de infectología, etc. de su institución…" oninput="rcSaveProtocolos()"></textarea>'+
+      '<div id="rc-proto-saved" style="font-size:11px;color:var(--muted);margin-top:4px"></div>')
+  ]}
+  ];
+}
+
+function renderReferencias(){
+  var secs=refSections();
+  var html='<div class="ref-search"><input type="text" id="refSearch" placeholder="🔎 Buscar en referencias (germen, ATB, muestra, aislamiento…)" oninput="refFilter()"></div>';
+  secs.forEach(function(sec,si){
+    html+='<div class="ref-section-title" data-refsec="'+si+'">'+sec.icon+' '+esc(sec.title)+'</div>';
+    sec.fiches.forEach(function(f,fi){
+      html+='<div class="fiche" id="fiche-'+si+'-'+fi+'">'+
+        '<div class="fiche-head" onclick="refToggle(\''+si+'-'+fi+'\')"><span class="fic">'+f.icon+'</span><span>'+esc(f.title)+'</span>'+refTag(f.tag)+'<span class="caret">▶</span></div>'+
+        '<div class="fiche-body">'+f.body+'</div>'+
+      '</div>';
+    });
+  });
+  html+='<div class="ref-none" id="refNone" style="display:none">Sin resultados para la búsqueda.</div>';
+  document.getElementById('panelReferencias').innerHTML=html;
+  rcLoadProtocolos();
+  rcPrefill(true);
+}
+
+function refToggle(id){ var el=document.getElementById('fiche-'+id); if(el) el.classList.toggle('open'); }
+
+function refFilter(){
+  var q=(document.getElementById('refSearch').value||'').toLowerCase().trim();
+  var any=false;
+  document.querySelectorAll('#panelReferencias .fiche').forEach(function(f){
+    var txt=f.textContent.toLowerCase();
+    var match=(q==='')||txt.indexOf(q)!==-1;
+    f.style.display=match?'':'none';
+    if(match) any=true;
+    if(q!=='' && match) f.classList.add('open'); else if(q==='') f.classList.remove('open');
+  });
+  // ocultar títulos de secciones sin fiches visibles
+  document.querySelectorAll('#panelReferencias .ref-section-title').forEach(function(t){
+    var n=t.nextElementSibling, visible=false;
+    while(n && n.classList.contains('fiche')){ if(n.style.display!=='none'){ visible=true; break; } n=n.nextElementSibling; }
+    t.style.display=(q!=='' && !visible)?'none':'';
+  });
+  var none=document.getElementById('refNone'); if(none) none.style.display=(!any && q!=='')?'block':'none';
+}
+
+/* ---- Calculadoras ---- */
+function rcNum(id){ var el=document.getElementById(id); if(!el) return NaN; return parseFloat(el.value); }
+function rcClCrValue(){
+  var age=rcNum('rc-age'), w=rcNum('rc-w'), cr=rcNum('rc-cr'), sexEl=document.getElementById('rc-sex');
+  var sex=sexEl?sexEl.value:'M';
+  if(!age||!w||!cr) return null;
+  var cl=((140-age)*w)/(72*cr); if(sex==='F') cl*=0.85;
+  return Math.round(cl);
+}
+function rcCalcAll(){
+  var el=document.getElementById('rc-clcr'); if(!el) return;
+  var cl=rcClCrValue(), w=rcNum('rc-w');
+  if(cl===null){ el.textContent='Ingrese datos'; el.className='calc-val'; }
+  else {
+    var interp=cl>=90?'Normal':cl>=60?'Leve ↓':cl>=30?'Moderada ↓ (ajustar)':cl>=15?'Severa ↓ (ajustar)':'Falla renal (ajuste mayor)';
+    el.textContent='ClCr ≈ '+cl+' mL/min · '+interp;
+    el.className='calc-val'+(cl<30?' danger':cl<60?' warn':'');
+  }
+  // Vancomicina
+  var vel=document.getElementById('rc-vanco');
+  if(vel){
+    if(!w||cl===null){ vel.textContent='Complete edad, peso, creatinina y sexo arriba'; vel.className='calc-val'; }
+    else {
+      var carga=Math.round(25*w), mant=Math.round(15*w), mantHi=Math.round(20*w);
+      var intv=cl>=50?'c/8-12h':cl>=30?'c/12-24h':cl>=15?'c/24h':'c/24-48h (guiar por niveles)';
+      vel.textContent='Carga ≈ '+carga+' mg · Mantenim. '+mant+'–'+mantHi+' mg '+intv+' (objetivo AUC/CIM 400-600)';
+      vel.className='calc-val'+(cl<30?' warn':'');
+    }
+  }
+  // Aminoglucósidos
+  var ael=document.getElementById('rc-amino'), agEl=document.getElementById('rc-ag');
+  if(ael){
+    var ag=agEl?agEl.value:'genta';
+    if(!w||cl===null){ ael.textContent='Complete peso y ClCr arriba'; ael.className='calc-val'; }
+    else {
+      var lo,hi,name; if(ag==='amika'){lo=15;hi=20;name='Amikacina';}else{lo=5;hi=7;name='Gentamicina';}
+      var d1=Math.round(lo*w), d2=Math.round(hi*w);
+      var intvA=cl>=60?'c/24h':cl>=40?'c/36h':cl>=20?'c/48h':'dosis única + guiar por niveles';
+      ael.textContent=name+' '+d1+'–'+d2+' mg '+intvA+' (dosis única diaria; monitorear pico/valle)';
+      ael.className='calc-val'+(cl<40?' warn':'');
+    }
+  }
+}
+function rcPrefill(silent){
+  var p=(typeof currentPatient==='function')?currentPatient():null;
+  if(p){
+    var a=document.getElementById('rc-age'), w=document.getElementById('rc-w'), s=document.getElementById('rc-sex');
+    if(a && p.edad) a.value=p.edad;
+    if(w && p.peso) w.value=p.peso;
+    if(s && p.sexo) s.value=p.sexo;
+  } else if(!silent){ toast('No hay paciente seleccionado'); }
+  rcCalcAll(); rcCalcCharlson();
+}
+function rcCalcImc(){
+  var w=rcNum('rc-imcw'), h=rcNum('rc-imch'), el=document.getElementById('rc-imc'); if(!el) return;
+  if(!w||!h){ el.textContent='Ingrese datos'; el.className='calc-val'; return; }
+  var m=h/100, imc=w/(m*m); imc=Math.round(imc*10)/10;
+  var interp=imc<18.5?'Bajo peso':imc<25?'Normal':imc<30?'Sobrepeso':imc<35?'Obesidad I':imc<40?'Obesidad II':'Obesidad III';
+  el.textContent='IMC ≈ '+imc+' kg/m² · '+interp;
+  el.className='calc-val'+((imc<18.5||imc>=30)?' warn':'');
+}
+function rcCalcCharlson(){
+  var el=document.getElementById('rc-charlson'); if(!el) return;
+  var p=(typeof currentPatient==='function')?currentPatient():null;
+  if(!p || typeof calcCharlson!=='function'){ el.textContent='Sin paciente seleccionado'; el.className='calc-val'; return; }
+  var ch=calcCharlson(p);
+  el.textContent=(p.name?esc(p.name)+': ':'')+ch+' pts';
+  el.className='calc-val'+(ch>=5?' danger':ch>=3?' warn':'');
+}
+
+/* ---- Protocolos institucionales ---- */
+function rcProtocolosKey(){ return 'infectsmart_protocolos_'+(state&&state.centro?state.centro:'default'); }
+function rcLoadProtocolos(){
+  var ta=document.getElementById('rc-protocolos'); if(!ta) return;
+  try{ ta.value=localStorage.getItem(rcProtocolosKey())||''; }catch(e){ ta.value=''; }
+}
+function rcSaveProtocolos(){
+  var ta=document.getElementById('rc-protocolos'); if(!ta) return;
+  try{ localStorage.setItem(rcProtocolosKey(),ta.value); }catch(e){}
+  var s=document.getElementById('rc-proto-saved'); if(s){ s.textContent='✓ Guardado '+new Date().toLocaleTimeString('es'); }
 }
 
 /* ============================================================
