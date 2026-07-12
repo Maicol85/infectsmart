@@ -1123,6 +1123,15 @@ function bedBadges(p){
   else if(isol==='contacto') b+='<span class="bed-badge" style="color:var(--orange)" title="Aislamiento contacto / gotas">🔒</span>';
   // ⚠️ múltiples infecciones simultáneas
   if(withData.length>1) b+='<span class="bed-badge" style="color:var(--amber)" title="Múltiples infecciones simultáneas ('+withData.length+')">⚠️</span>';
+  // 🧫 sospecha/confirmación de IAAS auto-detectada
+  try{
+    var iaasT=iaasSuspechaTipos(p);
+    if(iaasT.length){
+      var lbl={nav:'NAV',cvc:'Bacteriemia CVC',itu:'ITU sonda',isq:'ISQ'};
+      var names=iaasT.map(function(t){ return lbl[t]||t; });
+      b+='<span class="bed-badge" style="color:var(--red)" title="IAAS: '+esc(names.join(', '))+'">🧫</span>';
+    }
+  }catch(e){}
   return b;
 }
 
@@ -1362,11 +1371,195 @@ function buildAlerts(){
     });
   })();
 
+  // 6) IAAS automáticas (detección tipo CDC/NHSN) — NAV / CVC / ITU / ISQ
+  //    Best-effort sobre los datos disponibles. NO recursivo (no llama a buildAlerts/updateAlertBadge).
+  detectIAASAlerts(active).forEach(function(al){ alerts.push(al); });
+
   // filtrar resueltas
   var resolved=getResolved();
   alerts=alerts.filter(function(al){ return !resolved[al.id]; });
   alerts.sort(function(x,y){ return y.sev-x.sev; });
   return alerts;
+}
+
+/* ============================================================
+   DETECCIÓN AUTOMÁTICA DE IAAS (CDC/NHSN best-effort)
+   ------------------------------------------------------------
+   Mapeo de datos disponibles (ver emptyPatient / infección):
+   - Dispositivo: inf.dispositivo ('ARM'|'CVC'|'Sonda vesical'...) + inf.fechaDispositivo
+     (sólo cuando inf.origen==='Asociada a dispositivo'). Proxy de "días de dispositivo".
+   - Cultivo positivo: inf.germen + inf.muestra (Hemocultivo/Urocultivo/etc) + inf.fechaCultivo.
+   - Leucocitosis: para 'gb' (GB x10³). NO existe parámetro de temperatura => fiebre = desconocida
+     (se usa GB como proxy inflamatorio y se anota el supuesto).
+   - No existe campo estructurado de "secreciones purulentas" ni de "UFC" => se tratan como
+     criterios opcionales/desconocidos (no bloquean la detección; se anota el supuesto).
+   - Imagen radiológica nueva: p.imagenes.length>0.
+   - Procedimiento quirúrgico: inf.origen 'Postoperatoria'/'Asociada a procedimiento' + inf.fechaProc.
+   No recursivo: recibe la lista de activos ya calculada.
+   ============================================================ */
+/* Último valor numérico no vacío de un parámetro de paraclínica. */
+function paraLatestNum(p,key){
+  if(!p||!p.para||!p.para.dates||!p.para.dates.length) return null;
+  var ds=p.para.dates.slice().sort();
+  for(var i=ds.length-1;i>=0;i--){
+    var v=p.para.vals[key+'||'+ds[i]];
+    if(v!==undefined && String(v).trim()!==''){ var n=parseFloat(String(v).replace(',','.')); if(!isNaN(n)) return n; }
+  }
+  return null;
+}
+/* Días desde la colocación del dispositivo de una infección (o null). */
+function deviceDays(inf){
+  if(!inf||!inf.fechaDispositivo) return null;
+  return daysBetween(inf.fechaDispositivo,todayStr());
+}
+/* ¿Leucocitosis? (GB x10³ > 12). null si no hay dato. */
+function tieneLeucocitosis(p){ var gb=paraLatestNum(p,'gb'); if(gb===null) return null; return gb>12; }
+/* Genera alertas IAAS automáticas para los pacientes activos. */
+function detectIAASAlerts(active){
+  active=active||allActive();
+  var out=[];
+  active.forEach(function(rec){
+    var p=rec.p, a=rec.area, camaTxt='Cama '+(rec.bi+1);
+    var infs=patInfections(p);
+    var leuco=tieneLeucocitosis(p);           // true|false|null(desconocido)
+    var tieneImagen=!!(p.imagenes && p.imagenes.length);
+    function norm(s){ return (s||'').toLowerCase(); }
+    function push(tipoKey,tipo,accion,crit,fecha){
+      out.push({sev:3,tipo:tipo,pac:p.name||'(sin nombre)',cama:camaTxt,area:a.name,
+        fecha:fecha||todayStr(),accion:accion,crit:crit,auto:true,pid:p.id,tipoKey:tipoKey,
+        id:'iaasauto_'+p.id+'_'+tipoKey});
+    }
+    // ---- 1) NAV: ARM (dispositivo) >48h + (leucocitosis) + imagen radiológica ----
+    infs.forEach(function(inf){
+      var esArm = norm(inf.dispositivo)==='arm' || norm(inf.procedimiento)==='arm';
+      var dd = deviceDays(inf);
+      if(esArm && dd!==null && dd>2){
+        var crit=[]; crit.push('ARM '+dd+' día(s) (>48h)');
+        crit.push('Fiebre: sin dato (no hay parámetro de temperatura)');
+        crit.push(leuco===true?'Leucocitosis (GB>12)':leuco===false?'GB normal':'GB: sin dato');
+        crit.push(tieneImagen?'Nueva imagen radiológica presente':'Radiología: sin imagen cargada');
+        crit.push('Secreciones purulentas: sin campo estructurado');
+        // Disparar si ARM>48h + al menos una señal clínica (leucocitosis o imagen)
+        if(leuco===true || tieneImagen){
+          push('nav','⚠️ Posible NAV',
+            'Posible neumonía asociada a ventilador — evaluar criterios diagnósticos. '+crit.join('; ')+'.',
+            crit, inf.fechaCultivo||inf.fechaDispositivo);
+        }
+      }
+    });
+    // ---- 2) Bacteriemia asociada a CVC: CVC >48h + hemocultivo positivo + sin otro foco ----
+    var cvcInf=infs.filter(function(inf){ var dd=deviceDays(inf); return norm(inf.dispositivo)==='cvc' && dd!==null && dd>2; })[0];
+    if(cvcInf){
+      var hemo=infs.filter(function(inf){
+        return inf.germen && (norm(inf.muestra).indexOf('hemocultivo')>=0 || norm(inf.muestra).indexOf('sangre')>=0);
+      })[0];
+      // sin otro foco aparente: foco vacío o 'bacteriemia'
+      var otroFoco=infs.some(function(inf){ var f=norm(inf.foco); return inf.germen && f && f!=='bacteriemia'; });
+      if(hemo && !otroFoco){
+        var crit2=['CVC '+deviceDays(cvcInf)+' día(s) (>48h)','Hemocultivo positivo: '+esc(hemo.germen),'Sin otro foco aparente'];
+        push('cvc','⚠️ Posible bacteriemia asociada a CVC',
+          'Posible bacteriemia asociada a catéter venoso central. '+crit2.join('; ')+'.',
+          crit2, hemo.fechaCultivo||cvcInf.fechaDispositivo);
+      }
+    }
+    // ---- 3) ITU asociada a sonda vesical: sonda + urocultivo positivo + (fiebre/leucocitosis) ----
+    var sondaInf=infs.filter(function(inf){ return norm(inf.dispositivo).indexOf('sonda')>=0; })[0];
+    if(sondaInf){
+      var uro=infs.filter(function(inf){
+        return inf.germen && (norm(inf.muestra).indexOf('urocultivo')>=0 || norm(inf.muestra).indexOf('orina')>=0);
+      })[0];
+      if(uro){
+        var crit3=[];
+        var ddS=deviceDays(sondaInf);
+        crit3.push('Sonda vesical'+(ddS!==null?' '+ddS+' día(s)':' presente'));
+        crit3.push('Urocultivo positivo: '+esc(uro.germen)+' (UFC: sin campo estructurado, se asume ≥100.000)');
+        crit3.push(leuco===true?'Leucocitosis (GB>12)':leuco===false?'GB normal':'Fiebre/síntomas urinarios: sin dato');
+        // Disparar con sonda + urocultivo positivo (fiebre/leucocitosis opcional)
+        push('itu','⚠️ Posible ITU asociada a sonda vesical',
+          'Posible infección urinaria asociada a sonda vesical. '+crit3.join('; ')+'.',
+          crit3, uro.fechaCultivo);
+      }
+    }
+    // ---- 4) Infección de sitio quirúrgico: procedimiento quirúrgico + cultivo ≤30d del procedimiento ----
+    infs.forEach(function(inf){
+      var esPostop = inf.origen==='Postoperatoria' || inf.origen==='Asociada a procedimiento';
+      if(esPostop && inf.fechaProc && inf.germen && inf.fechaCultivo){
+        var span=daysBetween(inf.fechaProc,inf.fechaCultivo);
+        if(span!==null && span>=0 && span<=30){
+          var crit4=['Procedimiento ('+esc(inf.procedimiento||inf.origen)+') el '+esc(inf.fechaProc),
+            'Cultivo positivo del sitio a '+span+' día(s) (≤30d): '+esc(inf.germen)];
+          push('isq','⚠️ Posible infección de sitio quirúrgico',
+            'Posible infección de sitio quirúrgico postoperatoria. '+crit4.join('; ')+'.',
+            crit4, inf.fechaCultivo);
+        }
+      }
+    });
+  });
+  return out;
+}
+/* ¿El paciente tiene una IAAS auto-detectada activa (no resuelta) o confirmada? Para badge. */
+function iaasSuspechaTipos(p){
+  if(!p) return [];
+  var tipos={};
+  (p.iaasConfirmada||[]).forEach(function(t){ tipos[t]=true; });
+  try{
+    var resolved=getResolved();
+    var rec=allActive().filter(function(r){ return r.p.id===p.id; })[0];
+    if(rec){
+      detectIAASAlerts([rec]).forEach(function(al){ if(!resolved[al.id]) tipos[al.tipoKey]=true; });
+    }
+  }catch(e){}
+  return Object.keys(tipos);
+}
+/* Confirmar una IAAS auto-detectada: registra en datos del paciente para estadísticas. */
+function confirmIAAS(id){
+  var al=buildAlerts().filter(function(a){ return a.id===id; })[0];
+  if(!al || !al.auto){ toast('Alerta no encontrada'); return; }
+  var obs=prompt('Observación al CONFIRMAR la IAAS ('+al.tipo+'):',''); if(obs===null) return;
+  // localizar paciente
+  var rec=allActive().filter(function(r){ return r.p.id===al.pid; })[0];
+  if(!rec){ toast('Paciente no encontrado'); return; }
+  var p=rec.p;
+  migrateInfecciones(p);
+  // marcar flag para conteo/badge
+  if(!Array.isArray(p.iaasConfirmada)) p.iaasConfirmada=[];
+  if(p.iaasConfirmada.indexOf(al.tipoKey)<0) p.iaasConfirmada.push(al.tipoKey);
+  // registrar origen IAAS en la infección relevante para que cuente en computeInfectStats
+  var infs=p.infecciones;
+  function setOrigen(inf,origen,extra){
+    if(!inf) return;
+    inf.origen=origen;
+    if(extra) for(var k in extra){ if(!inf[k]) inf[k]=extra[k]; }
+  }
+  var norm=function(s){ return (s||'').toLowerCase(); };
+  if(al.tipoKey==='nav'){
+    var i=infs.filter(function(x){ return norm(x.dispositivo)==='arm'; })[0]||infs[0];
+    setOrigen(i,'Asociada a dispositivo',{dispositivo:'ARM'});
+  } else if(al.tipoKey==='cvc'){
+    var ic=infs.filter(function(x){ return norm(x.dispositivo)==='cvc'; })[0]||infs.filter(function(x){ return norm(x.muestra).indexOf('hemocultivo')>=0; })[0]||infs[0];
+    setOrigen(ic,'Asociada a dispositivo',{dispositivo:'CVC'});
+  } else if(al.tipoKey==='itu'){
+    var iu=infs.filter(function(x){ return norm(x.dispositivo).indexOf('sonda')>=0; })[0]||infs.filter(function(x){ return norm(x.muestra).indexOf('urocultivo')>=0||norm(x.muestra).indexOf('orina')>=0; })[0]||infs[0];
+    setOrigen(iu,'Asociada a dispositivo',{dispositivo:'Sonda vesical'});
+  } else if(al.tipoKey==='isq'){
+    var iq=infs.filter(function(x){ return x.origen==='Postoperatoria'||x.origen==='Asociada a procedimiento'; })[0]||infs[0];
+    setOrigen(iq,'Postoperatoria',{});
+  }
+  mirrorPrimaryInfection(p);
+  // marcar resuelta (confirmada) para que no se vuelva a disparar
+  var r=getResolved(); r[id]={fecha:todayStr(),obs:'IAAS CONFIRMADA. '+obs,label:al.tipo+' — '+al.pac+' · '+al.area+' · '+al.cama+' (confirmada)'}; setResolved(r);
+  save();
+  renderAlertas(); updateAlertBadge(); renderBeds();
+  toast('IAAS confirmada y registrada en estadísticas');
+}
+/* Descartar una IAAS auto-detectada: guarda en resueltas para no re-mostrarla. */
+function dismissIAAS(id){
+  var al=buildAlerts().filter(function(a){ return a.id===id; })[0];
+  if(!al){ toast('Alerta no encontrada'); return; }
+  var obs=prompt('Observación al DESCARTAR ('+al.tipo+'):',''); if(obs===null) return;
+  var r=getResolved(); r[id]={fecha:todayStr(),obs:'Descartada. '+obs,label:al.tipo+' — '+al.pac+' · '+al.area+' · '+al.cama+' (descartada)'}; setResolved(r);
+  renderAlertas(); updateAlertBadge();
+  toast('IAAS descartada');
 }
 function getResolved(){ try{ return JSON.parse(localStorage.getItem('infectsmart_resolved_'+state.centro))||{}; }catch(e){ return {}; } }
 function setResolved(o){ localStorage.setItem('infectsmart_resolved_'+state.centro,JSON.stringify(o)); }
@@ -1930,6 +2123,17 @@ function renderAlertas(){
   var sevMap={3:{c:'danger',t:'Alta'},2:{c:'orange',t:'Media'},1:{c:'warn',t:'Baja'}};
   var html=alerts.map(function(al){
     var s=sevMap[al.sev];
+    if(al.auto){
+      // Alerta IAAS automática: descripción completa + criterios + 2 acciones
+      var critHtml=(al.crit&&al.crit.length)?('<div style="margin-top:4px;font-size:11px;color:var(--muted)"><b>Criterios cumplidos:</b><ul style="margin:2px 0 0 16px;padding:0">'+al.crit.map(function(c){ return '<li>'+esc(c)+'</li>'; }).join('')+'</ul></div>'):'';
+      return '<div class="alert-box '+s.c+'" style="margin-top:10px"><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">'+
+        '<b>'+esc(al.tipo)+'</b> <span class="pill red">IAAS auto</span> <span class="pill red">'+s.t+'</span>'+
+        '<span style="flex:1"></span>'+
+        '<button class="btn btn-teal btn-sm" onclick="confirmIAAS(\''+al.id+'\')">Confirmar IAAS</button>'+
+        '<button class="btn btn-outline btn-sm" onclick="dismissIAAS(\''+al.id+'\')">Descartar</button></div>'+
+        '<div style="margin-top:6px;font-size:12px">👤 '+esc(al.pac)+' · '+esc(al.area)+' · '+esc(al.cama)+(al.fecha?' · '+esc(al.fecha):'')+'</div>'+
+        '<div style="margin-top:4px;font-size:12px"><b>Descripción:</b> '+esc(al.accion)+'</div>'+critHtml+'</div>';
+    }
     return '<div class="alert-box '+s.c+'" style="margin-top:10px"><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">'+
       '<b>'+esc(al.tipo)+'</b> <span class="pill '+(al.sev===3?'red':al.sev===2?'orange':'amber')+'">'+s.t+'</span>'+
       '<span style="flex:1"></span><button class="btn btn-outline btn-sm" onclick="resolveAlert(\''+al.id+'\')">Resolver</button></div>'+
