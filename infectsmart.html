@@ -33,12 +33,26 @@ input,select,textarea{font-family:var(--font);background:var(--surface2);border:
 input:focus,select:focus,textarea:focus{outline:2px solid var(--teal);border-color:var(--teal)}
 label{font-size:12px;color:var(--muted);display:block;margin-bottom:3px}
 /* ===== LOGIN ===== */
-#modal-login{position:fixed;inset:0;z-index:10000;background:rgba(8,14,24,.86);backdrop-filter:blur(5px);display:flex;align-items:center;justify-content:center;padding:20px}
+#modal-login{position:fixed;inset:0;z-index:10000;background:radial-gradient(1200px 600px at 50% 22%,#245c24 0%,#1a3d1a 52%,#0d200d 100%);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:20px}
 .login-box{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:32px 34px;max-width:400px;width:100%;box-shadow:0 24px 70px rgba(0,0,0,.45)}
 .login-logo{text-align:center;margin-bottom:20px}
 .login-logo .big{font-size:44px;font-weight:900;letter-spacing:-1.5px;color:var(--teal);line-height:1}
 .login-logo .sub{font-size:15px;color:var(--muted);margin-top:6px}
 .login-logo .em{font-size:12px;color:var(--muted);opacity:.65;margin-top:10px;letter-spacing:1px}
+/* Login rediseñado (scopeado, no afecta al aviso) */
+#modal-login .login-box{background:rgba(255,255,255,.055);border:1px solid rgba(163,230,53,.28);box-shadow:0 24px 70px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.08);backdrop-filter:blur(10px);border-radius:18px}
+#modal-login .login-logo .big{font-size:50px;color:#a3e635;text-shadow:0 0 22px rgba(163,230,53,.55)}
+#modal-login .login-logo .sub{font-size:18px;color:#ffffff;font-weight:600}
+#modal-login .login-logo .em{font-size:13px;color:#86efac;opacity:.9;font-weight:500;letter-spacing:.5px}
+#modal-login label{color:rgba(235,255,225,.75)}
+#modal-login input#login-pass{background:rgba(10,25,10,.55);border:1px solid rgba(163,230,53,.3);color:#eaffdd}
+#modal-login .btn-teal{background:linear-gradient(135deg,#2dd4bf,#14b8a6);color:#06231a;box-shadow:0 6px 18px rgba(20,184,166,.4)}
+@keyframes flagella{0%,100%{transform:rotate(-4deg)}50%{transform:rotate(4deg)}}
+@keyframes flagella2{0%,100%{transform:rotate(3deg)}50%{transform:rotate(-5deg)}}
+@keyframes microFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+#uci-bact{animation:microFloat 3.4s ease-in-out infinite}
+#uci-bact .fl{transform-box:fill-box;transform-origin:center;animation:flagella 2.2s ease-in-out infinite}
+#uci-bact .fl2{transform-box:fill-box;transform-origin:center;animation:flagella2 2.8s ease-in-out infinite}
 /* ===== CENTRO ===== */
 #centroScreen{position:fixed;inset:0;background:var(--bg);z-index:9998;display:none;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:24px;overflow-y:auto}
 #centroScreen .brand{text-align:center;margin-bottom:18px}
@@ -305,6 +319,39 @@ footer{text-align:center;padding:16px;color:var(--muted);font-size:11px;border-t
 <div id="modal-login">
   <div class="login-box">
     <div class="login-logo">
+      <svg id="uci-bact" width="120" height="106" viewBox="0 0 132 116" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;margin:0 auto 8px;filter:drop-shadow(0 4px 14px rgba(163,230,53,.4))">
+        <defs>
+          <radialGradient id="bactGrad" cx="40%" cy="34%" r="75%">
+            <stop offset="0%" stop-color="#d9f99d"/>
+            <stop offset="52%" stop-color="#84cc16"/>
+            <stop offset="100%" stop-color="#3f6212"/>
+          </radialGradient>
+        </defs>
+        <!-- Flagelos (detrás del cuerpo, animados) -->
+        <g stroke="#a3e635" stroke-width="2.6" fill="none" stroke-linecap="round">
+          <path class="fl"  d="M42 56 C 24 50, 16 68, 5 61"/>
+          <path class="fl2" d="M46 72 C 30 80, 24 98, 11 93"/>
+          <path class="fl"  d="M92 64 C 111 59, 118 78, 128 71"/>
+          <path class="fl2" d="M86 76 C 100 86, 104 102, 118 99"/>
+        </g>
+        <!-- Cuerpo de la bacteria -->
+        <ellipse cx="66" cy="54" rx="28" ry="25" fill="url(#bactGrad)" stroke="#bef264" stroke-width="2"/>
+        <!-- Pili cortos -->
+        <g stroke="#a3e635" stroke-width="1.6" stroke-linecap="round" opacity=".85">
+          <path d="M66 29 v-7"/>
+          <path d="M50 33 l-4 -6"/>
+          <path d="M82 33 l4 -6"/>
+          <path d="M92 48 h8"/>
+          <path d="M40 52 h-8"/>
+          <path d="M60 81 v7"/>
+        </g>
+        <!-- Nucleoide / detalles internos -->
+        <circle cx="57" cy="48" r="5.5" fill="#3f6212" opacity=".5"/>
+        <circle cx="73" cy="61" r="4.5" fill="#3f6212" opacity=".45"/>
+        <circle cx="71" cy="45" r="3.2" fill="#365314" opacity=".4"/>
+        <!-- Brillo -->
+        <ellipse cx="55" cy="43" rx="8" ry="5.5" fill="#ffffff" opacity=".28"/>
+      </svg>
       <div class="big">InfectSmart</div>
       <div class="sub">Gestión Infectológica</div>
     </div>
