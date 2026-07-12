@@ -504,10 +504,15 @@ footer{text-align:center;padding:16px;color:var(--muted);font-size:11px;border-t
   <div class="modal-box">
     <h3>❔ Ayuda — InfectSmart</h3>
     <div style="font-size:12px;line-height:1.7;color:var(--muted)">
-      <p><b>InfectSmart</b> es un sistema institucional de gestión infectológica. Flujo: login → centro → áreas/camas → ficha del paciente → egreso → alertas → egresados / Excel.</p>
-      <p style="margin-top:8px"><b>Áreas:</b> 7 áreas independientes, cada una con nº de camas editable. Las camas muestran color de aislamiento (naranja=contacto/gotas, rojo=aéreo/estricto), 🦠 aislamiento activo, ⚠️ pendiente de limpieza terminal, 🔴 infección cruzada.</p>
-      <p style="margin-top:8px"><b>Alertas automáticas:</b> reingreso con germen previo, limpieza terminal pendiente, infección cruzada (mismo germen, cama igual/adyacente en 30 días) y germen multirresistente.</p>
-      <p style="margin-top:8px"><b>Aviso:</b> herramienta de apoyo clínico; no reemplaza el juicio médico.</p>
+      <p><b>InfectSmart</b> es un sistema institucional de gestión infectológica diseñado para equipos de infectología y comités de infecciones hospitalarias.</p>
+      <p style="margin-top:8px"><b>Flujo principal:</b> Login → Selección de centro → Áreas/Camas → Ficha del paciente → Egreso → Estadísticas.</p>
+      <p style="margin-top:8px"><b>Gestión de áreas y camas:</b> 7 áreas independientes (Domiciliaria, Emergencia, Internación, Policlínica, Cuidados moderados, CTI, Ambulatorio), cada una con número de camas configurable. Las camas muestran: color de aislamiento (naranja=contacto/gotas, rojo=aéreo/estricto), 🦠 aislamiento activo, ⚠️ pendiente limpieza terminal, badges de multirresistente e inmunocomprometido.</p>
+      <p style="margin-top:8px"><b>Ficha del paciente:</b> Datos clínicos, múltiples infecciones simultáneas con antibiograma, ATB activos con calculadora de duración, evolución con fechas, paraclínica comparativa por fechas, imágenes e interconsultas.</p>
+      <p style="margin-top:8px"><b>Alertas automáticas:</b> Reingreso con germen previo, limpieza terminal pendiente, infección cruzada (mismo germen en cama igual/adyacente en 30 días), germen multirresistente, clustering IAAS, detección automática NAV/bacteriemia CVC/ITU sonda.</p>
+      <p style="margin-top:8px"><b>Stewardship:</b> Alertas de desescalamiento antimicrobiano según antibiograma. Calculadora de duración ATB por tipo de infección y germen.</p>
+      <p style="margin-top:8px"><b>Estadísticas y epidemiología:</b> Gérmenes más frecuentes, mapa de resistencias, análisis IAAS, análisis por población (ASSE/Mutualista/Particular), reporte epidemiológico exportable para Comité de Infecciones.</p>
+      <p style="margin-top:8px"><b>Egresados:</b> Tabla completa con filtros, export Excel para investigación clínica con comorbilidades, Score de Charlson, datos respiratorios e infecciosos.</p>
+      <p style="margin-top:8px"><b>Aviso:</b> herramienta de apoyo clínico; no reemplaza el juicio médico profesional.</p>
     </div>
     <div class="modal-actions"><button class="btn btn-outline btn-sm" onclick="closeModal('modalHelp')">Cerrar</button></div>
   </div>
