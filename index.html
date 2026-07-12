@@ -297,6 +297,9 @@ footer{text-align:center;padding:16px;color:var(--muted);font-size:11px;border-t
     <button class="topbtn" onclick="limpiarActual()">🗑️ Limpiar</button>
     <button class="topbtn" onclick="save();toast('Guardado')">💾 Guardar</button>
     <button class="topbtn" onclick="openInformes()">🗂️ Informes</button>
+    <button class="topbtn" onclick="exportBackup()">⬆️ Exportar</button>
+    <button class="topbtn" onclick="document.getElementById('importInput').click()">⬇️ Importar</button>
+    <input type="file" id="importInput" accept="application/json,.json" style="display:none" onchange="importBackupFile(event)">
     <button class="topbtn" onclick="openHelp()">?</button>
     <button class="topbtn btn-red" onclick="logout()">Cerrar</button>
   </div>
@@ -372,6 +375,29 @@ footer{text-align:center;padding:16px;color:var(--muted);font-size:11px;border-t
     <div class="modal-actions">
       <button class="btn btn-outline btn-sm" onclick="closeModal('modalEgreso')">Cancelar</button>
       <button class="btn btn-teal btn-sm" onclick="confirmEgreso()">✅ Confirmar egreso</button>
+    </div>
+  </div>
+</div>
+
+<div id="modalImport" class="modal" style="display:none">
+  <div class="modal-box">
+    <h3>⬇️ Importar datos</h3>
+    <p style="font-size:13px;line-height:1.6;color:var(--text);margin:8px 0 4px">¿Importar datos? Esto reemplazará todos los datos actuales.</p>
+    <p id="importInfo" style="font-size:12px;color:var(--muted);margin-bottom:4px"></p>
+    <div class="modal-actions">
+      <button class="btn btn-outline btn-sm" onclick="cancelImport()">Cancelar</button>
+      <button class="btn btn-teal btn-sm" onclick="confirmImport()">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<div id="modalLimpiarPac" class="modal" style="display:none">
+  <div class="modal-box">
+    <h3>🗑️ Limpiar datos del paciente</h3>
+    <p style="font-size:13px;line-height:1.6;color:var(--text);margin:8px 0 4px">¿Estás seguro que querés limpiar todos los datos de este paciente? Esta acción no se puede deshacer.</p>
+    <div class="modal-actions">
+      <button class="btn btn-outline btn-sm" onclick="closeModal('modalLimpiarPac')">Cancelar</button>
+      <button class="btn btn-red btn-sm" onclick="confirmLimpiarPac()">Sí, limpiar</button>
     </div>
   </div>
 </div>
@@ -555,6 +581,50 @@ function doLogin(){
 }
 function sessionValid(){ var e=parseInt(localStorage.getItem(LOGIN_KEY),10); return e && Date.now()<e; }
 function logout(){ localStorage.removeItem(LOGIN_KEY); location.reload(); }
+
+/* ===== Backup: exportar / importar todos los datos (localStorage infectsmart_*) ===== */
+function exportBackup(){
+  var data={};
+  for(var i=0;i<localStorage.length;i++){ var k=localStorage.key(i); if(k && k.indexOf('infectsmart_')===0) data[k]=localStorage.getItem(k); }
+  var payload={ app:'InfectSmart', version:1, exported:new Date().toISOString(), data:data };
+  var blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+  var url=URL.createObjectURL(blob), a=document.createElement('a');
+  a.href=url; a.download='infectsmart_backup_'+new Date().toISOString().slice(0,10)+'.json';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+  toast('Backup exportado');
+}
+var _importPayload=null;
+function importBackupFile(ev){
+  var f=ev.target.files && ev.target.files[0]; ev.target.value='';
+  if(!f) return;
+  var r=new FileReader();
+  r.onload=function(){
+    try{
+      var obj=JSON.parse(r.result);
+      var d=(obj && obj.data) ? obj.data : obj; // acepta {data:{}} o el objeto plano
+      if(!d || typeof d!=='object') throw new Error('formato');
+      _importPayload=d;
+      var n=Object.keys(d).filter(function(k){return k.indexOf('infectsmart_')===0;}).length;
+      var info=document.getElementById('importInfo');
+      if(info) info.textContent='Archivo: '+f.name+' · '+n+' registro(s)'+(obj.exported?(' · exportado '+String(obj.exported).slice(0,10)):'');
+      document.getElementById('modalImport').style.display='flex';
+    }catch(e){ toast('Archivo inválido'); }
+  };
+  r.readAsText(f);
+}
+function cancelImport(){ _importPayload=null; closeModal('modalImport'); }
+function confirmImport(){
+  if(!_importPayload){ closeModal('modalImport'); return; }
+  // eliminar claves infectsmart_ actuales
+  var toDel=[];
+  for(var i=0;i<localStorage.length;i++){ var k=localStorage.key(i); if(k && k.indexOf('infectsmart_')===0) toDel.push(k); }
+  toDel.forEach(function(k){ localStorage.removeItem(k); });
+  // restaurar
+  Object.keys(_importPayload).forEach(function(k){ if(k.indexOf('infectsmart_')===0) localStorage.setItem(k, _importPayload[k]); });
+  _importPayload=null;
+  alert('Datos importados correctamente. La aplicación se recargará.');
+  location.reload();
+}
 function afterLogin(){
   loadMeta(); loadTheme(); loadHeader(); loadLogo(); loadPdfColor();
   document.getElementById('app').style.display='flex';
@@ -967,13 +1037,21 @@ function buildAlerts(){
     // 1) Reingreso
     var prev=findPreviousAdmission(p);
     if(prev && prev.germen){
-      alerts.push({sev:2,tipo:'Reingreso',pac:p.name||'(sin nombre)',cama:camaTxt,area:a.name,fecha:p.ingreso,accion:'Ingreso previo con germen: '+esc(prev.germen)+(prev.resistencias?' | Resistencias: '+esc(prev.resistencias):'')+'. Considerar cobertura empírica dirigida.',id:p.id+'_re'});
+      var areaAnt=prev.areaName||'—';
+      alerts.push({sev:2,tipo:'Reingreso',pac:p.name||'(sin nombre)',cama:camaTxt,area:a.name,fecha:p.ingreso,accion:'Ingreso previo ('+esc(prev.fechaEgreso||'—')+') en '+esc(areaAnt)+' con germen: '+esc(prev.germen)+(prev.resistencias?' | Resistencias: '+esc(prev.resistencias):'')+'. Área anterior: '+esc(areaAnt)+' → área actual: '+esc(a.name)+'. Considerar cobertura empírica dirigida.',id:p.id+'_re'});
     }
   });
   // 2) Limpieza terminal pendiente
+  var egres2=getEgresados();
   state.areas.forEach(function(a){
     a.pending.forEach(function(pd,bi){
-      if(pd){ alerts.push({sev:1,tipo:'Limpieza terminal',pac:'—',cama:'Cama '+(bi+1),area:a.name,fecha:pd.fecha||'',accion:'Cama pendiente de limpieza terminal. No admitir paciente hasta confirmar.',id:a.id+'_'+bi+'_clean'}); }
+      if(pd){
+        var dd=daysSince(pd.fecha);
+        // paciente egresado que dejó la cama pendiente (mismo área/cama, egreso = fecha del pending)
+        var egPac='';
+        for(var ei=egres2.length-1;ei>=0;ei--){ var e=egres2[ei]; if(e.areaId===a.id && (e.bed-1)===bi && e.fechaEgreso===pd.fecha){ egPac=e.name||''; break; } }
+        alerts.push({sev:1,tipo:'Limpieza terminal',pac:egPac||'—',cama:'Cama '+(bi+1),area:a.name,fecha:pd.fecha||'',accion:'Cama pendiente de limpieza terminal'+(egPac?' (egresó '+esc(egPac)+')':'')+(dd!==''?' · '+dd+' día(s) pendiente':'')+'. No admitir paciente hasta confirmar.',id:a.id+'_'+bi+'_clean'});
+      }
     });
   });
   // filtrar resueltas
@@ -986,7 +1064,11 @@ function getResolved(){ try{ return JSON.parse(localStorage.getItem('infectsmart
 function setResolved(o){ localStorage.setItem('infectsmart_resolved_'+state.centro,JSON.stringify(o)); }
 function resolveAlert(id){
   var obs=prompt('Observación al resolver la alerta:',''); if(obs===null) return;
-  var r=getResolved(); r[id]={fecha:todayStr(),obs:obs}; setResolved(r);
+  // buscar la alerta activa para guardar una etiqueta legible
+  var lbl='';
+  var cur=buildAlerts().filter(function(a){return a.id===id;})[0];
+  if(cur){ lbl=cur.tipo+' — '+cur.pac+' · '+cur.area+' · '+cur.cama; }
+  var r=getResolved(); r[id]={fecha:todayStr(),obs:obs,label:lbl}; setResolved(r);
   renderAlertas(); updateAlertBadge(); toast('Alerta resuelta');
 }
 function updateAlertBadge(){
@@ -1057,8 +1139,23 @@ function renderPtDatos(){
     '<div class="section-card"><h4>🩺 Comorbilidades</h4><div class="comorb-grid">'+comorbHtml+'</div>'+
       '<div class="field-row" style="margin-top:12px"><div class="field-group"><label>Charlson</label><div class="calc-val'+(ch>=5?' danger':ch>=3?' warn':'')+'">'+ch+' pts</div></div><div class="field-group"><label>Mortalidad estimada 10 años</label><div class="calc-val">'+charlsonMortality(ch)+'</div></div></div>'+
     '</div>'+
-    '<div class="section-card"><h4>🚪 Egreso</h4><p style="font-size:12px;color:var(--muted);margin-bottom:8px">Al egresar, el paciente se archiva en Egresados y la cama queda pendiente de limpieza terminal.</p>'+
-      '<button class="btn btn-red btn-sm" onclick="openEgreso()">🚪 Egresar paciente</button></div>';
+    '<div class="section-card"><h4>Acciones</h4>'+
+      '<p style="font-size:12px;color:var(--muted);margin-bottom:10px">Al egresar, el paciente se archiva en Egresados y la cama queda pendiente de limpieza terminal.</p>'+
+      '<div class="btn-row" style="display:flex;gap:8px;flex-wrap:wrap">'+
+        '<button class="btn btn-teal btn-sm" onclick="guardarDatosPaciente()">💾 Guardar</button>'+
+        '<button class="btn btn-outline btn-sm" onclick="askLimpiarPac()">🗑️ Limpiar</button>'+
+        '<button class="btn btn-red btn-sm" onclick="openEgreso()">🚪 Egreso</button>'+
+      '</div></div>';
+}
+function guardarDatosPaciente(){ if(!currentPatient()){ toast('No hay paciente activo'); return; } save(); toast('Guardado correctamente'); }
+function askLimpiarPac(){ if(!currentPatient()){ toast('No hay paciente activo'); return; } document.getElementById('modalLimpiarPac').style.display='flex'; }
+function confirmLimpiarPac(){
+  if(state.activeBed===null) return;
+  state.areas[state.activeArea].beds[state.activeBed]=emptyPatient(state.activeBed+1);
+  save();
+  closeModal('modalLimpiarPac');
+  renderPatientPanel();
+  toast('Datos del paciente limpiados');
 }
 function fg(label,field,type,val){ return '<div class="field-group"><label>'+label+'</label><input type="'+type+'" value="'+esc(val)+'" oninput="pset(\''+field+'\',this.value)"></div>'; }
 function toggleComorb(k,v){ var p=currentPatient(); if(!p) return; if(!p.comorb) p.comorb={}; p.comorb[k]=v; save(); renderPtDatos(); }
@@ -1356,7 +1453,7 @@ function renderAlertas(){
       '<div style="margin-top:4px;font-size:12px"><b>Acción:</b> '+esc(al.accion)+'</div></div>';
   }).join('');
   var resolved=getResolved();
-  var resHtml=Object.keys(resolved).length?('<div class="stats-section-title">Alertas resueltas</div>'+Object.keys(resolved).map(function(k){ var r=resolved[k]; return '<div class="alert-box ok" style="margin-top:6px">✔️ '+esc(k)+' · '+esc(r.fecha)+(r.obs?' · '+esc(r.obs):'')+' <button class="btn btn-outline btn-sm" style="float:right" onclick="unresolve(\''+k+'\')">Reabrir</button></div>'; }).join('')):'';
+  var resHtml=Object.keys(resolved).length?('<div class="stats-section-title">Alertas resueltas</div>'+Object.keys(resolved).map(function(k){ var r=resolved[k]; return '<div class="alert-box ok" style="margin-top:6px">✔️ <b>'+esc(r.label||k)+'</b> · Resuelta: '+esc(r.fecha)+(r.obs?' · Obs: '+esc(r.obs):'')+' <button class="btn btn-outline btn-sm" style="float:right" onclick="unresolve(\''+k+'\')">Reabrir</button></div>'; }).join('')):'';
   document.getElementById('panel-alertas').innerHTML=
     '<h3 style="margin-bottom:6px">🚨 Panel de alertas</h3>'+
     '<p style="font-size:12px;color:var(--muted);margin-bottom:8px">Ordenadas por severidad. Reingreso, limpieza terminal, infección cruzada y multirresistencia.</p>'+
@@ -1367,87 +1464,332 @@ function unresolve(k){ var r=getResolved(); delete r[k]; setResolved(r); renderA
 /* ============================================================
    ESTADÍSTICAS
    ============================================================ */
-function renderStats(){
-  var per=window._statsPeriod||'all', areaF=window._statsArea||'';
-  var egres=getEgresados();
-  var active=allActive();
-  // filtrar egresados por período
-  function inPeriod(d){ if(per==='all'||!d) return true; var days=daysBetween(d,todayStr()); if(days===null) return true; if(per==='30') return days<=30; if(per==='90') return days<=90; if(per==='365') return days<=365; return true; }
-  var egF=egres.filter(function(e){ return inPeriod(e.fechaEgreso)&&(!areaF||e.areaName===areaF); });
-  var acF=active.filter(function(r){ return (!areaF||r.area.name===areaF); });
+/* Filtro actual (compartido). desde/hasta = fechas ISO o '' */
+/* Preset de período -> resuelve {desde,hasta} */
+function statsPreset(){ return window._statsPreset||'todo'; }
+function resolvePreset(preset){
+  var hoy=new Date(); function iso(d){ return d.toISOString().slice(0,10); }
+  var hasta=iso(hoy), desde='';
+  if(preset==='hoy'){ desde=iso(hoy); }
+  else if(preset==='semana'){ var d=new Date(hoy); var dow=(d.getDay()+6)%7; d.setDate(d.getDate()-dow); desde=iso(d); }
+  else if(preset==='mes'){ var m=new Date(hoy.getFullYear(),hoy.getMonth(),1); desde=iso(m); }
+  else if(preset==='3meses'){ var t=new Date(hoy); t.setMonth(t.getMonth()-3); desde=iso(t); }
+  else if(preset==='personalizado'){ return { desde:(window._statsDesde||''), hasta:(window._statsHasta||'') }; }
+  else { return { desde:'', hasta:'' }; } // 'todo'
+  return { desde:desde, hasta:hasta };
+}
+/* Áreas seleccionadas (nombres). [] = Todas */
+function statsAreas(){ return Array.isArray(window._statsAreas)?window._statsAreas.slice():[]; }
+function statsFilter(){
+  var r=resolvePreset(statsPreset());
+  return { desde:r.desde, hasta:r.hasta, areas:statsAreas(), cobertura:(window._statsCobertura||'') };
+}
+/* Etiquetas/coberturas disponibles (fijas + las presentes en datos) */
+function getEtiquetas(){
+  var set={}; ETIQUETAS.forEach(function(e){ set[e]=1; });
+  try{ allActive().forEach(function(r){ if(r.p.cobertura) set[r.p.cobertura]=1; }); }catch(e){}
+  getEgresados().forEach(function(e){ if(e.cobertura) set[e.cobertura]=1; });
+  return Object.keys(set);
+}
+/* Agregación central: una sola fuente de verdad para pantalla y PDF */
+function computeInfectStats(filter){
+  filter=filter||{};
+  var desde=filter.desde||'', hasta=filter.hasta||'';
+  // compat: 'area' (string) o 'areas' ([]) ; [] o vacío = todas
+  var areasSel=[];
+  if(Array.isArray(filter.areas)) areasSel=filter.areas.filter(Boolean);
+  else if(filter.area) areasSel=[filter.area];
+  var covF=filter.cobertura||'';
+  function areaOK(an){ return !areasSel.length || areasSel.indexOf(an)>=0; }
+  function covOK(c){ return !covF || (c||'')===covF; }
+  var egres=getEgresados(), active=allActive();
+  function inPeriod(d){ // por fecha ISO
+    if(!d) return true;
+    if(desde && d<desde) return false;
+    if(hasta && d>hasta) return false;
+    return true;
+  }
+  // egresados: filtrar por fecha de egreso; activos: por fecha de ingreso
+  var egF=egres.filter(function(e){ return inPeriod(e.fechaEgreso)&&areaOK(e.areaName)&&covOK(e.cobertura); });
+  var acF=active.filter(function(r){ return inPeriod(r.p.ingreso)&&areaOK(r.area.name)&&covOK(r.p.cobertura); });
 
-  // top germs (activos + egresados)
-  var germs={};
-  acF.forEach(function(r){ if(r.p.germen) germs[r.p.germen]=(germs[r.p.germen]||0)+1; });
-  egF.forEach(function(e){ if(e.germen) germs[e.germen]=(germs[e.germen]||0)+1; });
-  var germArr=Object.keys(germs).map(function(k){return {g:k,n:germs[k]};}).sort(function(a,b){return b.n-a.n;}).slice(0,8);
-  var maxG=germArr.length?germArr[0].n:1;
-  var germBars=germArr.map(function(t){ return bar(t.g,t.n,maxG,isMDR(t.g)?'var(--red)':'var(--teal)'); }).join('')||nodata();
+  /* ---- GÉRMENES ---- */
+  var germsTotal={}, germsByArea={};
+  acF.forEach(function(r){ if(r.p.germen){ germsTotal[r.p.germen]=(germsTotal[r.p.germen]||0)+1; var an=r.area.name; (germsByArea[an]=germsByArea[an]||{})[r.p.germen]=((germsByArea[an]||{})[r.p.germen]||0)+1; } });
+  egF.forEach(function(e){ if(e.germen){ germsTotal[e.germen]=(germsTotal[e.germen]||0)+1; var an=e.areaName||'—'; (germsByArea[an]=germsByArea[an]||{})[e.germen]=((germsByArea[an]||{})[e.germen]||0)+1; } });
+  var germsTop=Object.keys(germsTotal).map(function(k){return {label:k,n:germsTotal[k],mdr:isMDR(k)};}).sort(function(a,b){return b.n-a.n;}).slice(0,5);
 
-  // mapa de resistencia: ATB x germen (% sensibilidad de activos con antibiograma)
-  var resMap={}; // germen -> {atb -> {S,total}}
+  // evolución de gérmenes por mes (activos por ingreso + egresados por egreso)
+  var germByMonth={}; // 'YYYY-MM' -> count
+  function addMonth(d){ if(!d||d.length<7) return; var m=d.slice(0,7); germByMonth[m]=(germByMonth[m]||0)+1; }
+  acF.forEach(function(r){ if(r.p.germen) addMonth(r.p.ingreso); });
+  egF.forEach(function(e){ if(e.germen) addMonth(e.fechaEgreso); });
+  var germMonthArr=Object.keys(germByMonth).sort().map(function(m){return {label:m,n:germByMonth[m]};});
+
+  // mapa de resistencia ATB × germen (% S de activos con antibiograma)
+  var resMap={};
   acF.forEach(function(r){ var p=r.p; if(!p.germen||!p.abg) return; Object.keys(p.abg).forEach(function(atb){ if(!resMap[p.germen]) resMap[p.germen]={}; if(!resMap[p.germen][atb]) resMap[p.germen][atb]={S:0,t:0}; resMap[p.germen][atb].t++; if(p.abg[atb]==='S') resMap[p.germen][atb].S++; }); });
-  var resGerms=Object.keys(resMap).slice(0,6);
-  var resAtbs=Array.from(new Set([].concat.apply([],resGerms.map(function(g){return Object.keys(resMap[g]);})))).slice(0,10);
-  var resTable='';
-  if(resGerms.length && resAtbs.length){
-    resTable='<div style="overflow-x:auto"><table class="data-table" style="font-size:11px"><thead><tr><th>Germen \\ ATB</th>'+resAtbs.map(function(a){return '<th>'+esc(a)+'</th>';}).join('')+'</tr></thead><tbody>'+
-      resGerms.map(function(g){ return '<tr><td><b>'+esc(g)+'</b></td>'+resAtbs.map(function(a){ var c=resMap[g][a]; if(!c) return '<td>—</td>'; var pc=Math.round(c.S/c.t*100); var col=pc>=70?'var(--green)':pc>=40?'var(--amber)':'var(--red)'; return '<td style="color:'+col+';font-weight:700">'+pc+'%</td>'; }).join('')+'</tr>'; }).join('')+
-      '</tbody></table></div><p style="font-size:11px;color:var(--muted);margin-top:6px">% de sensibilidad (verde ≥70%, ámbar 40-69%, rojo &lt;40%).</p>';
-  } else resTable=nodata();
 
-  // avg ATB days by infection (egresados)
-  var byFoco={};
-  egF.forEach(function(e){ if(!e.foco) return; if(!byFoco[e.foco]) byFoco[e.foco]={sum:0,n:0}; byFoco[e.foco].sum+=(parseInt(e.diasAtb,10)||0); byFoco[e.foco].n++; });
-  var focoArr=Object.keys(byFoco).map(function(k){return {f:k,avg:Math.round(byFoco[k].sum/byFoco[k].n)};});
-  var maxF=focoArr.reduce(function(m,x){return Math.max(m,x.avg);},1);
-  var focoBars=focoArr.map(function(t){ return bar(t.f,t.avg,maxF,'var(--blue)',t.avg+'d'); }).join('')||nodata();
+  /* ---- ATB ---- */
+  var atbUse={}; // ATB más usados (de atb[] de activos)
+  var atbDaysByFoco={}; // días promedio por foco (activos: por foco del paciente; egresados: por e.foco/e.diasAtb)
+  acF.forEach(function(r){ var p=r.p; (p.atb||[]).forEach(function(x){ if(x.atb) atbUse[x.atb]=(atbUse[x.atb]||0)+1; }); });
+  egF.forEach(function(e){ (String(e.atbList||'').split(',')).forEach(function(nm){ nm=nm.trim(); if(nm) atbUse[nm]=(atbUse[nm]||0)+1; }); });
+  // días ATB por foco: sumamos días de atb[] de activos por foco del paciente + diasAtb de egresados por foco
+  acF.forEach(function(r){ var p=r.p; if(!p.foco) return; var d=(p.atb||[]).reduce(function(s,x){ var v=(x.inicio&&x.fin)?daysBetween(x.inicio,x.fin):(x.inicio?daysSince(x.inicio):0); return s+(parseInt(v,10)||0); },0); if(!atbDaysByFoco[p.foco]) atbDaysByFoco[p.foco]={sum:0,n:0}; atbDaysByFoco[p.foco].sum+=d; atbDaysByFoco[p.foco].n++; });
+  egF.forEach(function(e){ if(!e.foco) return; if(!atbDaysByFoco[e.foco]) atbDaysByFoco[e.foco]={sum:0,n:0}; atbDaysByFoco[e.foco].sum+=(parseInt(e.diasAtb,10)||0); atbDaysByFoco[e.foco].n++; });
+  var atbUseArr=Object.keys(atbUse).map(function(k){return {label:k,n:atbUse[k]};}).sort(function(a,b){return b.n-a.n;}).slice(0,8);
+  var atbFocoArr=Object.keys(atbDaysByFoco).map(function(k){return {label:k,avg:atbDaysByFoco[k].n?Math.round(atbDaysByFoco[k].sum/atbDaysByFoco[k].n):0};});
+  // escalamiento vs desescalamiento (de escal[] de activos)
+  var esc_up=0, esc_down=0;
+  acF.forEach(function(r){ (r.p.escal||[]).forEach(function(x){ if(x.tipo==='Escalamiento') esc_up++; else if(x.tipo==='Desescalamiento') esc_down++; }); });
+  var escTotal=esc_up+esc_down;
 
-  // mortalidad por foco
+  /* ---- INFECCIONES ---- */
+  var focoCount={};
+  acF.forEach(function(r){ if(r.p.foco) focoCount[r.p.foco]=(focoCount[r.p.foco]||0)+1; });
+  egF.forEach(function(e){ if(e.foco) focoCount[e.foco]=(focoCount[e.foco]||0)+1; });
+  var focoArr=Object.keys(focoCount).map(function(k){return {label:k,n:focoCount[k]};}).sort(function(a,b){return b.n-a.n;});
+  // mortalidad por foco (egresados)
   var mortByFoco={};
   egF.forEach(function(e){ if(!e.foco) return; if(!mortByFoco[e.foco]) mortByFoco[e.foco]={f:0,n:0}; mortByFoco[e.foco].n++; if(e.resultado==='Fallecido') mortByFoco[e.foco].f++; });
-  var mortArr=Object.keys(mortByFoco).map(function(k){return {f:k,pc:Math.round(mortByFoco[k].f/mortByFoco[k].n*100),n:mortByFoco[k].n};});
-  var mortBars=mortArr.map(function(t){ return bar(t.f+' (n='+t.n+')',t.pc,100,'var(--red)',t.pc+'%'); }).join('')||nodata();
+  var mortArr=Object.keys(mortByFoco).map(function(k){return {label:k+' (n='+mortByFoco[k].n+')',pc:Math.round(mortByFoco[k].f/mortByFoco[k].n*100)};});
+  // cruzadas y reingresos (motor de alertas)
+  var allAl=buildAlerts();
+  var crossN=allAl.filter(function(a){return a.tipo==='Infección cruzada';}).length;
+  var reN=allAl.filter(function(a){return a.tipo==='Reingreso';}).length;
+  // tasa de cruzada por área (activos con cruzada / activos con germen)
+  var crossByArea={};
+  acF.forEach(function(r){ var an=r.area.name; if(!crossByArea[an]) crossByArea[an]={c:0,n:0}; if(r.p.germen) crossByArea[an].n++; if(CROSS_MAP[r.p.id]) crossByArea[an].c++; });
+  var crossAreaArr=Object.keys(crossByArea).map(function(k){return {label:k,pc:crossByArea[k].n?Math.round(crossByArea[k].c/crossByArea[k].n*100):0};}).filter(function(x){return x.pc>0;});
+  // reingresos por mismo germen (egresados repetidos por CI/nombre con germen)
+  var seen={}, readmSameGerm=0;
+  egres.forEach(function(e){ var key=(e.ci||e.name||'').toLowerCase(); if(!key||!e.germen) return; if(seen[key]&&seen[key]===normGerm(e.germen)) readmSameGerm++; seen[key]=normGerm(e.germen); });
 
-  // cross-infection rate & readmissions
-  var crossN=buildAlerts().filter(function(a){return a.tipo==='Infección cruzada';}).length;
-  var reN=buildAlerts().filter(function(a){return a.tipo==='Reingreso';}).length;
-  // readmissions by same germ (egresados con misma CI/nombre y germen)
-  var readmByGerm={};
-  var seen={};
-  egres.forEach(function(e){ var key=(e.ci||e.name||'').toLowerCase(); if(!key||!e.germen) return; if(seen[key]){ readmByGerm[e.germen]=(readmByGerm[e.germen]||0)+1; } seen[key]=true; });
-
-  // población por etiqueta
+  /* ---- PACIENTES ---- */
+  // ocupación ACTUAL: camas ocupadas / total (respetando filtro de área)
+  var beds=0, occ=0;
+  var ocupActualArr=[];
+  state.areas.forEach(function(a){ if(!areaOK(a.name)) return; var t=a.beds.length; var o=a.beds.filter(function(x){return x;}).length; beds+=t; occ+=o; ocupActualArr.push({label:a.name, occ:o, total:t, pc:t?Math.round(o/t*100):0}); });
+  var ocupacionPc=beds?Math.round(occ/beds*100):0;
+  // ocupación HISTÓRICA: ingresos por área en el período (activos + egresados)
+  var histArea={};
+  acF.forEach(function(r){ var an=r.area.name; histArea[an]=(histArea[an]||0)+1; });
+  egF.forEach(function(e){ var an=e.areaName||'—'; histArea[an]=(histArea[an]||0)+1; });
+  var ocupHistArr=Object.keys(histArea).map(function(k){return {label:k,n:histArea[k]};}).sort(function(a,b){return b.n-a.n;});
+  // días promedio de internación (egresados con días válidos + activos actuales)
+  var diasArr=[];
+  egF.forEach(function(e){ var d=parseInt(e.diasInternacion,10); if(!isNaN(d)&&d>=0) diasArr.push(d); });
+  acF.forEach(function(r){ var d=parseInt(daysSince(r.p.ingreso),10); if(!isNaN(d)&&d>=0) diasArr.push(d); });
+  var diasProm=diasArr.length?Math.round(diasArr.reduce(function(s,x){return s+x;},0)/diasArr.length):null;
+  // días promedio de internación POR ÁREA
+  var diasByArea={};
+  function pushDiasArea(an,d){ if(isNaN(d)||d<0) return; if(!diasByArea[an]) diasByArea[an]={sum:0,n:0}; diasByArea[an].sum+=d; diasByArea[an].n++; }
+  egF.forEach(function(e){ pushDiasArea(e.areaName||'—', parseInt(e.diasInternacion,10)); });
+  acF.forEach(function(r){ pushDiasArea(r.area.name, parseInt(daysSince(r.p.ingreso),10)); });
+  var diasAreaArr=Object.keys(diasByArea).map(function(k){return {label:k, avg:Math.round(diasByArea[k].sum/diasByArea[k].n)};}).sort(function(a,b){return b.avg-a.avg;});
+  // días promedio de internación POR DIAGNÓSTICO (top)
+  var diasByDx={};
+  function pushDiasDx(dx,d){ dx=(dx||'').trim(); if(!dx||isNaN(d)||d<0) return; if(!diasByDx[dx]) diasByDx[dx]={sum:0,n:0}; diasByDx[dx].sum+=d; diasByDx[dx].n++; }
+  egF.forEach(function(e){ pushDiasDx(e.dx, parseInt(e.diasInternacion,10)); });
+  acF.forEach(function(r){ pushDiasDx(r.p.dx, parseInt(daysSince(r.p.ingreso),10)); });
+  var diasDxArr=Object.keys(diasByDx).map(function(k){return {label:k, avg:Math.round(diasByDx[k].sum/diasByDx[k].n), n:diasByDx[k].n};}).sort(function(a,b){return b.n-a.n;}).slice(0,8);
+  // MORTALIDAD por foco (ya calculada arriba: mortArr) y por GERMEN
+  var mortByGerm={};
+  egF.forEach(function(e){ if(!e.germen) return; if(!mortByGerm[e.germen]) mortByGerm[e.germen]={f:0,n:0}; mortByGerm[e.germen].n++; if(e.resultado==='Fallecido') mortByGerm[e.germen].f++; });
+  var mortGermArr=Object.keys(mortByGerm).map(function(k){return {label:k+' (n='+mortByGerm[k].n+')', pc:Math.round(mortByGerm[k].f/mortByGerm[k].n*100)};}).sort(function(a,b){return b.pc-a.pc;});
+  // CHARLSON promedio (activos: calcCharlson; egresados: e.charlson)
+  var chArr=[];
+  acF.forEach(function(r){ var c=calcCharlson(r.p); if(!isNaN(c)) chArr.push(c); });
+  egF.forEach(function(e){ var c=parseInt(e.charlson,10); if(!isNaN(c)) chArr.push(c); });
+  var charlsonProm=chArr.length?Math.round(chArr.reduce(function(s,x){return s+x;},0)/chArr.length*10)/10:null;
+  // distribución por área (activos + egresados) — mantiene sección existente
+  var distAreaArr=ocupHistArr;
+  // población por etiqueta/cobertura
   var pob={};
   acF.forEach(function(r){ var c=r.p.cobertura||'Sin etiqueta'; pob[c]=(pob[c]||0)+1; });
   egF.forEach(function(e){ var c=e.cobertura||'Sin etiqueta'; pob[c]=(pob[c]||0)+1; });
-  var pobArr=Object.keys(pob).map(function(k){return {c:k,n:pob[k]};}).sort(function(a,b){return b.n-a.n;});
-  var maxP=pobArr.length?pobArr[0].n:1;
-  var pobBars=pobArr.map(function(t){ return bar(t.c,t.n,maxP,'var(--purple)'); }).join('')||nodata();
+  var pobArr=Object.keys(pob).map(function(k){return {label:k,n:pob[k]};}).sort(function(a,b){return b.n-a.n;});
+  var fall=egF.filter(function(e){return e.resultado==='Fallecido';}).length;
+  // top germen / foco / ATB days (para comparativo de poblaciones)
+  var topGerm=germsTop.length?germsTop[0].label:'';
+  var topFoco=focoArr.length?focoArr[0].label:'';
+  var atbDaysAll=[];
+  egF.forEach(function(e){ var d=parseInt(e.diasAtb,10); if(!isNaN(d)&&d>0) atbDaysAll.push(d); });
+  var atbDaysProm=atbDaysAll.length?Math.round(atbDaysAll.reduce(function(s,x){return s+x;},0)/atbDaysAll.length):null;
+  var mortRate=egF.length?Math.round(fall/egF.length*100):null;
 
-  var areasOpts=[''].concat(state.areas.map(function(a){return a.name;}));
+  return {
+    filter:{desde:desde,hasta:hasta,areas:areasSel,cobertura:covF,area:(areasSel.length===1?areasSel[0]:'')},
+    counts:{activos:acF.length,egresados:egF.length,fallecidos:fall,camas:beds,ocupadas:occ,ocupacionPc:ocupacionPc},
+    germs:{top:germsTop, byArea:germsByArea, byMonth:germMonthArr, resMap:resMap},
+    atb:{use:atbUseArr, daysByFoco:atbFocoArr, escUp:esc_up, escDown:esc_down, escTotal:escTotal},
+    inf:{focos:focoArr, mort:mortArr, crossN:crossN, reN:reN, crossByArea:crossAreaArr, readmSameGerm:readmSameGerm},
+    pac:{diasProm:diasProm, distArea:distAreaArr, pob:pobArr,
+         ocupActual:ocupActualArr, ocupHist:ocupHistArr,
+         diasByArea:diasAreaArr, diasByDx:diasDxArr,
+         mortFoco:mortArr, mortGerm:mortGermArr, charlsonProm:charlsonProm},
+    resumen:{n:(acF.length+egF.length), diasProm:diasProm, charlsonProm:charlsonProm,
+             mortRate:mortRate, topGerm:topGerm, topFoco:topFoco, atbDaysProm:atbDaysProm}
+  };
+}
+/* Helper para comparativo por población (cobertura) */
+function computePoblacionInfect(label, filter){
+  var f=Object.assign({}, filter||{}); f.cobertura=label;
+  return computeInfectStats(f);
+}
+
+function renderStats(){
+  var f=statsFilter();
+  var S=computeInfectStats(f);
+  function bar(l,v,mx,col,txt){ return '<div class="stats-bar-row"><div class="stats-bar-label">'+esc(l)+'</div><div class="stats-bar-track"><div class="stats-bar-fill" style="width:'+(mx?v/mx*100:0)+'%;background:'+col+'"></div></div><div class="stats-bar-val">'+esc(txt!==undefined?txt:v)+'</div></div>'; }
+  function bars(arr,valKey,col,mxKey,unit){ if(!arr.length) return nodata(); var mx=arr.reduce(function(m,x){return Math.max(m,x[valKey]);},1); return arr.map(function(t){ return bar(t.label,t[valKey],mx,(typeof col==='function'?col(t):col),t[valKey]+(unit||'')); }).join(''); }
+  function card(t,c,chkKey){ var chk=chkKey?'<label class="chk-inline" style="float:right;font-weight:400"><input type="checkbox" data-sec="'+chkKey+'" '+(statSecOn(chkKey)?'checked':'')+' onchange="toggleStatSec(\''+chkKey+'\',this.checked)"> PDF</label>':''; return '<div class="stat-card"><h4>'+t+chk+'</h4><div class="stats-bars">'+c+'</div></div>'; }
+  function nodata(){ return '<span style="color:var(--muted)">Sin datos</span>'; }
+
+  // GÉRMENES
+  var germBars=S.germs.top.length?S.germs.top.map(function(t){ return bar(t.label,t.n,S.germs.top[0].n,t.mdr?'var(--red)':'var(--teal)'); }).join(''):nodata();
+  var germAreaHtml=Object.keys(S.germs.byArea).length?Object.keys(S.germs.byArea).map(function(an){ var m=S.germs.byArea[an]; var top=Object.keys(m).map(function(k){return {label:k,n:m[k]};}).sort(function(a,b){return b.n-a.n;}).slice(0,3); return '<div style="margin-bottom:6px"><div style="font-size:11px;font-weight:700;color:var(--muted)">'+esc(an)+'</div>'+top.map(function(t){return bar(t.label,t.n,top[0].n,'var(--teal)');}).join('')+'</div>'; }).join(''):nodata();
+  var germMonthBars=S.germs.byMonth.length?S.germs.byMonth.map(function(t){ return bar(t.label,t.n,S.germs.byMonth.reduce(function(m,x){return Math.max(m,x.n);},1),'var(--blue)'); }).join(''):nodata();
+  // mapa resistencia
+  var resGerms=Object.keys(S.germs.resMap).slice(0,6);
+  var resAtbs=Array.from(new Set([].concat.apply([],resGerms.map(function(g){return Object.keys(S.germs.resMap[g]);})))).slice(0,10);
+  var resTable;
+  if(resGerms.length && resAtbs.length){
+    resTable='<div style="overflow-x:auto"><table class="data-table" style="font-size:11px"><thead><tr><th>Germen \\ ATB</th>'+resAtbs.map(function(a){return '<th>'+esc(a)+'</th>';}).join('')+'</tr></thead><tbody>'+
+      resGerms.map(function(g){ return '<tr><td><b>'+esc(g)+'</b></td>'+resAtbs.map(function(a){ var c=S.germs.resMap[g][a]; if(!c) return '<td>—</td>'; var pc=Math.round(c.S/c.t*100); var col=pc>=70?'var(--green)':pc>=40?'var(--amber)':'var(--red)'; return '<td style="color:'+col+';font-weight:700">'+pc+'%</td>'; }).join('')+'</tr>'; }).join('')+
+      '</tbody></table></div><p style="font-size:11px;color:var(--muted);margin-top:6px">% de sensibilidad (verde ≥70%, ámbar 40-69%, rojo &lt;40%).</p>';
+  } else resTable=nodata();
+
+  // ATB
+  var atbUseBars=S.atb.use.length?S.atb.use.map(function(t){ return bar(t.label,t.n,S.atb.use[0].n,'var(--teal)'); }).join(''):nodata();
+  var atbFocoBars=bars(S.atb.daysByFoco,'avg','var(--blue)',null,'d');
+  var escHtml=S.atb.escTotal?('<div class="stats-bars">'+bar('Escalamiento',S.atb.escUp,S.atb.escTotal,'var(--red)',S.atb.escUp)+bar('Desescalamiento',S.atb.escDown,S.atb.escTotal,'var(--green)',S.atb.escDown)+'</div><p style="font-size:11px;color:var(--muted);margin-top:4px">Tasa desescalamiento: '+Math.round(S.atb.escDown/S.atb.escTotal*100)+'%</p>'):nodata();
+
+  // INFECCIONES
+  var focoBars=S.inf.focos.length?S.inf.focos.map(function(t){ return bar(t.label,t.n,S.inf.focos[0].n,'var(--orange)'); }).join(''):nodata();
+  var mortBars=S.inf.mort.length?S.inf.mort.map(function(t){ return bar(t.label,t.pc,100,'var(--red)',t.pc+'%'); }).join(''):nodata();
+  var crossAreaBars=S.inf.crossByArea.length?S.inf.crossByArea.map(function(t){ return bar(t.label,t.pc,100,'var(--red)',t.pc+'%'); }).join(''):nodata();
+
+  // PACIENTES
+  var distBars=S.pac.distArea.length?S.pac.distArea.map(function(t){ return bar(t.label,t.n,S.pac.distArea[0].n,'var(--purple)'); }).join(''):nodata();
+  var pobBars=S.pac.pob.length?S.pac.pob.map(function(t){ return bar(t.label,t.n,S.pac.pob[0].n,'var(--purple)'); }).join(''):nodata();
+  var ocupActBars=S.pac.ocupActual.length?S.pac.ocupActual.map(function(t){ return bar(t.label,t.pc,100,'var(--teal)',t.occ+'/'+t.total+' ('+t.pc+'%)'); }).join(''):nodata();
+  var ocupHistBars=S.pac.ocupHist.length?S.pac.ocupHist.map(function(t){ return bar(t.label,t.n,S.pac.ocupHist[0].n,'var(--blue)'); }).join(''):nodata();
+  var diasAreaBars=S.pac.diasByArea.length?S.pac.diasByArea.map(function(t){ return bar(t.label,t.avg,S.pac.diasByArea[0].avg||1,'var(--blue)',t.avg+'d'); }).join(''):nodata();
+  var diasDxBars=S.pac.diasByDx.length?S.pac.diasByDx.map(function(t){ return bar(t.label,t.avg,S.pac.diasByDx.reduce(function(m,x){return Math.max(m,x.avg);},1),'var(--blue)',t.avg+'d (n='+t.n+')'); }).join(''):nodata();
+  var mortFocoBars=S.pac.mortFoco.length?S.pac.mortFoco.map(function(t){ return bar(t.label,t.pc,100,'var(--red)',t.pc+'%'); }).join(''):nodata();
+  var mortGermBars=S.pac.mortGerm.length?S.pac.mortGerm.map(function(t){ return bar(t.label,t.pc,100,'var(--red)',t.pc+'%'); }).join(''):nodata();
+  var charlsonHtml=(S.pac.charlsonProm!==null)?('<div class="stats-big">'+S.pac.charlsonProm+' pts</div><p style="font-size:11px;color:var(--muted)">Score de Charlson promedio (población filtrada, n='+S.resumen.n+')</p>'):nodata();
+
+  // ANÁLISIS POR POBLACIÓN (comparativo hasta 2)
+  var pobComparHtml=renderPobComparativo(f);
+
+  var areasSel=statsAreas();
+  var preset=statsPreset();
+  function presetBtn(k,lbl){ return '<button class="btn btn-sm '+(preset===k?'btn-teal':'btn-outline')+'" onclick="window._statsPreset=\''+k+'\';renderStats()">'+lbl+'</button>'; }
+  var areaChecks=state.areas.map(function(a,ai){ var on=areasSel.indexOf(a.name)>=0; return '<label class="chk-inline" style="margin-right:10px"><input type="checkbox" '+(on?'checked':'')+' onchange="toggleStatsArea('+ai+',this.checked)"> '+esc(a.name)+'</label>'; }).join('');
+  var todasOn=areasSel.length===0;
   document.getElementById('panel-stats').innerHTML=
+    '<div class="stat-card" style="margin-bottom:12px"><h4>🗓️ Período</h4>'+
+      '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">'+
+        presetBtn('hoy','Hoy')+presetBtn('semana','Esta semana')+presetBtn('mes','Este mes')+presetBtn('3meses','Últimos 3 meses')+presetBtn('todo','Todo')+presetBtn('personalizado','Personalizado')+
+      '</div>'+
+      (preset==='personalizado'?('<div class="filters" style="margin-top:6px">'+
+        '<div class="field-group"><label>Desde</label><input type="date" value="'+esc(window._statsDesde||'')+'" onchange="window._statsDesde=this.value;renderStats()"></div>'+
+        '<div class="field-group"><label>Hasta</label><input type="date" value="'+esc(window._statsHasta||'')+'" onchange="window._statsHasta=this.value;renderStats()"></div>'+
+      '</div>'):'')+
+      '<p style="font-size:11px;color:var(--muted);margin-top:4px">Rango aplicado: '+(f.desde||'inicio')+' → '+(f.hasta||'hoy')+'</p>'+
+    '</div>'+
+    '<div class="stat-card" style="margin-bottom:12px"><h4>🏥 Áreas</h4>'+
+      '<label class="chk-inline" style="margin-right:10px"><input type="checkbox" '+(todasOn?'checked':'')+' onchange="window._statsAreas=[];renderStats()"> Todas</label>'+areaChecks+
+    '</div>'+
     '<div class="filters">'+
-      '<div class="field-group"><label>Período</label><select onchange="window._statsPeriod=this.value;renderStats()">'+
-        [['all','Todo'],['30','30 días'],['90','90 días'],['365','1 año']].map(function(o){return '<option value="'+o[0]+'"'+(per===o[0]?' selected':'')+'>'+o[1]+'</option>';}).join('')+'</select></div>'+
-      '<div class="field-group"><label>Área</label><select onchange="window._statsArea=this.value;renderStats()">'+areasOpts.map(function(a){return '<option value="'+esc(a)+'"'+(areaF===a?' selected':'')+'>'+esc(a||'Todas')+'</option>';}).join('')+'</select></div>'+
+      '<div class="field-group"><label>Cobertura</label><select onchange="window._statsCobertura=this.value;renderStats()"><option value="">Todas</option>'+getEtiquetas().map(function(e){return '<option'+(f.cobertura===e?' selected':'')+'>'+esc(e)+'</option>';}).join('')+'</select></div>'+
+      '<div class="field-group" style="align-self:flex-end"><button class="btn btn-teal btn-sm" onclick="renderStats()">Aplicar</button></div>'+
+      '<div class="field-group" style="align-self:flex-end"><button class="btn btn-outline btn-sm" onclick="window._statsPreset=\'todo\';window._statsDesde=\'\';window._statsHasta=\'\';window._statsAreas=[];window._statsCobertura=\'\';renderStats()">Limpiar</button></div>'+
       '<div class="field-group" style="align-self:flex-end"><button class="btn btn-teal btn-sm" onclick="exportStatsPDF()">📑 Exportar PDF</button></div>'+
     '</div>'+
+    '<div class="stat-card" style="margin-bottom:14px"><h4>📋 Resumen</h4><div style="display:flex;gap:22px;flex-wrap:wrap">'+
+      '<div><div class="stats-big">'+S.counts.activos+'</div><div style="font-size:11px;color:var(--muted)">Activos</div></div>'+
+      '<div><div class="stats-big">'+S.counts.egresados+'</div><div style="font-size:11px;color:var(--muted)">Egresados</div></div>'+
+      '<div><div class="stats-big">'+S.counts.ocupacionPc+'%</div><div style="font-size:11px;color:var(--muted)">Ocupación ('+S.counts.ocupadas+'/'+S.counts.camas+')</div></div>'+
+      '<div><div class="stats-big">'+(S.pac.diasProm!==null?S.pac.diasProm+'d':'—')+'</div><div style="font-size:11px;color:var(--muted)">Días internación prom.</div></div>'+
+    '</div></div>'+
+    '<div class="stats-section-title">1 · Gérmenes</div>'+
     '<div class="stats-grid">'+
-      card('🦠 Gérmenes más frecuentes',germBars)+
-      card('⏱️ Días ATB promedio por foco',focoBars)+
-      card('💀 Mortalidad por foco',mortBars)+
-      card('👥 Análisis poblacional (etiquetas)',pobBars)+
+      card('🦠 Top-5 gérmenes (total)',germBars,'g_top')+
+      card('🦠 Gérmenes por área',germAreaHtml,'g_area')+
+      card('📈 Evolución por mes',germMonthBars,'g_month')+
+      card('🗺️ Mapa de resistencia (ATB × germen)',resTable,'g_res')+
     '</div>'+
-    '<div class="stats-grid" style="margin-top:14px">'+
-      card('🔴 Infecciones cruzadas activas','<div class="stats-big">'+crossN+'</div>')+
-      card('🔁 Reingresos con germen previo','<div class="stats-big">'+reN+'</div>')+
+    '<div class="stats-section-title">2 · Antibióticos</div>'+
+    '<div class="stats-grid">'+
+      card('💊 ATB más usados',atbUseBars,'a_use')+
+      card('⏱️ Días ATB promedio por foco',atbFocoBars,'a_foco')+
+      card('🔀 Escalamiento vs desescalamiento',escHtml,'a_esc')+
     '</div>'+
-    '<div class="stat-card" style="margin-top:14px"><h4>🗺️ Mapa de resistencia (ATB × germen)</h4>'+resTable+'</div>';
-  function bar(l,v,mx,col,txt){ return '<div class="stats-bar-row"><div class="stats-bar-label">'+esc(l)+'</div><div class="stats-bar-track"><div class="stats-bar-fill" style="width:'+(mx?v/mx*100:0)+'%;background:'+col+'"></div></div><div class="stats-bar-val">'+(txt||v)+'</div></div>'; }
-  function card(t,c){ return '<div class="stat-card"><h4>'+t+'</h4><div class="stats-bars">'+c+'</div></div>'; }
-  function nodata(){ return '<span style="color:var(--muted)">Sin datos en este filtro.</span>'; }
+    '<div class="stats-section-title">3 · Infecciones</div>'+
+    '<div class="stats-grid">'+
+      card('🎯 Focos más frecuentes',focoBars,'i_foco')+
+      card('💀 Mortalidad por foco',mortBars,'i_mort')+
+      card('🔴 Tasa de infección cruzada por área',crossAreaBars,'i_cross')+
+      card('🔁 Reingreso por mismo germen','<div class="stats-big">'+S.inf.readmSameGerm+'</div><p style="font-size:11px;color:var(--muted)">Cruzadas activas: '+S.inf.crossN+' · Reingresos: '+S.inf.reN+'</p>','i_readm')+
+    '</div>'+
+    '<div class="stats-section-title">4 · Pacientes</div>'+
+    '<div class="stats-grid">'+
+      card('🛏️ Ocupación ACTUAL por área',ocupActBars,'p_ocupact')+
+      card('📊 Ocupación HISTÓRICA por área (ingresos)',ocupHistBars,'p_ocuphist')+
+      card('📅 Días internación prom. por área',diasAreaBars,'p_diasarea')+
+      card('🩺 Días internación prom. por diagnóstico',diasDxBars,'p_diasdx')+
+      card('💀 Mortalidad por foco',mortFocoBars,'p_mortfoco')+
+      card('☠️ Mortalidad por germen',mortGermBars,'p_mortgerm')+
+      card('🧮 Score de Charlson promedio',charlsonHtml,'p_charlson')+
+      card('🏥 Distribución por área',distBars,'p_dist')+
+      card('👥 Población por etiqueta/cobertura',pobBars,'p_pob')+
+    '</div>'+
+    '<div class="stats-section-title">5 · Análisis por población (comparativo)</div>'+
+    pobComparHtml;
 }
+/* Toggle de área en multiselección */
+function toggleStatsArea(ai,on){
+  var a=state.areas[ai]; if(!a) return; var name=a.name;
+  if(!Array.isArray(window._statsAreas)) window._statsAreas=[];
+  var i=window._statsAreas.indexOf(name);
+  if(on){ if(i<0) window._statsAreas.push(name); } else { if(i>=0) window._statsAreas.splice(i,1); }
+  renderStats();
+}
+/* Comparativo de hasta 2 poblaciones (coberturas) lado a lado */
+function renderPobComparativo(f){
+  var opts=getEtiquetas();
+  if(!Array.isArray(window._statsPobSel)) window._statsPobSel=['',''];
+  var sel=window._statsPobSel;
+  function selBox(idx){
+    return '<div class="field-group"><label>Población '+(idx+1)+'</label><select onchange="var s=(window._statsPobSel||[\'\',\'\']);s['+idx+']=this.value;window._statsPobSel=s;renderStats()"><option value="">— (ninguna)</option>'+
+      opts.map(function(e){return '<option'+(sel[idx]===e?' selected':'')+'>'+esc(e)+'</option>';}).join('')+'</select></div>';
+  }
+  var chosen=[sel[0],sel[1]].filter(Boolean);
+  var baseFilter={desde:f.desde,hasta:f.hasta,areas:statsAreas()};
+  var cols=chosen.length?chosen.map(function(lbl){
+    var P=computePoblacionInfect(lbl,baseFilter).resumen;
+    function row(l,v){ return '<tr><td style="color:var(--muted)">'+esc(l)+'</td><td style="font-weight:700">'+esc(v)+'</td></tr>'; }
+    return '<div class="stat-card"><h4>👥 '+esc(lbl)+'</h4><table class="mini-tbl"><tbody>'+
+      row('n (pacientes)',P.n)+
+      row('Días internación prom.',P.diasProm!==null?P.diasProm+'d':'Sin datos')+
+      row('Charlson promedio',P.charlsonProm!==null?P.charlsonProm+' pts':'Sin datos')+
+      row('Mortalidad',P.mortRate!==null?P.mortRate+'%':'Sin datos')+
+      row('Germen más frecuente',P.topGerm||'Sin datos')+
+      row('Foco más frecuente',P.topFoco||'Sin datos')+
+      row('Días ATB prom. (egresados)',P.atbDaysProm!==null?P.atbDaysProm+'d':'Sin datos')+
+      '</tbody></table></div>';
+  }).join(''):'<div class="stat-card"><span style="color:var(--muted)">Seleccione hasta dos poblaciones para comparar.</span></div>';
+  var pdfChk='<label class="chk-inline" style="font-weight:400;margin-left:8px"><input type="checkbox" data-sec="p_compar" '+(statSecOn('p_compar')?'checked':'')+' onchange="toggleStatSec(\'p_compar\',this.checked)"> Incluir en PDF</label>';
+  return '<div class="filters" style="align-items:flex-end">'+selBox(0)+selBox(1)+'<div class="field-group">'+pdfChk+'</div></div>'+
+    '<div class="stats-grid" style="grid-template-columns:repeat(2,1fr)">'+cols+'</div>';
+}
+/* selección de secciones para PDF (persistida en window) */
+function statSecOn(k){ if(!window._statSec) window._statSec={}; return window._statSec[k]!==false; }
+function toggleStatSec(k,v){ if(!window._statSec) window._statSec={}; window._statSec[k]=v; }
 
 /* ============================================================
    EGRESADOS + Excel
@@ -1584,27 +1926,68 @@ function exportPatientPDF(){
 
 function exportStatsPDF(){
   var J=getJsPDF(); if(!J){ alert('jsPDF no disponible.'); return; }
+  var S=computeInfectStats(statsFilter());
   var doc=new J({unit:'mm',format:'a4'}); var col=hexToRgb(state.pdfcolor); var M=14,y=16,W=210;
   var c=CENTROS.find(function(x){return x.id===state.centro;});
   doc.setTextColor(col[0],col[1],col[2]); doc.setFontSize(16); doc.setFont(undefined,'bold'); doc.text('InfectSmart — Estadísticas',M,y); y+=6;
   doc.setFontSize(9); doc.setTextColor(90,98,112); doc.setFont(undefined,'normal');
-  doc.text((c?c.name:'')+' · '+new Date().toLocaleString('es'),M,y); y+=6;
+  var perTxt=(S.filter.desde||S.filter.hasta)?('Período: '+(S.filter.desde||'inicio')+' → '+(S.filter.hasta||'hoy')):'Período: todo';
+  var areaTxt='Áreas: '+((S.filter.areas&&S.filter.areas.length)?S.filter.areas.join(', '):'Todas');
+  var covTxt=S.filter.cobertura?(' · Cobertura: '+S.filter.cobertura):'';
+  doc.text((c?c.name:'')+' · '+perTxt+' · '+areaTxt+covTxt+' · '+new Date().toLocaleString('es'),M,y); y+=6;
   doc.setDrawColor(col[0],col[1],col[2]); doc.line(M,y,W-M,y); y+=7;
-  var egres=getEgresados(), active=allActive();
-  function line(t){ if(y>282){doc.addPage();y=16;} doc.text(t,M,y); y+=5; }
-  doc.setTextColor(30,30,30); doc.setFontSize(10);
-  line('Pacientes activos: '+active.length+'   |   Egresados totales: '+egres.length);
-  var germs={}; active.forEach(function(r){if(r.p.germen)germs[r.p.germen]=(germs[r.p.germen]||0)+1;}); egres.forEach(function(e){if(e.germen)germs[e.germen]=(germs[e.germen]||0)+1;});
-  doc.setFont(undefined,'bold'); line('Gérmenes más frecuentes:'); doc.setFont(undefined,'normal');
-  Object.keys(germs).sort(function(a,b){return germs[b]-germs[a];}).slice(0,10).forEach(function(g){ line('  • '+g+': '+germs[g]+(isMDR(g)?' (MDR)':'')); });
-  var fall=egres.filter(function(e){return e.resultado==='Fallecido';}).length;
-  line('Mortalidad global egresados: '+(egres.length?Math.round(fall/egres.length*100):0)+'% ('+fall+'/'+egres.length+')');
-  var cross=buildAlerts().filter(function(a){return a.tipo==='Infección cruzada';}).length;
-  var re=buildAlerts().filter(function(a){return a.tipo==='Reingreso';}).length;
-  line('Infecciones cruzadas activas: '+cross+'   |   Reingresos: '+re);
-  doc.setFontSize(7.5); doc.setTextColor(140,140,140);
-  doc.text('© 2026 Dr. M. D. S. y col. · InfectSmart · Todos los derechos reservados · Uso clínico exclusivo',M,292);
+  function h(t){ if(y>272){doc.addPage();y=16;} doc.setFontSize(11); doc.setFont(undefined,'bold'); doc.setTextColor(col[0],col[1],col[2]); doc.text(t,M,y); y+=5; doc.setFont(undefined,'normal'); doc.setTextColor(30,30,30); doc.setFontSize(9.5); }
+  function line(t){ if(y>282){doc.addPage();y=16;} var ls=doc.splitTextToSize(t,W-2*M); ls.forEach(function(l){ if(y>288){doc.addPage();y=16;} doc.text(l,M,y); y+=4.6; }); }
+  var on=statSecOn;
+
+  doc.setTextColor(30,30,30); doc.setFontSize(9.5);
+  h('Resumen');
+  line('Activos: '+S.counts.activos+'   |   Egresados: '+S.counts.egresados+'   |   Fallecidos: '+S.counts.fallecidos);
+  line('Ocupación: '+S.counts.ocupacionPc+'% ('+S.counts.ocupadas+'/'+S.counts.camas+' camas)   |   Días internación promedio: '+(S.pac.diasProm!==null?S.pac.diasProm+'d':'Sin datos'));
+
+  if(on('g_top')){ h('1 · Gérmenes — Top-5'); if(S.germs.top.length) S.germs.top.forEach(function(t){ line('  • '+t.label+': '+t.n+(t.mdr?' (MDR)':'')); }); else line('  Sin datos'); }
+  if(on('g_month')){ h('Gérmenes — evolución por mes'); if(S.germs.byMonth.length) S.germs.byMonth.forEach(function(t){ line('  • '+t.label+': '+t.n); }); else line('  Sin datos'); }
+  if(on('g_res')){ h('Mapa de resistencia (% S por germen)'); var rg=Object.keys(S.germs.resMap); if(rg.length){ rg.slice(0,8).forEach(function(g){ var atbs=S.germs.resMap[g]; var txt=Object.keys(atbs).map(function(a){ return a+' '+Math.round(atbs[a].S/atbs[a].t*100)+'%'; }).join(', '); line('  • '+g+': '+txt); }); } else line('  Sin datos'); }
+
+  if(on('a_use')){ h('2 · ATB más usados'); if(S.atb.use.length) S.atb.use.forEach(function(t){ line('  • '+t.label+': '+t.n); }); else line('  Sin datos'); }
+  if(on('a_foco')){ h('Días ATB promedio por foco'); if(S.atb.daysByFoco.length) S.atb.daysByFoco.forEach(function(t){ line('  • '+t.label+': '+t.avg+'d'); }); else line('  Sin datos'); }
+  if(on('a_esc')){ h('Escalamiento vs desescalamiento'); if(S.atb.escTotal) line('  Escalamiento: '+S.atb.escUp+' · Desescalamiento: '+S.atb.escDown+' · Tasa desescalamiento: '+Math.round(S.atb.escDown/S.atb.escTotal*100)+'%'); else line('  Sin datos'); }
+
+  if(on('i_foco')){ h('3 · Focos más frecuentes'); if(S.inf.focos.length) S.inf.focos.forEach(function(t){ line('  • '+t.label+': '+t.n); }); else line('  Sin datos'); }
+  if(on('i_mort')){ h('Mortalidad por foco'); if(S.inf.mort.length) S.inf.mort.forEach(function(t){ line('  • '+t.label+': '+t.pc+'%'); }); else line('  Sin datos'); }
+  if(on('i_cross')){ h('Infección cruzada por área'); if(S.inf.crossByArea.length) S.inf.crossByArea.forEach(function(t){ line('  • '+t.label+': '+t.pc+'%'); }); else line('  Sin datos'); line('  Cruzadas activas: '+S.inf.crossN+'   |   Reingresos: '+S.inf.reN+'   |   Reingreso mismo germen: '+S.inf.readmSameGerm); }
+
+  if(on('p_ocupact')){ h('4 · Pacientes — ocupación ACTUAL por área'); if(S.pac.ocupActual.length) S.pac.ocupActual.forEach(function(t){ line('  • '+t.label+': '+t.occ+'/'+t.total+' ('+t.pc+'%)'); }); else line('  Sin datos'); }
+  if(on('p_ocuphist')){ h('Ocupación HISTÓRICA por área (ingresos en período)'); if(S.pac.ocupHist.length) S.pac.ocupHist.forEach(function(t){ line('  • '+t.label+': '+t.n); }); else line('  Sin datos'); }
+  if(on('p_diasarea')){ h('Días internación promedio por área'); if(S.pac.diasByArea.length) S.pac.diasByArea.forEach(function(t){ line('  • '+t.label+': '+t.avg+'d'); }); else line('  Sin datos'); }
+  if(on('p_diasdx')){ h('Días internación promedio por diagnóstico'); if(S.pac.diasByDx.length) S.pac.diasByDx.forEach(function(t){ line('  • '+t.label+': '+t.avg+'d (n='+t.n+')'); }); else line('  Sin datos'); }
+  if(on('p_mortfoco')){ h('Mortalidad por foco'); if(S.pac.mortFoco.length) S.pac.mortFoco.forEach(function(t){ line('  • '+t.label+': '+t.pc+'%'); }); else line('  Sin datos'); }
+  if(on('p_mortgerm')){ h('Mortalidad por germen'); if(S.pac.mortGerm.length) S.pac.mortGerm.forEach(function(t){ line('  • '+t.label+': '+t.pc+'%'); }); else line('  Sin datos'); }
+  if(on('p_charlson')){ h('Score de Charlson promedio'); line('  '+(S.pac.charlsonProm!==null?(S.pac.charlsonProm+' pts (n='+S.resumen.n+')'):'Sin datos')); }
+  if(on('p_dist')){ h('Distribución por área'); if(S.pac.distArea.length) S.pac.distArea.forEach(function(t){ line('  • '+t.label+': '+t.n); }); else line('  Sin datos'); }
+  if(on('p_pob')){ h('Población por etiqueta/cobertura'); if(S.pac.pob.length) S.pac.pob.forEach(function(t){ line('  • '+t.label+': '+t.n); }); else line('  Sin datos'); }
+
+  // 5 · Análisis por población (comparativo hasta 2)
+  if(on('p_compar')){
+    var selP=(window._statsPobSel||['','']).filter(Boolean);
+    if(selP.length){
+      h('5 · Análisis por población (comparativo)');
+      var bf={desde:S.filter.desde,hasta:S.filter.hasta,areas:S.filter.areas};
+      selP.forEach(function(lbl){
+        var P=computePoblacionInfect(lbl,bf).resumen;
+        line('  ['+lbl+'] n='+P.n+' · Días prom: '+(P.diasProm!==null?P.diasProm+'d':'Sin datos')+' · Charlson: '+(P.charlsonProm!==null?P.charlsonProm+' pts':'Sin datos')+
+             ' · Mortalidad: '+(P.mortRate!==null?P.mortRate+'%':'Sin datos')+' · Germen: '+(P.topGerm||'Sin datos')+' · Foco: '+(P.topFoco||'Sin datos')+' · Días ATB: '+(P.atbDaysProm!==null?P.atbDaysProm+'d':'Sin datos'));
+      });
+    }
+  }
+
+  var pages=doc.internal.getNumberOfPages();
+  for(var i=1;i<=pages;i++){ doc.setPage(i); doc.setFontSize(7.5); doc.setTextColor(140,140,140);
+    doc.text('© 2026 Dr. M. D. S. y col. · InfectSmart · Todos los derechos reservados · Uso clínico exclusivo',M,292);
+    doc.text('Pág. '+i+'/'+pages,W-M-12,292);
+  }
   doc.save('InfectSmart_estadisticas_'+todayStr()+'.pdf');
+  logInforme('Estadísticas '+perTxt);
   toast('PDF de estadísticas generado');
 }
 
