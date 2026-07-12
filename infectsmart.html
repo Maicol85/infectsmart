@@ -47,12 +47,13 @@ label{font-size:12px;color:var(--muted);display:block;margin-bottom:3px}
 #modal-login label{color:rgba(235,255,225,.75)}
 #modal-login input#login-pass{background:rgba(10,25,10,.55);border:1px solid rgba(163,230,53,.3);color:#eaffdd}
 #modal-login .btn-teal{background:linear-gradient(135deg,#2dd4bf,#14b8a6);color:#06231a;box-shadow:0 6px 18px rgba(20,184,166,.4)}
-@keyframes flagella{0%,100%{transform:rotate(-4deg)}50%{transform:rotate(4deg)}}
-@keyframes flagella2{0%,100%{transform:rotate(3deg)}50%{transform:rotate(-5deg)}}
-@keyframes microFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
-#uci-bact{animation:microFloat 3.4s ease-in-out infinite}
-#uci-bact .fl{transform-box:fill-box;transform-origin:center;animation:flagella 2.2s ease-in-out infinite}
-#uci-bact .fl2{transform-box:fill-box;transform-origin:center;animation:flagella2 2.8s ease-in-out infinite}
+@keyframes flagella { 0%,100%{d:path("M42 56 C 24 50, 16 68, 5 61")} 50%{d:path("M42 56 C 20 44, 10 62, 5 61")} }
+@keyframes flagella2 { 0%,100%{d:path("M46 72 C 30 80, 24 98, 11 93")} 50%{d:path("M46 72 C 26 74, 18 94, 11 93")} }
+@keyframes microFloat { 0%,100%{transform:translateY(0px) rotate(0deg)} 50%{transform:translateY(-6px) rotate(4deg)} }
+
+#uci-bact { animation: microFloat 3s ease-in-out infinite; }
+#uci-bact .fl  { animation: flagella  1.2s ease-in-out infinite; }
+#uci-bact .fl2 { animation: flagella2 1.5s ease-in-out infinite; }
 /* ===== CENTRO ===== */
 #centroScreen{position:fixed;inset:0;background:var(--bg);z-index:9998;display:none;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:24px;overflow-y:auto}
 #centroScreen .brand{text-align:center;margin-bottom:18px}
