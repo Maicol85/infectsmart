@@ -103,11 +103,41 @@ label{font-size:12px;color:var(--muted);display:block;margin-bottom:3px}
 .bed-card .bed-dx{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .bed-card .bed-info{font-size:10px;color:var(--muted);margin-top:6px;line-height:1.6;display:flex;flex-wrap:wrap;gap:3px 8px}
 .bed-card .bed-info b{color:var(--text);font-weight:700}
-.bed-card .bed-badges{position:absolute;top:8px;right:8px;font-size:13px;display:flex;gap:3px}
+.bed-card .bed-badges{position:absolute;top:8px;right:8px;font-size:13px;display:flex;gap:3px;flex-wrap:wrap;justify-content:flex-end;max-width:90px}
+.bed-badge{font-size:13px;line-height:1}
+.bed-eye{position:absolute;bottom:8px;right:8px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);font-size:13px;line-height:1;padding:3px 6px;cursor:pointer;z-index:2}
+.bed-eye:hover{border-color:var(--teal);background:var(--teal-dim)}
+/* Quick summary floating panel */
+#quickPanel{position:fixed;inset:0;z-index:1500;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;padding:20px}
+#quickPanel .qp-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px 20px;max-width:460px;width:100%;max-height:85vh;overflow-y:auto;box-shadow:0 10px 40px rgba(0,0,0,.35)}
+#quickPanel .qp-head{display:flex;align-items:flex-start;gap:10px;margin-bottom:10px}
+#quickPanel .qp-head h3{font-size:16px;font-weight:700;color:var(--text);flex:1}
+#quickPanel .qp-close{background:none;border:1px solid var(--border);color:var(--muted);border-radius:var(--rs);width:28px;height:28px;font-size:15px;cursor:pointer;line-height:1}
+#quickPanel .qp-close:hover{border-color:var(--red);color:var(--red)}
+#quickPanel .qp-sec{margin-top:10px}
+#quickPanel .qp-sec h5{font-size:11px;font-weight:700;color:var(--teal);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px}
+#quickPanel .qp-sec .qp-val{font-size:13px;color:var(--text);line-height:1.55}
+#quickPanel .qp-meta{font-size:12px;color:var(--muted)}
 .bed-card.empty{opacity:.6}
 .bed-card.empty .bed-name{color:var(--muted);font-weight:400}
 .germ-pill{display:inline-block;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:700;background:var(--teal-dim);color:var(--teal)}
 .germ-pill.mdr{background:var(--red-dim);color:var(--red)}
+/* ===== PACIENTES — vista global por área ===== */
+.ptg-area{border-left:5px solid var(--teal);border-radius:var(--r);background:var(--surface);box-shadow:var(--shadow);margin-bottom:16px;overflow:hidden}
+.ptg-head{display:flex;align-items:center;justify-content:space-between;color:#fff;padding:8px 14px;font-size:14px;font-weight:700}
+.ptg-head .ptg-count{background:rgba(255,255,255,.25);border-radius:12px;padding:1px 10px;font-size:12px;font-weight:700}
+.ptg-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;padding:12px}
+.ptg-card{background:var(--surface);border:1.5px solid var(--border);border-top:4px solid var(--teal);border-radius:var(--r);padding:12px;cursor:pointer;transition:all .2s;position:relative;min-height:96px;box-shadow:var(--shadow)}
+.ptg-card:hover{transform:translateY(-1px);border-color:var(--teal)}
+.ptg-badges{position:absolute;top:8px;right:8px;font-size:13px;display:flex;gap:3px;flex-wrap:wrap;justify-content:flex-end;max-width:90px}
+.ptg-eye{position:absolute;bottom:8px;right:8px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);font-size:13px;line-height:1;padding:3px 6px;cursor:pointer;z-index:2}
+.ptg-eye:hover{border-color:var(--teal);background:var(--teal-dim)}
+.ptg-cama{font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.ptg-name{font-size:14px;font-weight:700;color:var(--text);margin:2px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ptg-dx{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ptg-germ{font-size:11px;margin-top:4px}
+.ptg-dias{font-size:10px;color:var(--muted);margin-top:6px}
+.ptg-dias b{color:var(--text)}
 /* ===== PACIENTES ===== */
 .pt-header{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap}
 .pt-header h3{font-size:15px;font-weight:700}
@@ -186,6 +216,23 @@ label{font-size:12px;color:var(--muted);display:block;margin-bottom:3px}
 .data-table td.mdr{color:var(--red);font-weight:700}
 .filters{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;align-items:flex-end}
 .filters .field-group{min-width:140px}
+/* quick-access widgets (egresados) */
+.eg-widgets{display:flex;gap:12px;overflow-x:auto;padding:2px 2px 10px;margin-bottom:12px;align-items:stretch}
+.eg-widget{flex:0 0 210px;min-width:210px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:12px 13px;box-shadow:var(--shadow);display:flex;flex-direction:column}
+.eg-widget h6{font-size:11px;font-weight:700;color:var(--teal);text-transform:uppercase;letter-spacing:.4px;margin:0 0 8px;display:flex;align-items:center;gap:5px}
+.eg-widget .ew-big{font-size:26px;font-weight:900;color:var(--text);line-height:1}
+.eg-widget .ew-sub{font-size:11px;color:var(--muted);margin-top:4px;line-height:1.5}
+.eg-widget .ew-list{display:flex;flex-direction:column;gap:2px;overflow-y:auto;max-height:150px}
+.eg-widget .ew-item{display:flex;justify-content:space-between;gap:8px;font-size:11px;padding:3px 6px;border-radius:var(--rs);cursor:pointer;transition:background .12s;color:var(--text)}
+.eg-widget .ew-item:hover{background:var(--teal-dim2)}
+.eg-widget .ew-item .ew-lbl{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.eg-widget .ew-item .ew-cnt{color:var(--muted);font-weight:700;flex:0 0 auto}
+.eg-widget .ew-item.active{background:var(--teal-dim);color:var(--teal);font-weight:700}
+.eg-widget .ew-item.active .ew-cnt{color:var(--teal)}
+.eg-widget.plain .ew-item{cursor:default}
+.eg-widget.plain .ew-item:hover{background:none}
+.eg-clear-bar{margin-bottom:12px}
+.eg-clear-bar .pill.teal{cursor:default}
 /* stats */
 .stats-section-title{font-size:13px;font-weight:700;color:var(--teal);text-transform:uppercase;letter-spacing:.5px;margin:18px 0 8px}
 .stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
@@ -351,11 +398,13 @@ footer{text-align:center;padding:16px;color:var(--muted);font-size:11px;border-t
   </div>
 
   <div id="panel-pacientes" class="panel">
+    <div id="ptGlobal"></div>
+    <div id="ptDetail" class="hidden">
     <div class="pt-header">
       <h3 id="ptTitle">Paciente</h3>
       <span id="ptLoc" style="font-size:12px;color:var(--muted)"></span>
       <div class="spacer" style="flex:1"></div>
-      <button class="btn btn-outline btn-sm" onclick="showMain('areas',document.querySelector('.main-tab[data-tab=areas]'))">← Volver a camas</button>
+      <button class="btn btn-outline btn-sm" onclick="backToGlobal()">← Volver a pacientes</button>
     </div>
     <div id="ptEmpty" class="section-card" style="text-align:center;color:var(--muted)">Seleccione una cama en <b>Áreas / Camas</b> para ver o cargar un paciente.</div>
     <div id="ptBody" class="hidden">
@@ -373,6 +422,7 @@ footer{text-align:center;padding:16px;color:var(--muted);font-size:11px;border-t
       <div id="pt-evolucion" class="inner-panel"></div>
       <div id="pt-para" class="inner-panel"></div>
       <div id="pt-imagenes" class="inner-panel"></div>
+    </div>
     </div>
   </div>
 
@@ -403,6 +453,17 @@ footer{text-align:center;padding:16px;color:var(--muted);font-size:11px;border-t
       <button class="btn btn-outline btn-sm" onclick="closeModal('modalEgreso')">Cancelar</button>
       <button class="btn btn-teal btn-sm" onclick="confirmEgreso()">✅ Confirmar egreso</button>
     </div>
+  </div>
+</div>
+
+<div id="modalEgHist" class="modal" style="display:none">
+  <div class="modal-box" style="max-width:720px">
+    <div style="display:flex;align-items:flex-start;gap:10px">
+      <h3 id="egHistTitle" style="flex:1">Historia clínica (egresado)</h3>
+      <button class="btn btn-teal btn-sm" id="egHistPdfBtn" onclick="egHistPDF()">📄 Exportar PDF</button>
+      <button class="btn btn-outline btn-sm" onclick="closeModal('modalEgHist')">✕</button>
+    </div>
+    <div id="egHistBody" style="margin-top:10px;font-size:13px;line-height:1.6"></div>
   </div>
 </div>
 
@@ -454,6 +515,11 @@ footer{text-align:center;padding:16px;color:var(--muted);font-size:11px;border-t
   <div style="max-width:92vw;max-height:90vh"><img id="modalImgSrc" style="max-width:92vw;max-height:90vh;border-radius:8px"></div>
 </div>
 
+<!-- ===================== VISTA RÁPIDA (👁️) ===================== -->
+<div id="quickPanel" onclick="if(event.target===this)closeQuickPanel()">
+  <div class="qp-box" id="quickPanelBox"></div>
+</div>
+
 <script>
 /* ============================================================
    InfectSmart — lógica principal (vanilla JS, localStorage)
@@ -474,9 +540,9 @@ var LS_INFORMES='infectsmart_informes_';   // por centro (PDF snapshots meta)
 
 var CENTRO_COLORS=['#00a487','#2563eb','#c2410c','#7c3aed','#b9770e','#0891b2','#be185d','#15803d'];
 var CENTROS=[
-  {id:'c1',name:'Hospital Central',sub:'Institución',color:CENTRO_COLORS[0]},
-  {id:'c2',name:'Sanatorio Norte',sub:'Institución',color:CENTRO_COLORS[1]},
-  {id:'c3',name:'Clínica Sur',sub:'Institución',color:CENTRO_COLORS[2]}
+  {id:'c1',name:'Centro 1',sub:'Institución',color:CENTRO_COLORS[0]},
+  {id:'c2',name:'Centro 2',sub:'Institución',color:CENTRO_COLORS[1]},
+  {id:'c3',name:'Centro 3',sub:'Institución',color:CENTRO_COLORS[2]}
 ];
 
 var PDF_COLORS=[{name:'Teal',hex:'#00a487'},{name:'Azul',hex:'#2563eb'},{name:'Violeta',hex:'#7c3aed'},{name:'Gris',hex:'#334155'}];
@@ -522,6 +588,17 @@ var FOCOS=['Pulmonar','Urinario','Abdominal','Piel y partes blandas','SNC','Bact
 var MUESTRAS=['Hemocultivo','Urocultivo','Aspirado traqueal','LBA','LCR','Herida','Punción abdominal','Catéter','Otro'];
 /* ATB para antibiograma */
 var ABG_ATBS=['Ampicilina','Amox-clav','Piperacilina-tazobactam','Cefazolina','Ceftriaxona','Cefepime','Ceftazidima','Meropenem','Ertapenem','Ciprofloxacina','Levofloxacina','Gentamicina','Amikacina','TMP-SMX','Vancomicina','Linezolid','Daptomicina','Colistina','Tigeciclina'];
+/* ===== IAAS (Infecciones Asociadas a la Atención Sanitaria) ===== */
+var ORIGEN_INF=['Comunitaria','Nosocomial (>48hs internación)','Asociada a procedimiento','Postoperatoria','Asociada a dispositivo','Relacionada a atención ambulatoria'];
+var PROCEDIMIENTOS=['Cirugía','Endoscopía','Cateterismo','Colocación CVC','Sondaje vesical','ARM','Drenaje','Otro'];
+var ESPECIALIDADES=['Urología','Cirugía general','Cardiología','Traumatología','Ginecología','Gastroenterología','Otro'];
+var DISPOSITIVOS=['CVC','Sonda vesical','ARM','Drenaje','Catéter arterial','Otro'];
+/* IAAS = todo origen distinto de Comunitaria y de Relacionada a atención ambulatoria */
+function esIAAS(origen){ return !!origen && origen!=='Comunitaria' && origen!=='Relacionada a atención ambulatoria'; }
+function origenRequiereProc(o){ return o==='Postoperatoria' || o==='Asociada a procedimiento'; }
+var IAAS_UMBRAL_KEY='infectsmart_iaas_umbral';
+function getIaasUmbral(){ var v=parseFloat(localStorage.getItem(IAAS_UMBRAL_KEY)); return (isNaN(v)||v<0)?5:v; }
+function setIaasUmbral(v){ v=parseFloat(v); if(isNaN(v)||v<0) v=5; localStorage.setItem(IAAS_UMBRAL_KEY,String(v)); }
 /* Parámetros de paraclínica */
 var PARA_PARAMS=[
   {k:'pcr',label:'PCR (mg/L)'},{k:'pct',label:'PCT (ng/mL)'},{k:'gb',label:'GB (x10³)'},
@@ -831,6 +908,7 @@ function emptyPatient(bedNum){
     dx:'', dias:'',
     foco:'', germen:'', muestra:'', fechaCultivo:'',
     abg:{}, // { atbName: 'S'|'I'|'R' }
+    infecciones:[], // [{foco,germen,muestra,fechaCultivo,abg:{},aislamiento,estado}] — múltiples infecciones
     comorb:{}, charlson:'',
     atb:[],       // [{atb,dosis,frec,via,inicio,fin,dias}]
     escal:[],     // [{fecha,tipo,motivo}]
@@ -842,6 +920,45 @@ function emptyPatient(bedNum){
     alerts:[]     // resueltas / activas: {tipo,msg,sev,fecha,resuelta,obs}
   };
   return p;
+}
+
+/* ============================================================
+   MÚLTIPLES INFECCIONES — helpers + compatibilidad
+   ============================================================ */
+/* Devuelve el array de infecciones del paciente. Si no existe (paciente
+   legacy con campos únicos), construye un array de 1 elemento a partir de
+   los campos legacy (foco/germen/muestra/fechaCultivo/abg/aislamiento). */
+function patInfections(p){
+  if(!p) return [];
+  if(Array.isArray(p.infecciones) && p.infecciones.length) return p.infecciones;
+  return [{
+    foco:p.foco||'', germen:p.germen||'', muestra:p.muestra||'',
+    fechaCultivo:p.fechaCultivo||'', abg:p.abg||{},
+    aislamiento:p.aislamiento||'', estado:''
+  }];
+}
+/* Migra los campos legacy a p.infecciones[0] (idempotente). */
+function migrateInfecciones(p){
+  if(!p) return;
+  if(!Array.isArray(p.infecciones) || !p.infecciones.length){
+    p.infecciones=[{
+      foco:p.foco||'', germen:p.germen||'', muestra:p.muestra||'',
+      fechaCultivo:p.fechaCultivo||'', abg:p.abg||{},
+      aislamiento:p.aislamiento||'', estado:''
+    }];
+  }
+}
+/* Espeja la infección primaria (índice 0) a los campos legacy para no romper
+   consumidores existentes (alertas / microbiología / stats / PDF / egreso). */
+function mirrorPrimaryInfection(p){
+  if(!p) return;
+  var inf=patInfections(p)[0]||{};
+  p.foco=inf.foco||'';
+  p.germen=inf.germen||'';
+  p.muestra=inf.muestra||'';
+  p.fechaCultivo=inf.fechaCultivo||'';
+  p.abg=inf.abg||{};
+  p.aislamiento=inf.aislamiento||'';
 }
 
 function newAreas(){
@@ -895,7 +1012,7 @@ function showMain(tab,btn){
   var pid=(tab==='referencias')?'panelReferencias':'panel-'+tab;
   document.getElementById(pid).classList.add('active');
   if(tab==='areas') renderAreas();
-  else if(tab==='pacientes') renderPatientPanel();
+  else if(tab==='pacientes'){ _ptDetailOpen=false; renderPatientPanel(); }
   else if(tab==='micro') renderMicro();
   else if(tab==='atb') renderVade();
   else if(tab==='alertas') renderAlertas();
@@ -945,22 +1062,25 @@ function renderBeds(){
     var card=document.createElement('div');
     var cls='bed-card';
     var badges='', info='', name='Cama libre', dx='';
+    var eyeBtn='';
     if(p){
-      if(p.aislamiento==='contacto') cls+=' aisl-contacto';
-      if(p.aislamiento==='aereo') cls+=' aisl-aereo';
+      var isolMax=maxAislamiento(p);
+      if(isolMax==='contacto') cls+=' aisl-contacto';
+      if(isolMax==='aereo') cls+=' aisl-aereo';
       name=esc(p.name||'(sin nombre)'); dx=esc(p.dx||'');
       var dias=p.ingreso?daysSince(p.ingreso):'';
       var germ=p.germen?('<span class="germ-pill'+(isMDR(p.germen)?' mdr':'')+'">'+esc(p.germen)+'</span>'):'—';
       info='<span>📅 <b>'+(dias!==''?dias+'d':'—')+'</b></span><span>🦠 '+germ+'</span>';
-      if(p.aislamiento) badges+='🦠';
+      badges=bedBadges(p);
       // infección cruzada
-      if(hasCrossAlert(p)) badges+='🔴';
+      if(hasCrossAlert(p)) badges+='<span class="bed-badge" style="color:var(--red)" title="Infección cruzada">🔴</span>';
+      eyeBtn='<button class="bed-eye" title="Vista rápida" onclick="event.stopPropagation();openQuickPanel('+state.activeArea+','+bi+')">👁️</button>';
     } else {
       cls+=' empty';
-      if(a.pending[bi]){ cls+=' pending'; badges='⚠️'; name='Pendiente limpieza terminal'; dx='Confirmar limpieza para reutilizar'; }
+      if(a.pending[bi]){ cls+=' pending'; badges='<span class="bed-badge" style="color:var(--amber)" title="Pendiente limpieza terminal">⚠️</span>'; name='Pendiente limpieza terminal'; dx='Confirmar limpieza para reutilizar'; }
     }
     card.className=cls;
-    card.innerHTML='<div class="bed-badges">'+badges+'</div>'+
+    card.innerHTML='<div class="bed-badges">'+badges+'</div>'+eyeBtn+
       '<div class="bed-num">'+a.icon+' Cama '+(bi+1)+'</div>'+
       '<div class="bed-name">'+name+'</div>'+
       '<div class="bed-dx">'+dx+'</div>'+
@@ -969,6 +1089,97 @@ function renderBeds(){
     g.appendChild(card);
   });
 }
+/* ---- Helpers para badges de camas ---- */
+/* Inmunocomprometido: comorbilidades relevantes (inmunodeficiencia, VIH,
+   tumor sólido loco-regional / con metástasis). */
+function isImmunocompromised(p){
+  if(!p||!p.comorb) return false;
+  return !!(p.comorb.inmunodef || p.comorb.vih || p.comorb.tumor_loco || p.comorb.tumor_meta);
+}
+/* Nivel máximo de aislamiento entre todas las infecciones ('' | 'contacto' | 'aereo'). */
+function maxAislamiento(p){
+  var lvl='';
+  patInfections(p).forEach(function(inf){
+    if(inf.aislamiento==='aereo') lvl='aereo';
+    else if(inf.aislamiento==='contacto' && lvl!=='aereo') lvl='contacto';
+  });
+  return lvl;
+}
+/* Genera la fila de chips de badges para una cama ocupada. */
+function bedBadges(p){
+  var b='';
+  var infs=patInfections(p);
+  var withData=infs.filter(function(inf){ return inf.germen||inf.foco; });
+  var anyMdr=infs.some(function(inf){ return inf.germen && isMDR(inf.germen); });
+  var anyGerm=infs.some(function(inf){ return inf.germen; });
+  // 🦠 germen: rojo si MDR, verde si germen sin resistencia especial
+  if(anyMdr) b+='<span class="bed-badge" style="color:var(--red)" title="Germen multirresistente">🦠</span>';
+  else if(anyGerm) b+='<span class="bed-badge" style="color:var(--green)" title="Germen activo sin resistencia especial">🦠</span>';
+  // 🛡️ inmunocomprometido
+  if(isImmunocompromised(p)) b+='<span class="bed-badge" style="color:var(--blue)" title="Inmunocomprometido">🛡️</span>';
+  // 🔒 aislamiento
+  var isol=maxAislamiento(p);
+  if(isol==='aereo') b+='<span class="bed-badge" style="color:var(--red)" title="Aislamiento aéreo / estricto">🔒</span>';
+  else if(isol==='contacto') b+='<span class="bed-badge" style="color:var(--orange)" title="Aislamiento contacto / gotas">🔒</span>';
+  // ⚠️ múltiples infecciones simultáneas
+  if(withData.length>1) b+='<span class="bed-badge" style="color:var(--amber)" title="Múltiples infecciones simultáneas ('+withData.length+')">⚠️</span>';
+  return b;
+}
+
+/* ---- Vista rápida (👁️) ---- */
+var _quickAB={ai:null,bi:null};
+function openQuickPanel(ai,bi){
+  var a=state.areas[ai]; if(!a) return; var p=a.beds[bi]; if(!p) return;
+  _quickAB={ai:ai,bi:bi};
+  var dias=p.ingreso?daysSince(p.ingreso):'';
+  // infecciones activas
+  var infs=patInfections(p).filter(function(inf){ return inf.germen||inf.foco||inf.aislamiento; });
+  var infHtml=infs.length?infs.map(function(inf){
+    var mm=mdrInfo(inf.germen);
+    var isolTxt=inf.aislamiento==='aereo'?'Aéreo/Estricto':inf.aislamiento==='contacto'?'Contacto/Gotas':'Sin aislamiento';
+    return '<div class="qp-val">• <b>'+esc(inf.foco||'Foco —')+'</b>: '+
+      (inf.germen?esc(inf.germen)+(mm?' (MDR: '+esc(mm.name)+')':''):'sin germen')+
+      ' · Aisl.: '+esc(isolTxt)+'</div>';
+  }).join(''):'<div class="qp-val" style="color:var(--muted)">Sin infecciones registradas.</div>';
+  // ATB activos (sin fecha de fin o fin futuro)
+  var hoy=todayStr();
+  var atbAct=(p.atb||[]).filter(function(x){ return x.atb && (!x.fin || x.fin>=hoy); });
+  var atbHtml=atbAct.length?atbAct.map(function(x){
+    return '<div class="qp-val">• '+esc(x.atb)+' '+esc(x.dosis||'')+' '+esc(x.frec||'')+' '+esc(x.via||'')+'</div>';
+  }).join(''):'<div class="qp-val" style="color:var(--muted)">Sin ATB activos.</div>';
+  // últimos valores de paraclínica (último no vacío por parámetro)
+  var paraHtml='';
+  if(p.para && p.para.dates && p.para.dates.length){
+    var dsorted=p.para.dates.slice().sort();
+    var lines=[];
+    PARA_PARAMS.forEach(function(pr){
+      var val='',fecha='';
+      for(var i=dsorted.length-1;i>=0;i--){ var v=p.para.vals[pr.k+'||'+dsorted[i]]; if(v!==undefined && String(v).trim()!==''){ val=v; fecha=dsorted[i]; break; } }
+      if(val!=='') lines.push('<div class="qp-val">• '+esc(pr.label)+': <b>'+esc(val)+'</b> <span class="qp-meta">('+esc(fecha)+')</span></div>');
+    });
+    paraHtml=lines.length?lines.join(''):'<div class="qp-val" style="color:var(--muted)">Sin valores cargados.</div>';
+  } else {
+    paraHtml='<div class="qp-val" style="color:var(--muted)">Sin paraclínica cargada.</div>';
+  }
+  document.getElementById('quickPanelBox').innerHTML=
+    '<div class="qp-head"><h3>👁️ '+esc(p.name||'(sin nombre)')+'</h3>'+
+      '<button class="qp-close" onclick="closeQuickPanel()">✕</button></div>'+
+    '<div class="qp-meta">'+esc(p.edad||'?')+' años · '+a.icon+' '+esc(a.name)+' · Cama '+(bi+1)+' · '+(dias!==''?dias+' días internación':'—')+'</div>'+
+    '<div class="qp-sec"><h5>Diagnóstico principal</h5><div class="qp-val">'+esc(p.dx||'—')+'</div></div>'+
+    '<div class="qp-sec"><h5>Infecciones activas</h5>'+infHtml+'</div>'+
+    '<div class="qp-sec"><h5>ATB activos</h5>'+atbHtml+'</div>'+
+    '<div class="qp-sec"><h5>Últimos valores de paraclínica</h5>'+paraHtml+'</div>'+
+    '<div class="modal-actions" style="margin-top:16px"><button class="btn btn-teal btn-sm" onclick="quickOpenFull()">Ver historia completa</button></div>';
+  document.getElementById('quickPanel').style.display='flex';
+}
+function closeQuickPanel(){ document.getElementById('quickPanel').style.display='none'; }
+function quickOpenFull(){
+  var ai=_quickAB.ai, bi=_quickAB.bi;
+  closeQuickPanel();
+  if(ai===null||bi===null) return;
+  onBedClick(ai,bi);
+}
+
 function onBedClick(ai,bi){
   var a=state.areas[ai]; var p=a.beds[bi];
   if(!p){
@@ -989,7 +1200,13 @@ function onBedClick(ai,bi){
     save();
   }
   state.activeArea=ai; state.activeBed=bi;
-  showMain('pacientes',document.querySelector('.main-tab[data-tab=pacientes]'));
+  _ptDetailOpen=true;
+  // activar pestaña Pacientes sin re-render (mostramos el detalle directamente)
+  document.querySelectorAll('.main-tab').forEach(function(b){ b.classList.remove('active'); });
+  var tabBtn=document.querySelector('.main-tab[data-tab=pacientes]'); if(tabBtn) tabBtn.classList.add('active');
+  document.querySelectorAll('.panel').forEach(function(p){ p.classList.remove('active'); });
+  document.getElementById('panel-pacientes').classList.add('active');
+  openPatientDetail(ai,bi);
 }
 
 /* ============================================================
@@ -1008,26 +1225,28 @@ function runAlertsEngine(){
   // 3) Infección cruzada: mismo germen en misma cama o adyacente dentro de 30 días
   //    Comparamos pacientes activos entre sí (misma área) y contra egresados recientes.
   var egres=getEgresados();
+  function germSet(pp){ // conjunto de gérmenes normalizados (todas las infecciones)
+    var s={}; patInfections(pp).forEach(function(inf){ var g=normGerm(inf.germen); if(g) s[g]=true; }); return s;
+  }
   active.forEach(function(rec){
-    var p=rec.p; if(!p.germen) return;
-    var g=normGerm(p.germen);
+    var p=rec.p; var gs=germSet(p); var gkeys=Object.keys(gs); if(!gkeys.length) return;
     // otros activos de la misma área
     rec.area.beds.forEach(function(op,obi){
       if(!op||op.id===p.id) return;
-      if(normGerm(op.germen)===g && g){
-        if(Math.abs(obi-rec.bi)<=1){ CROSS_MAP[p.id]=true; CROSS_MAP[op.id]=true; }
-      }
+      var ogs=germSet(op);
+      var shared=gkeys.some(function(g){ return ogs[g]; });
+      if(shared && Math.abs(obi-rec.bi)<=1){ CROSS_MAP[p.id]=true; CROSS_MAP[op.id]=true; }
     });
     // egresados recientes en la misma área/cama en 30 días
     egres.forEach(function(e){
       if(e.areaId!==rec.area.id) return;
-      if(normGerm(e.germen)===g && g){
+      var eg=normGerm(e.germen);
+      if(eg && gs[eg]){
         var dd=daysBetween(e.fechaEgreso,todayStr());
         if(dd!==null && dd<=30 && Math.abs((e.bed-1)-rec.bi)<=1){ CROSS_MAP[p.id]=true; }
       }
     });
   });
-  updateAlertBadge();
 }
 function normGerm(g){ return (g||'').toLowerCase().replace(/\s+/g,' ').trim(); }
 
@@ -1054,11 +1273,16 @@ function buildAlerts(){
   var active=allActive();
   active.forEach(function(rec){
     var p=rec.p, a=rec.area, camaTxt='Cama '+(rec.bi+1);
-    // 4) Multirresistente
-    if(p.germen){
-      var m=mdrInfo(p.germen);
-      if(m){ alerts.push({sev:3,tipo:'Multirresistente',pac:p.name||'(sin nombre)',cama:camaTxt,area:a.name,fecha:p.fechaCultivo||p.ingreso,accion:'Germen '+m.name+'. '+m.protocolo,id:p.id+'_mdr'}); }
-    }
+    // 4) Multirresistente — cualquier infección con germen MDR
+    var seenMdr={};
+    patInfections(p).forEach(function(inf){
+      if(!inf.germen) return;
+      var m=mdrInfo(inf.germen);
+      if(m && !seenMdr[m.name]){
+        seenMdr[m.name]=true;
+        alerts.push({sev:3,tipo:'Multirresistente',pac:p.name||'(sin nombre)',cama:camaTxt,area:a.name,fecha:inf.fechaCultivo||p.ingreso,accion:'Germen '+m.name+' ('+esc(inf.germen)+'). '+m.protocolo,id:p.id+'_mdr_'+m.name});
+      }
+    });
     // 3) Infección cruzada
     if(CROSS_MAP[p.id]){
       alerts.push({sev:3,tipo:'Infección cruzada',pac:p.name||'(sin nombre)',cama:camaTxt,area:a.name,fecha:todayStr(),accion:'Mismo germen ('+esc(p.germen)+') en cama igual/adyacente ≤30 días. Revisar aislamiento y transmisión.',id:p.id+'_cross'});
@@ -1083,6 +1307,61 @@ function buildAlerts(){
       }
     });
   });
+  // 5) IAAS clustering — 2+ pacientes (activos y/o egresados ≤30 días) con MISMO germen (normGerm)
+  //    y (mismo operador O mismo procedimiento) dentro de una ventana de 30 días.
+  //    Sin recursión: se calcula localmente sobre active/egresados.
+  (function(){
+    var egres=getEgresados();
+    var events=[]; // {pid, pac, area, germ, oper, proc, fecha, isEg}
+    active.forEach(function(rec){
+      var pac=rec.p.name||'(sin nombre)', an=rec.area.name;
+      patInfections(rec.p).forEach(function(inf){
+        var g=normGerm(inf.germen); if(!g) return; if(!esIAAS(inf.origen)) return;
+        var oper=(inf.operador||'').trim().toLowerCase();
+        var proc=(inf.procedimiento||'').trim().toLowerCase();
+        if(!oper && !proc) return;
+        events.push({pid:rec.p.id, pac:pac, area:an, germ:g, oper:oper, proc:proc, fecha:inf.fechaProc||inf.fechaCultivo||rec.p.ingreso||todayStr()});
+      });
+    });
+    egres.forEach(function(e){
+      var dd=daysBetween(e.fechaEgreso,todayStr());
+      if(dd===null || dd>30) return;
+      var infs=(e.infecciones&&e.infecciones.length)?e.infecciones:[];
+      infs.forEach(function(inf){
+        var g=normGerm(inf.germen); if(!g) return; if(!esIAAS(inf.origen)) return;
+        var oper=(inf.operador||'').trim().toLowerCase();
+        var proc=(inf.procedimiento||'').trim().toLowerCase();
+        if(!oper && !proc) return;
+        events.push({pid:'eg_'+(e.id||e.ci||e.name||'')+'_'+(e.fechaEgreso||''), pac:e.name||'(sin nombre)', area:e.areaName||'—', germ:g, oper:oper, proc:proc, fecha:inf.fechaProc||e.fechaEgreso||todayStr()});
+      });
+    });
+    // agrupar por germen + (operador|procedimiento)
+    var groups={};
+    events.forEach(function(ev){
+      if(ev.oper){ var ko='g:'+ev.germ+'|op:'+ev.oper; (groups[ko]=groups[ko]||{tipoK:'operador',val:ev.oper,germ:ev.germ,evs:[]}).evs.push(ev); }
+      if(ev.proc){ var kp='g:'+ev.germ+'|pr:'+ev.proc; (groups[kp]=groups[kp]||{tipoK:'procedimiento',val:ev.proc,germ:ev.germ,evs:[]}).evs.push(ev); }
+    });
+    Object.keys(groups).forEach(function(k){
+      var grp=groups[k];
+      var pids={}; grp.evs.forEach(function(ev){ pids[ev.pid]=true; });
+      var nPac=Object.keys(pids).length;
+      if(nPac<2) return;
+      // ventana de 30 días entre eventos
+      var fechas=grp.evs.map(function(ev){return ev.fecha;}).filter(Boolean).sort();
+      if(fechas.length>=2){ var span=daysBetween(fechas[0],fechas[fechas.length-1]); if(span!==null && span>30) return; }
+      var pacsSet={}, areasSet={};
+      grp.evs.forEach(function(ev){ pacsSet[ev.pac]=true; areasSet[ev.area]=true; });
+      var pacs=Object.keys(pacsSet), areas=Object.keys(areasSet);
+      var comun=(grp.tipoK==='operador'?'operador':'procedimiento')+' en común: '+grp.val;
+      alerts.push({sev:3,tipo:'IAAS clustering',
+        pac:pacs.join(', '),
+        cama:'—', area:areas.join(', '),
+        fecha:fechas.length?fechas[fechas.length-1]:todayStr(),
+        accion:'Agrupamiento de IAAS: '+nPac+' pacientes con germen '+esc(grp.germ)+' y '+comun+' en ≤30 días. Investigar posible brote/fuente común y reforzar control de infecciones.',
+        id:'iaas_clu_'+grp.germ.replace(/[^a-z0-9]/g,'')+'_'+grp.tipoK+'_'+grp.val.replace(/[^a-z0-9]/g,'')});
+    });
+  })();
+
   // filtrar resueltas
   var resolved=getResolved();
   alerts=alerts.filter(function(al){ return !resolved[al.id]; });
@@ -1111,7 +1390,78 @@ function updateAlertBadge(){
    PANEL PACIENTE
    ============================================================ */
 function currentPatient(){ if(state.activeBed===null) return null; return state.areas[state.activeArea].beds[state.activeBed]; }
+
+/* ---- Vista global de pacientes (todos los sectores agrupados por área) ---- */
+/* Colores de franja por nombre de área (según convención clínica). */
+var AREA_STRIP={
+  'Emergencia':'var(--red)',
+  'Internación':'var(--blue)',
+  'Cuidados moderados':'var(--orange)',
+  'CTI':'#7f1d1d',
+  'Domiciliaria':'var(--green)',
+  'Policlínica':'var(--teal)',
+  'Ambulatorio':'var(--muted)'
+};
+function areaStripColor(name){ return AREA_STRIP[name]||'var(--teal)'; }
+
+var _ptDetailOpen=false;
 function renderPatientPanel(){
+  if(_ptDetailOpen && currentPatient()){ renderPtDetail(); return; }
+  _ptDetailOpen=false;
+  document.getElementById('ptDetail').classList.add('hidden');
+  document.getElementById('ptGlobal').classList.remove('hidden');
+  renderPtGlobal();
+}
+function renderPtGlobal(){
+  var host=document.getElementById('ptGlobal');
+  var active=allActive();
+  if(!active.length){
+    host.innerHTML='<div class="section-card" style="text-align:center;color:var(--muted)">Sin pacientes activos</div>';
+    return;
+  }
+  // agrupar por área (preservando el orden de state.areas)
+  var html='';
+  state.areas.forEach(function(a,ai){
+    var recs=active.filter(function(r){ return r.ai===ai; });
+    if(!recs.length) return;
+    var col=areaStripColor(a.name);
+    html+='<div class="ptg-area" style="border-left-color:'+col+'">'+
+      '<div class="ptg-head" style="background:'+col+'"><span>'+a.icon+' '+esc(a.name)+'</span>'+
+        '<span class="ptg-count">'+recs.length+'</span></div>'+
+      '<div class="ptg-grid">';
+    recs.forEach(function(r){
+      var p=r.p;
+      var dias=p.ingreso?daysSince(p.ingreso):'';
+      var badges=bedBadges(p);
+      if(hasCrossAlert(p)) badges+='<span class="bed-badge" style="color:var(--red)" title="Infección cruzada">🔴</span>';
+      html+='<div class="ptg-card" onclick="openPatientDetail('+r.ai+','+r.bi+')" style="border-top-color:'+col+'">'+
+        '<div class="ptg-badges">'+badges+'</div>'+
+        '<button class="ptg-eye" title="Vista rápida" onclick="event.stopPropagation();openQuickPanel('+r.ai+','+r.bi+')">👁️</button>'+
+        '<div class="ptg-cama">'+a.icon+' Cama '+(r.bi+1)+'</div>'+
+        '<div class="ptg-name">'+esc(p.name||'(sin nombre)')+'</div>'+
+        '<div class="ptg-dx">'+esc(p.dx||'—')+'</div>'+
+        '<div class="ptg-dias">📅 <b>'+(dias!==''?dias+'d':'—')+'</b> internación</div>'+
+        (p.germen?'<div class="ptg-germ">🦠 <span class="germ-pill'+(isMDR(p.germen)?' mdr':'')+'">'+esc(p.germen)+'</span></div>':'')+
+        '</div>';
+    });
+    html+='</div></div>';
+  });
+  host.innerHTML=html||'<div class="section-card" style="text-align:center;color:var(--muted)">Sin pacientes activos</div>';
+}
+/* Abrir la historia/detalle completa de un paciente activo (reutiliza flujo de cama). */
+function openPatientDetail(ai,bi){
+  var a=state.areas[ai]; if(!a) return; var p=a.beds[bi]; if(!p) return;
+  state.activeArea=ai; state.activeBed=bi;
+  _ptDetailOpen=true;
+  document.getElementById('ptGlobal').classList.add('hidden');
+  document.getElementById('ptDetail').classList.remove('hidden');
+  renderPtDetail();
+}
+function backToGlobal(){
+  _ptDetailOpen=false;
+  renderPatientPanel();
+}
+function renderPtDetail(){
   var p=currentPatient();
   if(!p){ document.getElementById('ptEmpty').classList.remove('hidden'); document.getElementById('ptBody').classList.add('hidden'); return; }
   document.getElementById('ptEmpty').classList.add('hidden'); document.getElementById('ptBody').classList.remove('hidden');
@@ -1189,39 +1539,136 @@ function confirmLimpiarPac(){
 function fg(label,field,type,val){ return '<div class="field-group"><label>'+label+'</label><input type="'+type+'" value="'+esc(val)+'" oninput="pset(\''+field+'\',this.value)"></div>'; }
 function toggleComorb(k,v){ var p=currentPatient(); if(!p) return; if(!p.comorb) p.comorb={}; p.comorb[k]=v; save(); renderPtDatos(); }
 
-/* -- INFECCIÓN + antibiograma -- */
+/* -- INFECCIÓN + antibiograma (MÚLTIPLES INFECCIONES) -- */
+function infSet(idx,field,val){
+  var p=currentPatient(); if(!p) return;
+  migrateInfecciones(p);
+  if(!p.infecciones[idx]) return;
+  p.infecciones[idx][field]=val;
+  mirrorPrimaryInfection(p);
+  save();
+  runAlertsEngine();
+}
+function infSetAislamiento(idx,val){ infSet(idx,'aislamiento',val); renderPtInfeccion(); renderBeds(); }
+/* Setter para campos de ORIGEN — persiste vía infSet y re-renderiza el bloque para mostrar/ocultar sub-campos */
+function infSetOrigen(idx,field,val){ infSet(idx,field,val); renderPtInfeccion(); }
+/* Días entre la fecha del procedimiento/dispositivo y la fecha de cultivo (o ingreso si no hay cultivo). Read-only. */
+function tiempoProcInf(inf,p){
+  var ref=(inf&&inf.fechaProc)||''; if(!ref) return null;
+  var end=(inf&&inf.fechaCultivo)||(p&&p.ingreso)||'';
+  return daysBetween(ref,end);
+}
+function infAbg(idx,atb,v){
+  var p=currentPatient(); if(!p) return;
+  migrateInfecciones(p);
+  var inf=p.infecciones[idx]; if(!inf) return;
+  if(!inf.abg) inf.abg={};
+  if(inf.abg[atb]===v) delete inf.abg[atb]; else inf.abg[atb]=v;
+  mirrorPrimaryInfection(p);
+  save();
+  renderPtInfeccion();
+}
+function infAdd(){
+  var p=currentPatient(); if(!p) return;
+  migrateInfecciones(p);
+  p.infecciones.push({foco:'',germen:'',muestra:'',fechaCultivo:'',abg:{},aislamiento:'',estado:'',origen:'',procedimiento:'',especialidad:'',operador:'',fechaProc:'',dispositivo:'',fechaDispositivo:''});
+  mirrorPrimaryInfection(p); save(); renderPtInfeccion(); renderBeds();
+}
+function infDel(idx){
+  var p=currentPatient(); if(!p) return;
+  migrateInfecciones(p);
+  if(p.infecciones.length<=1){
+    // no eliminar la última: dejarla vacía
+    p.infecciones[0]={foco:'',germen:'',muestra:'',fechaCultivo:'',abg:{},aislamiento:'',estado:''};
+  } else {
+    p.infecciones.splice(idx,1);
+  }
+  mirrorPrimaryInfection(p); save(); runAlertsEngine(); renderPtInfeccion(); renderBeds();
+}
+/* Bloque "ORIGEN DE LA INFECCIÓN" con sub-campos condicionales por origen */
+function origenBlock(inf,idx){
+  var p=currentPatient();
+  var origen=inf.origen||'';
+  function selOpt(list,cur){ return '<option value="">-</option>'+list.map(function(o){ return '<option'+(cur===o?' selected':'')+'>'+esc(o)+'</option>'; }).join(''); }
+  var html='<h4 style="margin-top:12px">🏥 Origen de la infección</h4>'+
+    '<div class="field-row"><div class="field-group"><label>Origen</label>'+
+      '<select onchange="infSetOrigen('+idx+',\'origen\',this.value)"><option value="">-</option>'+
+      ORIGEN_INF.map(function(o){ return '<option'+(origen===o?' selected':'')+'>'+esc(o)+'</option>'; }).join('')+'</select></div></div>';
+  // Postoperatoria / Asociada a procedimiento
+  if(origenRequiereProc(origen)){
+    var tp=tiempoProcInf(inf,p);
+    html+='<div class="field-row three">'+
+      '<div class="field-group"><label>Procedimiento</label><select onchange="infSetOrigen('+idx+',\'procedimiento\',this.value)">'+selOpt(PROCEDIMIENTOS,inf.procedimiento||'')+'</select></div>'+
+      '<div class="field-group"><label>Especialidad</label><select onchange="infSetOrigen('+idx+',\'especialidad\',this.value)">'+selOpt(ESPECIALIDADES,inf.especialidad||'')+'</select></div>'+
+      '<div class="field-group"><label>Operador / tratante</label><input type="text" value="'+esc(inf.operador||'')+'" oninput="infSet('+idx+',\'operador\',this.value)" onblur="renderPtInfeccion()" placeholder="Médico operador"></div>'+
+    '</div><div class="field-row three">'+
+      '<div class="field-group"><label>Fecha del procedimiento</label><input type="date" value="'+esc(inf.fechaProc||'')+'" oninput="infSetOrigen('+idx+',\'fechaProc\',this.value)"></div>'+
+      '<div class="field-group"><label>Tiempo proc.→infección (auto)</label><div class="calc-val">'+(tp!==null?(tp+' día(s)'):'—')+'</div></div>'+
+      '<div class="field-group"></div>'+
+    '</div>';
+  }
+  // Asociada a dispositivo
+  if(origen==='Asociada a dispositivo'){
+    html+='<div class="field-row">'+
+      '<div class="field-group"><label>Dispositivo</label><select onchange="infSetOrigen('+idx+',\'dispositivo\',this.value)">'+selOpt(DISPOSITIVOS,inf.dispositivo||'')+'</select></div>'+
+      '<div class="field-group"><label>Fecha colocación dispositivo</label><input type="date" value="'+esc(inf.fechaDispositivo||'')+'" oninput="infSet('+idx+',\'fechaDispositivo\',this.value)"></div>'+
+    '</div>';
+  }
+  if(esIAAS(origen)) html+='<div class="alert-box orange" style="margin-top:8px">🏥 <b>Infección clasificada como IAAS.</b> Se incluye en las estadísticas de IAAS.</div>';
+  return html;
+}
 function renderPtInfeccion(){
   var p=currentPatient(); if(!p) return;
-  var focoOpts='<option value="">-</option>'+FOCOS.map(function(f){ return '<option'+(p.foco===f?' selected':'')+'>'+esc(f)+'</option>'; }).join('');
-  var muestraOpts='<option value="">-</option>'+MUESTRAS.map(function(m){ return '<option'+(p.muestra===m?' selected':'')+'>'+esc(m)+'</option>'; }).join('');
-  var mdrHtml='';
-  var m=mdrInfo(p.germen);
-  if(m){ mdrHtml='<div class="alert-box danger">🟠 <b>Germen multirresistente ('+m.name+').</b> Protocolo sugerido: '+esc(m.protocolo)+'</div>'; }
-  // antibiograma
-  var abgRows=ABG_ATBS.map(function(atb){
-    var cur=(p.abg&&p.abg[atb])||'';
-    return '<tr><td class="atb-name">'+esc(atb)+'</td><td>'+
-      ['S','I','R'].map(function(v){ return '<button class="sir-btn '+v+(cur===v?' active':'')+'" onclick="setAbg(\''+atb.replace(/'/g,'')+'\',\''+v+'\')">'+v+'</button>'; }).join('')+
-      '</td></tr>';
-  }).join('');
-  var el=document.getElementById('pt-infeccion');
-  el.innerHTML=
-    '<div class="section-card"><h4>🦠 Infección</h4>'+
-    '<div class="field-row three">'+
-      '<div class="field-group"><label>Foco</label><select onchange="pset(\'foco\',this.value)">'+focoOpts+'</select></div>'+
-      fg('Germen','germen','text',p.germen)+
-      '<div class="field-group"><label>Aislamiento</label><select onchange="pset(\'aislamiento\',this.value);renderPtInfeccion();renderBeds()"><option value="">Sin aislamiento</option><option value="contacto"'+(p.aislamiento==='contacto'?' selected':'')+'>Contacto / Gotas (naranja)</option><option value="aereo"'+(p.aislamiento==='aereo'?' selected':'')+'>Aéreo / Estricto (rojo)</option></select></div>'+
-    '</div><div class="field-row three">'+
-      '<div class="field-group"><label>Tipo de muestra</label><select onchange="pset(\'muestra\',this.value)">'+muestraOpts+'</select></div>'+
-      fg('Fecha de cultivos','fechaCultivo','date',p.fechaCultivo)+
-      '<div class="field-group"><label>Estado</label><div class="calc-val'+(m?' danger':'')+'">'+(m?'MDR: '+m.name:(p.germen?'Germen registrado':'—'))+'</div></div>'+
-    '</div>'+mdrHtml+'</div>'+
-    '<div class="section-card"><h4>🧫 Antibiograma (S / I / R)</h4>'+
+  migrateInfecciones(p);
+  var infs=p.infecciones;
+  // resumen de infecciones activas (con germen o foco)
+  var activeInfs=infs.filter(function(inf){ return inf.germen||inf.foco; });
+  var summary='';
+  if(activeInfs.length){
+    summary='<div class="section-card"><h4>🦠 Infecciones activas ('+activeInfs.length+')</h4>'+
+      activeInfs.map(function(inf,i){
+        var mm=mdrInfo(inf.germen);
+        return '<div style="font-size:12px;margin-bottom:4px">• <b>'+esc(inf.foco||'Foco —')+'</b>: '+
+          (inf.germen?('<span class="germ-pill'+(mm?' mdr':'')+'">'+esc(inf.germen)+'</span>'):'sin germen')+
+          (inf.aislamiento?' · <span class="pill '+(inf.aislamiento==='aereo'?'red':'orange')+'">'+(inf.aislamiento==='aereo'?'Aéreo/Estricto':'Contacto/Gotas')+'</span>':'')+
+          (mm?' · <span class="pill red">MDR: '+esc(mm.name)+'</span>':'')+'</div>';
+      }).join('')+'</div>';
+  }
+  var blocks=infs.map(function(inf,idx){
+    var focoOpts='<option value="">-</option>'+FOCOS.map(function(f){ return '<option'+(inf.foco===f?' selected':'')+'>'+esc(f)+'</option>'; }).join('');
+    var muestraOpts='<option value="">-</option>'+MUESTRAS.map(function(m){ return '<option'+(inf.muestra===m?' selected':'')+'>'+esc(m)+'</option>'; }).join('');
+    var m=mdrInfo(inf.germen);
+    var mdrHtml=m?('<div class="alert-box danger">🟠 <b>Germen multirresistente ('+m.name+').</b> Protocolo sugerido: '+esc(m.protocolo)+'</div>'):'';
+    var abgRows=ABG_ATBS.map(function(atb){
+      var cur=(inf.abg&&inf.abg[atb])||'';
+      return '<tr><td class="atb-name">'+esc(atb)+'</td><td>'+
+        ['S','I','R'].map(function(v){ return '<button class="sir-btn '+v+(cur===v?' active':'')+'" onclick="infAbg('+idx+',\''+atb.replace(/'/g,'')+'\',\''+v+'\')">'+v+'</button>'; }).join('')+
+        '</td></tr>';
+    }).join('');
+    return '<div class="section-card">'+
+      '<h4 style="justify-content:space-between"><span>🦠 Infección #'+(idx+1)+'</span>'+
+        '<button class="btn btn-red btn-sm" onclick="infDel('+idx+')">🗑️ Eliminar</button></h4>'+
+      '<div class="field-row three">'+
+        '<div class="field-group"><label>Foco</label><select onchange="infSet('+idx+',\'foco\',this.value);renderPtInfeccion()">'+focoOpts+'</select></div>'+
+        '<div class="field-group"><label>Germen</label><input type="text" value="'+esc(inf.germen)+'" oninput="infSet('+idx+',\'germen\',this.value)" onblur="renderPtInfeccion()"></div>'+
+        '<div class="field-group"><label>Aislamiento</label><select onchange="infSetAislamiento('+idx+',this.value)"><option value="">Sin aislamiento</option><option value="contacto"'+(inf.aislamiento==='contacto'?' selected':'')+'>Contacto / Gotas (naranja)</option><option value="aereo"'+(inf.aislamiento==='aereo'?' selected':'')+'>Aéreo / Estricto (rojo)</option></select></div>'+
+      '</div><div class="field-row three">'+
+        '<div class="field-group"><label>Tipo de muestra</label><select onchange="infSet('+idx+',\'muestra\',this.value)">'+muestraOpts+'</select></div>'+
+        '<div class="field-group"><label>Fecha de cultivos</label><input type="date" value="'+esc(inf.fechaCultivo)+'" oninput="infSet('+idx+',\'fechaCultivo\',this.value)"></div>'+
+        '<div class="field-group"><label>Estado</label><div class="calc-val'+(m?' danger':'')+'">'+(m?'MDR: '+m.name:(inf.germen?'Germen registrado':'—'))+'</div></div>'+
+      '</div>'+mdrHtml+
+      '<h4 style="margin-top:12px">🧫 Antibiograma (S / I / R)</h4>'+
       '<table class="abg-table"><thead><tr><th style="text-align:left">Antibiótico</th><th>Sensibilidad</th></tr></thead><tbody>'+abgRows+'</tbody></table>'+
       '<p style="font-size:11px;color:var(--muted);margin-top:8px">S = sensible · I = intermedio · R = resistente</p>'+
+      origenBlock(inf,idx)+
     '</div>';
+  }).join('');
+  document.getElementById('pt-infeccion').innerHTML=
+    summary+blocks+
+    '<div class="btn-row"><button class="btn btn-teal btn-sm" onclick="infAdd()">+ Agregar infección</button></div>';
 }
-function setAbg(atb,v){ var p=currentPatient(); if(!p) return; if(!p.abg) p.abg={}; if(p.abg[atb]===v) delete p.abg[atb]; else p.abg[atb]=v; save(); renderPtInfeccion(); }
+/* compat: setAbg legacy (por si algún handler externo lo llama) -> primera infección */
+function setAbg(atb,v){ infAbg(0,atb,v); }
 
 /* -- ATB del paciente -- */
 function renderPtAtb(){
@@ -1338,7 +1785,7 @@ function limpiarActual(){
   if(!p){ toast('No hay paciente activo'); return; }
   if(!confirm('¿Limpiar esta cama SIN archivar en egresados?')) return;
   state.areas[state.activeArea].beds[state.activeBed]=null;
-  save(); state.activeBed=null;
+  save(); state.activeBed=null; _ptDetailOpen=false;
   showMain('areas',document.querySelector('.main-tab[data-tab=areas]'));
   toast('Cama liberada');
 }
@@ -1376,7 +1823,11 @@ function confirmEgreso(){
     evolucion:(p.evol||[]).map(function(e){return e.fecha+': '+e.texto;}).join(' | '),
     diasInternacion:daysBetween(p.ingreso,fecha),
     resultado: motivo==='Fallecimiento'?'Fallecido':'Vivo',
-    mdr:isMDR(p.germen)
+    mdr:isMDR(p.germen),
+    infecciones:patInfections(p).map(function(inf){ return Object.assign({},inf,{abg:Object.assign({},inf.abg||{})}); }),
+    atb:(p.atb||[]).map(function(x){ return Object.assign({},x); }),
+    evol:(p.evol||[]).map(function(x){ return Object.assign({},x); }),
+    para:{ dates:(p.para&&p.para.dates)?p.para.dates.slice():[], vals:Object.assign({},(p.para&&p.para.vals)||{}) }
   };
   var arr=getEgresados(); arr.push(eg); setEgresados(arr);
   // liberar cama + pendiente limpieza terminal
@@ -1384,7 +1835,7 @@ function confirmEgreso(){
   a.pending[bi]={fecha:fecha,responsable:''};
   save();
   closeModal('modalEgreso');
-  state.activeBed=null;
+  state.activeBed=null; _ptDetailOpen=false;
   runAlertsEngine();
   showMain('areas',document.querySelector('.main-tab[data-tab=areas]'));
   toast('Paciente egresado — cama pendiente de limpieza terminal');
@@ -1394,13 +1845,17 @@ function confirmEgreso(){
    MICROBIOLOGÍA
    ============================================================ */
 function renderMicro(){
-  var active=allActive().filter(function(r){ return r.p.germen; });
-  // recolectar filas (una por paciente/cultivo)
-  var rows=active.map(function(r){
+  var active=allActive();
+  // recolectar filas (una por infección con germen)
+  var rows=[];
+  active.forEach(function(r){
     var p=r.p;
-    var sens=Object.keys(p.abg||{}).filter(function(k){return p.abg[k]==='S';}).join(', ')||'—';
-    var res=Object.keys(p.abg||{}).filter(function(k){return p.abg[k]==='R';}).join(', ')||'—';
-    return {area:r.area.name,areaId:r.area.id,pac:p.name||'(sin nombre)',muestra:p.muestra||'—',germen:p.germen,mdr:isMDR(p.germen),sens:sens,res:res,fecha:p.fechaCultivo||''};
+    patInfections(p).forEach(function(inf){
+      if(!inf.germen) return;
+      var sens=Object.keys(inf.abg||{}).filter(function(k){return inf.abg[k]==='S';}).join(', ')||'—';
+      var res=Object.keys(inf.abg||{}).filter(function(k){return inf.abg[k]==='R';}).join(', ')||'—';
+      rows.push({area:r.area.name,areaId:r.area.id,pac:p.name||'(sin nombre)',muestra:inf.muestra||'—',germen:inf.germen,mdr:isMDR(inf.germen),sens:sens,res:res,fecha:inf.fechaCultivo||''});
+    });
   });
   // filtros
   var areas=[''].concat(state.areas.map(function(a){return a.name;}));
@@ -1485,7 +1940,7 @@ function renderAlertas(){
   var resHtml=Object.keys(resolved).length?('<div class="stats-section-title">Alertas resueltas</div>'+Object.keys(resolved).map(function(k){ var r=resolved[k]; return '<div class="alert-box ok" style="margin-top:6px">✔️ <b>'+esc(r.label||k)+'</b> · Resuelta: '+esc(r.fecha)+(r.obs?' · Obs: '+esc(r.obs):'')+' <button class="btn btn-outline btn-sm" style="float:right" onclick="unresolve(\''+k+'\')">Reabrir</button></div>'; }).join('')):'';
   document.getElementById('panel-alertas').innerHTML=
     '<h3 style="margin-bottom:6px">🚨 Panel de alertas</h3>'+
-    '<p style="font-size:12px;color:var(--muted);margin-bottom:8px">Ordenadas por severidad. Reingreso, limpieza terminal, infección cruzada y multirresistencia.</p>'+
+    '<p style="font-size:12px;color:var(--muted);margin-bottom:8px">Ordenadas por severidad. Reingreso, limpieza terminal, infección cruzada, multirresistencia y clustering de IAAS.</p>'+
     (alerts.length?html:'<div class="alert-box ok" style="margin-top:10px">✅ Sin alertas activas.</div>')+resHtml;
 }
 function unresolve(k){ var r=getResolved(); delete r[k]; setResolved(r); renderAlertas(); updateAlertBadge(); }
@@ -1511,7 +1966,8 @@ function resolvePreset(preset){
 function statsAreas(){ return Array.isArray(window._statsAreas)?window._statsAreas.slice():[]; }
 function statsFilter(){
   var r=resolvePreset(statsPreset());
-  return { desde:r.desde, hasta:r.hasta, areas:statsAreas(), cobertura:(window._statsCobertura||'') };
+  return { desde:r.desde, hasta:r.hasta, areas:statsAreas(), cobertura:(window._statsCobertura||''),
+           iaasTipo:(window._statsIaasTipo||''), especialidad:(window._statsIaasEsp||'') };
 }
 /* Etiquetas/coberturas disponibles (fijas + las presentes en datos) */
 function getEtiquetas(){
@@ -1544,7 +2000,7 @@ function computeInfectStats(filter){
 
   /* ---- GÉRMENES ---- */
   var germsTotal={}, germsByArea={};
-  acF.forEach(function(r){ if(r.p.germen){ germsTotal[r.p.germen]=(germsTotal[r.p.germen]||0)+1; var an=r.area.name; (germsByArea[an]=germsByArea[an]||{})[r.p.germen]=((germsByArea[an]||{})[r.p.germen]||0)+1; } });
+  acF.forEach(function(r){ var an=r.area.name; patInfections(r.p).forEach(function(inf){ if(inf.germen){ germsTotal[inf.germen]=(germsTotal[inf.germen]||0)+1; (germsByArea[an]=germsByArea[an]||{})[inf.germen]=((germsByArea[an]||{})[inf.germen]||0)+1; } }); });
   egF.forEach(function(e){ if(e.germen){ germsTotal[e.germen]=(germsTotal[e.germen]||0)+1; var an=e.areaName||'—'; (germsByArea[an]=germsByArea[an]||{})[e.germen]=((germsByArea[an]||{})[e.germen]||0)+1; } });
   var germsTop=Object.keys(germsTotal).map(function(k){return {label:k,n:germsTotal[k],mdr:isMDR(k)};}).sort(function(a,b){return b.n-a.n;}).slice(0,5);
 
@@ -1557,7 +2013,7 @@ function computeInfectStats(filter){
 
   // mapa de resistencia ATB × germen (% S de activos con antibiograma)
   var resMap={};
-  acF.forEach(function(r){ var p=r.p; if(!p.germen||!p.abg) return; Object.keys(p.abg).forEach(function(atb){ if(!resMap[p.germen]) resMap[p.germen]={}; if(!resMap[p.germen][atb]) resMap[p.germen][atb]={S:0,t:0}; resMap[p.germen][atb].t++; if(p.abg[atb]==='S') resMap[p.germen][atb].S++; }); });
+  acF.forEach(function(r){ patInfections(r.p).forEach(function(inf){ if(!inf.germen||!inf.abg) return; Object.keys(inf.abg).forEach(function(atb){ if(!resMap[inf.germen]) resMap[inf.germen]={}; if(!resMap[inf.germen][atb]) resMap[inf.germen][atb]={S:0,t:0}; resMap[inf.germen][atb].t++; if(inf.abg[atb]==='S') resMap[inf.germen][atb].S++; }); }); });
 
   /* ---- ATB ---- */
   var atbUse={}; // ATB más usados (de atb[] de activos)
@@ -1576,7 +2032,7 @@ function computeInfectStats(filter){
 
   /* ---- INFECCIONES ---- */
   var focoCount={};
-  acF.forEach(function(r){ if(r.p.foco) focoCount[r.p.foco]=(focoCount[r.p.foco]||0)+1; });
+  acF.forEach(function(r){ patInfections(r.p).forEach(function(inf){ if(inf.foco) focoCount[inf.foco]=(focoCount[inf.foco]||0)+1; }); });
   egF.forEach(function(e){ if(e.foco) focoCount[e.foco]=(focoCount[e.foco]||0)+1; });
   var focoArr=Object.keys(focoCount).map(function(k){return {label:k,n:focoCount[k]};}).sort(function(a,b){return b.n-a.n;});
   // mortalidad por foco (egresados)
@@ -1648,6 +2104,45 @@ function computeInfectStats(filter){
   var atbDaysProm=atbDaysAll.length?Math.round(atbDaysAll.reduce(function(s,x){return s+x;},0)/atbDaysAll.length):null;
   var mortRate=egF.length?Math.round(fall/egF.length*100):null;
 
+  /* ---- IAAS (Infecciones Asociadas a la Atención Sanitaria) ---- */
+  // helper: infecciones de un egresado (snapshot) o fallback legacy
+  function egInfs(e){ return (e.infecciones&&e.infecciones.length)?e.infecciones:[{foco:e.foco,germen:e.germen,origen:''}]; }
+  var iaasFilter=filter.iaasTipo||'', espFilter=filter.especialidad||'';
+  function tipoOK(o){ return !iaasFilter || o===iaasFilter; }
+  function espOK(s){ return !espFilter || (s||'')===espFilter; }
+  var iaasPacientes=0, totalPacientes=(acF.length+egF.length);
+  var iaasByTipo={};              // origen -> count infecciones IAAS
+  var postByEsp={};              // especialidad -> {inf:n, base:n}  (tasa infecciones postop por especialidad)
+  var operRank={};              // operador -> count
+  var dispCount={};             // dispositivo -> count
+  var iaasByMonth={};           // 'YYYY-MM' -> count
+  function collectIAAS(infs,dateRef){
+    var pacHasIAAS=false;
+    (infs||[]).forEach(function(inf){
+      var o=inf.origen||''; if(!o) return;
+      if(!esIAAS(o)) return;
+      if(!tipoOK(o)) return;
+      if(origenRequiereProc(o) && !espOK(inf.especialidad)) return;
+      pacHasIAAS=true;
+      iaasByTipo[o]=(iaasByTipo[o]||0)+1;
+      if(o==='Postoperatoria'||o==='Asociada a procedimiento'){
+        var esp=inf.especialidad||'Sin especialidad'; postByEsp[esp]=(postByEsp[esp]||0)+1;
+        var op=(inf.operador||'').trim(); if(op) operRank[op]=(operRank[op]||0)+1;
+      }
+      if(o==='Asociada a dispositivo'){ var d=inf.dispositivo||'Sin dispositivo'; dispCount[d]=(dispCount[d]||0)+1; }
+      if(dateRef&&dateRef.length>=7){ var mm=dateRef.slice(0,7); iaasByMonth[mm]=(iaasByMonth[mm]||0)+1; }
+    });
+    return pacHasIAAS;
+  }
+  acF.forEach(function(r){ if(collectIAAS(patInfections(r.p), r.p.ingreso)) iaasPacientes++; });
+  egF.forEach(function(e){ if(collectIAAS(egInfs(e), e.fechaEgreso)) iaasPacientes++; });
+  var iaasTasaGlobal=totalPacientes?Math.round(iaasPacientes/totalPacientes*1000)/10:0;
+  var iaasTipoArr=Object.keys(iaasByTipo).map(function(k){return {label:k,n:iaasByTipo[k]};}).sort(function(a,b){return b.n-a.n;});
+  var iaasEspArr=Object.keys(postByEsp).map(function(k){return {label:k,n:postByEsp[k]};}).sort(function(a,b){return b.n-a.n;});
+  var iaasOperArr=Object.keys(operRank).map(function(k){return {label:k,n:operRank[k]};}).sort(function(a,b){return b.n-a.n;}).slice(0,10);
+  var iaasDispArr=Object.keys(dispCount).map(function(k){return {label:k,n:dispCount[k]};}).sort(function(a,b){return b.n-a.n;});
+  var iaasMonthArr=Object.keys(iaasByMonth).sort().map(function(m){return {label:m,n:iaasByMonth[m]};});
+
   return {
     filter:{desde:desde,hasta:hasta,areas:areasSel,cobertura:covF,area:(areasSel.length===1?areasSel[0]:'')},
     counts:{activos:acF.length,egresados:egF.length,fallecidos:fall,camas:beds,ocupadas:occ,ocupacionPc:ocupacionPc},
@@ -1659,7 +2154,11 @@ function computeInfectStats(filter){
          diasByArea:diasAreaArr, diasByDx:diasDxArr,
          mortFoco:mortArr, mortGerm:mortGermArr, charlsonProm:charlsonProm},
     resumen:{n:(acF.length+egF.length), diasProm:diasProm, charlsonProm:charlsonProm,
-             mortRate:mortRate, topGerm:topGerm, topFoco:topFoco, atbDaysProm:atbDaysProm}
+             mortRate:mortRate, topGerm:topGerm, topFoco:topFoco, atbDaysProm:atbDaysProm},
+    iaas:{tasaGlobal:iaasTasaGlobal, pacientes:iaasPacientes, total:totalPacientes,
+          porTipo:iaasTipoArr, porEspecialidad:iaasEspArr, operadores:iaasOperArr,
+          porDispositivo:iaasDispArr, porMes:iaasMonthArr,
+          iaasTipo:iaasFilter, especialidad:espFilter}
   };
 }
 /* Helper para comparativo por población (cobertura) */
@@ -1713,6 +2212,9 @@ function renderStats(){
 
   // ANÁLISIS POR POBLACIÓN (comparativo hasta 2)
   var pobComparHtml=renderPobComparativo(f);
+
+  // IAAS
+  var iaasHtml=renderIaasSection(S,f,card,bar,bars,nodata);
 
   var areasSel=statsAreas();
   var preset=statsPreset();
@@ -1778,7 +2280,48 @@ function renderStats(){
       card('👥 Población por etiqueta/cobertura',pobBars,'p_pob')+
     '</div>'+
     '<div class="stats-section-title">5 · Análisis por población (comparativo)</div>'+
-    pobComparHtml;
+    pobComparHtml+
+    '<div class="stats-section-title">6 · 📋 IAAS (Infecciones Asociadas a la Atención Sanitaria)</div>'+
+    iaasHtml;
+}
+/* Sección de estadísticas IAAS */
+function renderIaasSection(S,f,card,bar,bars,nodata){
+  var I=S.iaas||{};
+  var umbral=getIaasUmbral();
+  var tasa=I.tasaGlobal||0;
+  var supera=tasa>umbral;
+  // Banner umbral + tasa global
+  var banner='<div class="stat-card" style="margin-bottom:10px"><h4>🌡️ Tasa global de IAAS</h4>'+
+    '<div class="stats-big" style="color:'+(supera?'var(--red)':'var(--teal)')+'">'+tasa+'%</div>'+
+    '<p style="font-size:11px;color:var(--muted)">'+(I.pacientes||0)+' de '+(I.total||0)+' paciente(s) con ≥1 infección de origen IAAS · IAAS = origen ≠ Comunitaria y ≠ Relacionada a atención ambulatoria.</p>'+
+    '<div class="filters" style="margin-top:8px;align-items:flex-end">'+
+      '<div class="field-group" style="max-width:160px"><label>Umbral de alerta (%)</label><input type="number" min="0" step="0.5" value="'+esc(umbral)+'" onchange="setIaasUmbral(this.value);renderStats()"></div>'+
+    '</div>'+
+    (supera?'<div class="alert-box danger" style="margin-top:8px">🔴 <b>Alerta:</b> la tasa global de IAAS ('+tasa+'%) supera el umbral establecido ('+umbral+'%).</div>'
+           :'<div class="alert-box ok" style="margin-top:8px">✅ Tasa global de IAAS dentro del umbral ('+umbral+'%).</div>')+
+    '</div>';
+  // Filtros propios de la sección
+  var espOpts=['<option value="">Todas</option>'].concat(ESPECIALIDADES.map(function(e){ return '<option'+((f.especialidad===e)?' selected':'')+'>'+esc(e)+'</option>'; })).join('');
+  var tipoOpts=['<option value="">Todos</option>'].concat(ORIGEN_INF.filter(esIAAS).map(function(o){ return '<option'+((f.iaasTipo===o)?' selected':'')+'>'+esc(o)+'</option>'; })).join('');
+  var filtros='<div class="filters" style="margin-bottom:10px">'+
+    '<div class="field-group"><label>Tipo de IAAS</label><select onchange="window._statsIaasTipo=this.value;renderStats()">'+tipoOpts+'</select></div>'+
+    '<div class="field-group"><label>Especialidad (postop./proc.)</label><select onchange="window._statsIaasEsp=this.value;renderStats()">'+espOpts+'</select></div>'+
+    '<div class="field-group" style="align-self:flex-end"><button class="btn btn-outline btn-sm" onclick="window._statsIaasTipo=\'\';window._statsIaasEsp=\'\';renderStats()">Limpiar IAAS</button></div>'+
+    '</div>';
+  // Bars
+  var tipoBars=I.porTipo&&I.porTipo.length?I.porTipo.map(function(t){ return bar(t.label,t.n,I.porTipo[0].n,'var(--orange)'); }).join(''):nodata();
+  var espBars=I.porEspecialidad&&I.porEspecialidad.length?I.porEspecialidad.map(function(t){ return bar(t.label,t.n,I.porEspecialidad[0].n,'var(--purple)'); }).join(''):nodata();
+  var operBars=I.operadores&&I.operadores.length?I.operadores.map(function(t){ return bar(t.label,t.n,I.operadores[0].n,'var(--blue)'); }).join(''):nodata();
+  var dispBars=I.porDispositivo&&I.porDispositivo.length?I.porDispositivo.map(function(t){ return bar(t.label,t.n,I.porDispositivo[0].n,'var(--red)'); }).join(''):nodata();
+  var mesBars=I.porMes&&I.porMes.length?I.porMes.map(function(t){ return bar(t.label,t.n,I.porMes.reduce(function(m,x){return Math.max(m,x.n);},1),'var(--teal)'); }).join(''):nodata();
+  return banner+filtros+
+    '<div class="stats-grid">'+
+      card('📊 Desglose por tipo de IAAS',tipoBars,'iaas_tipo')+
+      card('🩹 Infecciones postop./proc. por especialidad',espBars,'iaas_esp')+
+      card('👨‍⚕️ Ranking de operadores (infecciones asociadas)',operBars,'iaas_oper')+
+      card('🧪 IAAS por tipo de dispositivo (NAV/CVC/ITU)',dispBars,'iaas_disp')+
+      card('📈 Evolución temporal de IAAS por mes',mesBars,'iaas_mes')+
+    '</div>';
 }
 /* Toggle de área en multiselección */
 function toggleStatsArea(ai,on){
@@ -1823,30 +2366,238 @@ function toggleStatSec(k,v){ if(!window._statSec) window._statSec={}; window._st
 /* ============================================================
    EGRESADOS + Excel
    ============================================================ */
+/* Estado de egreso derivado del motivo/resultado (Alta / Traslado / Fallecimiento). */
+function egEstado(e){
+  if(e.resultado==='Fallecido' || e.motivo==='Fallecimiento') return 'Fallecimiento';
+  if(e.motivo==='Traslado') return 'Traslado';
+  if(e.motivo==='Alta') return 'Alta';
+  return e.motivo||'—';
+}
+function egEstadoPill(e){
+  var st=egEstado(e);
+  if(st==='Fallecimiento') return '<span class="pill red">Fallecimiento</span>';
+  if(st==='Traslado') return '<span class="pill amber">Traslado</span>';
+  if(st==='Alta') return '<span class="pill teal">Alta</span>';
+  return esc(st);
+}
+/* ---- Quick-access widgets (Egresados) ---- */
+/* infecciones de un egresado con fallback legacy */
+function egInfsW(e){
+  if(e&&Array.isArray(e.infecciones)&&e.infecciones.length) return e.infecciones;
+  return [{foco:(e&&e.foco)||'',germen:(e&&e.germen)||'',origen:'',especialidad:'',abg:{}}];
+}
+/* ¿el egresado tiene ≥1 infección IAAS? */
+function egTieneIAAS(e){ return egInfsW(e).some(function(inf){ return esIAAS(inf.origen); }); }
+/* estado del widget-filtro: {type:'germen'|'dx'|'iaas'|'esp', value:''} */
+var _egWidget=null;
+function egWidgetSet(type,value){
+  if(_egWidget && _egWidget.type===type && _egWidget.value===value) _egWidget=null; // toggle off
+  else _egWidget={type:type,value:value};
+  renderEgresados();
+}
+function egWidgetClear(){ _egWidget=null; renderEgresados(); }
+/* ¿pasa el egresado el widget-filtro activo? */
+function egPassWidget(e){
+  if(!_egWidget) return true;
+  var w=_egWidget;
+  if(w.type==='germen'){ return egInfsW(e).some(function(inf){ return normGerm(inf.germen)===w.value; }); }
+  if(w.type==='dx'){ return (e.dx||'')===w.value; }
+  if(w.type==='iaas'){ return egTieneIAAS(e); }
+  if(w.type==='esp'){ return egInfsW(e).some(function(inf){ return (inf.origen==='Postoperatoria'||inf.origen==='Asociada a procedimiento') && (inf.especialidad||'Sin especialidad')===w.value; }); }
+  return true;
+}
+/* Construye la fila de widgets a partir de TODOS los egresados */
+function renderEgWidgets(egres){
+  var total=egres.length, vivos=0, fallec=0;
+  var germs={}, dxs={}, iaasTipo={}, espPost={};
+  var iaasTotal=0, sumDias=0, nDias=0, diasByArea={};
+  egres.forEach(function(e){
+    var st=egEstado(e);
+    if(st==='Fallecimiento') fallec++; else vivos++;
+    if(e.dx){ dxs[e.dx]=(dxs[e.dx]||0)+1; }
+    var di=(typeof e.diasInternacion==='number')?e.diasInternacion:daysBetween(e.ingreso,e.fechaEgreso);
+    if(di!==null && !isNaN(di)){ sumDias+=di; nDias++; var an=e.areaName||'Sin sector'; if(!diasByArea[an]) diasByArea[an]={s:0,n:0}; diasByArea[an].s+=di; diasByArea[an].n++; }
+    egInfsW(e).forEach(function(inf){
+      var g=normGerm(inf.germen); if(g) germs[g]=(germs[g]||0)+1;
+      if(esIAAS(inf.origen)){ iaasTotal++; var o=inf.origen||'Otra'; iaasTipo[o]=(iaasTipo[o]||0)+1; }
+      if(inf.origen==='Postoperatoria'||inf.origen==='Asociada a procedimiento'){ var esp=inf.especialidad||'Sin especialidad'; espPost[esp]=(espPost[esp]||0)+1; }
+    });
+  });
+  function topArr(obj,n){ return Object.keys(obj).map(function(k){return {k:k,n:obj[k]};}).sort(function(a,b){return b.n-a.n;}).slice(0,n); }
+  var isActive=function(type,value){ return _egWidget && _egWidget.type===type && _egWidget.value===value; };
+  var itemHtml=function(type,value,label,cnt){
+    return '<div class="ew-item'+(isActive(type,value)?' active':'')+'" onclick="egWidgetSet(\''+type+'\',\''+esc(value).replace(/'/g,"\\'")+'\')" title="'+esc(label)+'"><span class="ew-lbl">'+esc(label)+'</span><span class="ew-cnt">'+cnt+'</span></div>';
+  };
+  // 1. Total egresados
+  var wTotal='<div class="eg-widget plain"><h6>📊 Total egresados</h6>'+
+    '<div class="ew-big">'+total+'</div>'+
+    '<div class="ew-sub">Vivos: <b>'+vivos+'</b> · Fallecidos: <b>'+fallec+'</b></div></div>';
+  // 2. Top 10 gérmenes
+  var gArr=topArr(germs,10);
+  var wGerm='<div class="eg-widget"><h6>🦠 Top 10 gérmenes</h6><div class="ew-list">'+
+    (gArr.map(function(x){ return itemHtml('germen',x.k,x.k,x.n); }).join('')||'<div class="ew-sub">Sin datos.</div>')+'</div></div>';
+  // 3. Top 10 diagnósticos
+  var dxArr=topArr(dxs,10);
+  var wDx='<div class="eg-widget"><h6>🏥 Top 10 diagnósticos</h6><div class="ew-list">'+
+    (dxArr.map(function(x){ return itemHtml('dx',x.k,x.k,x.n); }).join('')||'<div class="ew-sub">Sin datos.</div>')+'</div></div>';
+  // 4. IAAS
+  var iaasArr=Object.keys(iaasTipo).map(function(k){return {k:k,n:iaasTipo[k]};}).sort(function(a,b){return b.n-a.n;});
+  var wIaas='<div class="eg-widget"><h6>⚠️ IAAS</h6>'+
+    '<div class="ew-item'+(isActive('iaas','')?' active':'')+'" onclick="egWidgetSet(\'iaas\',\'\')"><span class="ew-lbl">Total infecciones IAAS</span><span class="ew-cnt">'+iaasTotal+'</span></div>'+
+    '<div class="ew-list" style="margin-top:6px">'+
+    (iaasArr.map(function(x){ return '<div class="ew-item" style="cursor:default"><span class="ew-lbl">'+esc(x.k)+'</span><span class="ew-cnt">'+x.n+'</span></div>'; }).join('')||'<div class="ew-sub">Sin IAAS.</div>')+
+    '</div></div>';
+  // 5. Por especialidad (top 5 postop)
+  var espArr=topArr(espPost,5);
+  var wEsp='<div class="eg-widget"><h6>👨‍⚕️ Por especialidad</h6><div class="ew-sub" style="margin-top:-2px;margin-bottom:6px">Infecciones postoperatorias</div><div class="ew-list">'+
+    (espArr.map(function(x){ return itemHtml('esp',x.k,x.k,x.n); }).join('')||'<div class="ew-sub">Sin datos.</div>')+'</div></div>';
+  // 6. Estadísticas rápidas
+  var promGen=nDias?Math.round(sumDias/nDias*10)/10:0;
+  var mort=total?Math.round(fallec/total*1000)/10:0;
+  var areaRows=Object.keys(diasByArea).map(function(an){ var o=diasByArea[an]; return {k:an,avg:Math.round(o.s/o.n*10)/10}; }).sort(function(a,b){return b.avg-a.avg;}).slice(0,5);
+  var wStats='<div class="eg-widget plain"><h6>📅 Estadísticas rápidas</h6>'+
+    '<div class="ew-sub">Días internación (prom.): <b>'+promGen+'</b></div>'+
+    '<div class="ew-sub">Mortalidad: <b>'+mort+'%</b></div>'+
+    '<div class="ew-list" style="margin-top:6px">'+
+    (areaRows.map(function(x){ return '<div class="ew-item"><span class="ew-lbl">'+esc(x.k)+'</span><span class="ew-cnt">'+x.avg+'d</span></div>'; }).join('')||'')+
+    '</div></div>';
+  return '<div class="eg-widgets">'+wTotal+wGerm+wDx+wIaas+wEsp+wStats+'</div>';
+}
+/* Etiqueta descriptiva del widget-filtro activo */
+function egWidgetLabel(){
+  if(!_egWidget) return '';
+  var w=_egWidget;
+  if(w.type==='germen') return 'Germen: '+w.value;
+  if(w.type==='dx') return 'Diagnóstico: '+w.value;
+  if(w.type==='iaas') return 'Solo pacientes IAAS';
+  if(w.type==='esp') return 'Especialidad: '+w.value;
+  return '';
+}
 function renderEgresados(){
   var egres=getEgresados();
-  var fa=window._egArea||'', fm=window._egMotivo||'', fq=(window._egQ||'').toLowerCase();
+  var fa=window._egArea||'', fEstado=window._egEstado||'',
+      fDesde=window._egDesde||'', fHasta=window._egHasta||'',
+      fNombre=(window._egNombre||'').toLowerCase(),
+      fDx=(window._egDx||'').toLowerCase(),
+      fGermen=(window._egGermen||'').toLowerCase(),
+      fLive=(window._egLive||'').toLowerCase();
   var filtered=egres.filter(function(e){
-    return (!fa||e.areaName===fa)&&(!fm||e.motivo===fm)&&(!fq||((e.name||'')+' '+(e.germen||'')).toLowerCase().indexOf(fq)>=0);
+    if(fa && e.areaName!==fa) return false;
+    if(fEstado && egEstado(e)!==fEstado) return false;
+    if(fDesde && (e.fechaEgreso||'')<fDesde) return false;
+    if(fHasta && (e.fechaEgreso||'')>fHasta) return false;
+    if(fNombre && (e.name||'').toLowerCase().indexOf(fNombre)<0) return false;
+    if(fDx && (e.dx||'').toLowerCase().indexOf(fDx)<0) return false;
+    if(fGermen && (e.germen||'').toLowerCase().indexOf(fGermen)<0) return false;
+    if(fLive){ // búsqueda en vivo por nombre O CI
+      var hay=((e.name||'')+' '+(e.ci||'')).toLowerCase();
+      if(hay.indexOf(fLive)<0) return false;
+    }
+    if(!egPassWidget(e)) return false;
+    return true;
   });
-  var areas=[''].concat(Array.from(new Set(egres.map(function(e){return e.areaName;}))));
-  var body=filtered.slice().reverse().map(function(e,idx){
+  var areas=[''].concat(Array.from(new Set(egres.map(function(e){return e.areaName;}).filter(Boolean))));
+  var body=filtered.slice().reverse().map(function(e){
     var realIdx=egres.indexOf(e);
-    return '<tr><td>'+esc(e.fechaEgreso||'—')+'</td><td>'+esc(e.name||'—')+'</td><td>'+esc(e.areaName||'')+' / C'+e.bed+'</td>'+
-      '<td>'+esc(e.foco||'—')+'</td><td class="'+(e.mdr?'mdr':'')+'">'+esc(e.germen||'—')+(e.mdr?' <span class="pill red">MDR</span>':'')+'</td>'+
-      '<td>'+esc(e.motivo)+'</td><td>'+(e.resultado==='Fallecido'?'<span class="pill red">Fallecido</span>':'<span class="pill teal">Vivo</span>')+'</td>'+
-      '<td><button class="tbl-del" onclick="delEgresado('+realIdx+')">✕</button></td></tr>';
-  }).join('')||'<tr><td colspan="8" style="color:var(--muted)">Sin egresados.</td></tr>';
+    var isol=(e.aislamiento||(e.infecciones&&maxAislamiento({infecciones:e.infecciones}))||'');
+    var isolTxt=isol==='aereo'?'Aéreo':isol==='contacto'?'Contacto':'—';
+    return '<tr onclick="openEgHist('+realIdx+')" style="cursor:pointer">'+
+      '<td>'+esc(e.name||'—')+'</td>'+
+      '<td>'+esc(e.edad||'—')+'</td>'+
+      '<td>'+esc(e.ci||'—')+'</td>'+
+      '<td>'+esc(e.fechaEgreso||'—')+'</td>'+
+      '<td>'+esc(e.areaName||'—')+'</td>'+
+      '<td>C'+esc(e.bed||'—')+'</td>'+
+      '<td>'+esc(e.dx||'—')+'</td>'+
+      '<td class="'+(e.mdr?'mdr':'')+'">'+esc(e.germen||'—')+(e.mdr?' <span class="pill red">MDR</span>':'')+'</td>'+
+      '<td>'+esc(isolTxt)+'</td>'+
+      '<td>'+egEstadoPill(e)+'</td>'+
+      '<td><button class="tbl-del" onclick="event.stopPropagation();delEgresado('+realIdx+')">✕</button></td></tr>';
+  }).join('')||'<tr><td colspan="11" style="color:var(--muted)">Sin egresados.</td></tr>';
+  var clearBar=_egWidget?('<div class="eg-clear-bar"><span class="pill teal">'+esc(egWidgetLabel())+'</span> <button class="btn btn-teal btn-sm" onclick="egWidgetClear()">✕ Limpiar filtro</button></div>'):'';
   document.getElementById('panel-egresados').innerHTML=
+    renderEgWidgets(egres)+
+    clearBar+
     '<div class="filters">'+
-      '<div class="field-group"><label>Buscar</label><input placeholder="nombre / germen" value="'+esc(window._egQ||'')+'" oninput="window._egQ=this.value;renderEgresados()"></div>'+
-      '<div class="field-group"><label>Área</label><select onchange="window._egArea=this.value;renderEgresados()">'+areas.map(function(a){return '<option value="'+esc(a)+'"'+(fa===a?' selected':'')+'>'+esc(a||'Todas')+'</option>';}).join('')+'</select></div>'+
-      '<div class="field-group"><label>Motivo</label><select onchange="window._egMotivo=this.value;renderEgresados()">'+['','Alta','Traslado','Fallecimiento'].map(function(m){return '<option value="'+esc(m)+'"'+(fm===m?' selected':'')+'>'+esc(m||'Todos')+'</option>';}).join('')+'</select></div>'+
+      '<div class="field-group" style="min-width:200px"><label>Buscar (nombre / CI)</label><input placeholder="nombre o CI…" value="'+esc(window._egLive||'')+'" oninput="window._egLive=this.value;renderEgresados()"></div>'+
+      '<div class="field-group"><label>Sector</label><select onchange="window._egArea=this.value;renderEgresados()">'+areas.map(function(a){return '<option value="'+esc(a)+'"'+(fa===a?' selected':'')+'>'+esc(a||'Todos')+'</option>';}).join('')+'</select></div>'+
+      '<div class="field-group"><label>Desde</label><input type="date" value="'+esc(window._egDesde||'')+'" onchange="window._egDesde=this.value;renderEgresados()"></div>'+
+      '<div class="field-group"><label>Hasta</label><input type="date" value="'+esc(window._egHasta||'')+'" onchange="window._egHasta=this.value;renderEgresados()"></div>'+
+      '<div class="field-group"><label>Nombre</label><input placeholder="nombre" value="'+esc(window._egNombre||'')+'" oninput="window._egNombre=this.value;renderEgresados()"></div>'+
+      '<div class="field-group"><label>Diagnóstico</label><input placeholder="dx" value="'+esc(window._egDx||'')+'" oninput="window._egDx=this.value;renderEgresados()"></div>'+
+      '<div class="field-group"><label>Germen</label><input placeholder="germen" value="'+esc(window._egGermen||'')+'" oninput="window._egGermen=this.value;renderEgresados()"></div>'+
+      '<div class="field-group"><label>Estado egreso</label><select onchange="window._egEstado=this.value;renderEgresados()">'+['','Alta','Traslado','Fallecimiento'].map(function(m){return '<option value="'+esc(m)+'"'+(fEstado===m?' selected':'')+'>'+esc(m||'Todos')+'</option>';}).join('')+'</select></div>'+
       '<div class="field-group" style="align-self:flex-end"><button class="btn btn-teal btn-sm" onclick="exportEgresadosExcel()">📊 Exportar Excel</button></div>'+
     '</div>'+
-    '<div style="overflow-x:auto"><table class="data-table"><thead><tr><th>Fecha</th><th>Paciente</th><th>Ubicación</th><th>Foco</th><th>Germen</th><th>Motivo</th><th>Resultado</th><th></th></tr></thead><tbody>'+body+'</tbody></table></div>';
+    '<div style="overflow-x:auto"><table class="data-table"><thead><tr>'+
+      '<th>Nombre</th><th>Edad</th><th>CI</th><th>Fecha egreso</th><th>Sector</th><th>Cama</th><th>Diagnóstico</th><th>Germen</th><th>Aislamiento</th><th>Estado egreso</th><th></th>'+
+      '</tr></thead><tbody>'+body+'</tbody></table></div>';
 }
 function delEgresado(i){ if(!confirm('¿Eliminar registro de egresado?')) return; var arr=getEgresados(); arr.splice(i,1); setEgresados(arr); renderEgresados(); }
+
+/* ---- Historia clínica de egresado (solo lectura) + PDF ---- */
+var _egHistIdx=null;
+function openEgHist(idx){
+  var egres=getEgresados(); var e=egres[idx]; if(!e) return;
+  _egHistIdx=idx;
+  document.getElementById('egHistTitle').textContent='📤 '+(e.name||'(sin nombre)')+' — historia clínica (solo lectura)';
+  // infecciones (snapshot nuevo) o fallback legacy a campos únicos
+  var infs=(e.infecciones&&e.infecciones.length)?e.infecciones:[{foco:e.foco,germen:e.germen,muestra:'',fechaCultivo:'',abg:{},aislamiento:e.aislamiento||''}];
+  var infHtml=infs.map(function(inf){
+    var sens=Object.keys(inf.abg||{}).filter(function(k){return inf.abg[k]==='S';}).join(', ')||'—';
+    var res=Object.keys(inf.abg||{}).filter(function(k){return inf.abg[k]==='R';}).join(', ')||'—';
+    var isolTxt=inf.aislamiento==='aereo'?'Aéreo/Estricto':inf.aislamiento==='contacto'?'Contacto/Gotas':'Sin aislamiento';
+    return '<div style="margin:4px 0"><b>'+esc(inf.foco||'Foco —')+'</b>: '+esc(inf.germen||'sin germen')+(isMDR(inf.germen)?' <span class="pill red">MDR</span>':'')+
+      '<div style="color:var(--muted);font-size:12px">Muestra: '+esc(inf.muestra||'—')+' · Cultivo: '+esc(inf.fechaCultivo||'—')+' · Aisl.: '+esc(isolTxt)+'</div>'+
+      '<div style="font-size:12px">ATB Sensible: '+esc(sens)+'<br>ATB Resistente: '+esc(res)+'</div></div>';
+  }).join('')||'<span style="color:var(--muted)">Sin infecciones.</span>';
+  // ATB
+  var atbHtml=(e.atb&&e.atb.length)?e.atb.map(function(x){
+    var d=(x.inicio&&x.fin)?daysBetween(x.inicio,x.fin):(x.inicio?daysSince(x.inicio):'');
+    return '<div>• '+esc(x.atb||'?')+' '+esc(x.dosis||'')+' '+esc(x.frec||'')+' '+esc(x.via||'')+' | '+esc(x.inicio||'')+'→'+esc(x.fin||'—')+(d!==''?' ('+d+'d)':'')+'</div>';
+  }).join(''):(e.atbList?'<div>'+esc(e.atbList)+'</div>':'<span style="color:var(--muted)">Sin ATB.</span>');
+  // evolución
+  var evolHtml=(e.evol&&e.evol.length)?e.evol.map(function(x){ return '<div>'+esc(x.fecha||'')+': '+esc(x.texto||'')+'</div>'; }).join(''):(e.evolucion?'<div>'+esc(e.evolucion)+'</div>':'<span style="color:var(--muted)">Sin evolución.</span>');
+  // paraclínica
+  var paraHtml='<span style="color:var(--muted)">Sin paraclínica.</span>';
+  if(e.para&&e.para.dates&&e.para.dates.length){
+    var rows=PARA_PARAMS.map(function(pr){
+      var vals=e.para.dates.map(function(d){return esc(e.para.vals[pr.k+'||'+d]||'-');});
+      if(vals.every(function(v){return v==='-';})) return '';
+      return '<tr><td>'+esc(pr.label)+'</td><td>'+vals.join('</td><td>')+'</td></tr>';
+    }).filter(Boolean).join('');
+    if(rows) paraHtml='<div style="overflow-x:auto"><table class="data-table"><thead><tr><th>Parámetro</th><th>'+e.para.dates.map(esc).join('</th><th>')+'</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+  }
+  var comorb=COMORB.filter(function(c){return e.comorb&&e.comorb[c.k];}).map(function(c){return c.label;}).join(', ')||'—';
+  document.getElementById('egHistBody').innerHTML=
+    '<div class="section-card"><h4>Datos</h4>'+
+      '<div>Nombre: <b>'+esc(e.name||'—')+'</b> · CI: '+esc(e.ci||'—')+' · Edad: '+esc(e.edad||'—')+' · Sexo: '+esc(e.sexo||'—')+'</div>'+
+      '<div>Sector: '+esc(e.areaName||'—')+' · Cama: C'+esc(e.bed||'—')+' · Cobertura: '+esc(e.cobertura||'—')+'</div>'+
+      '<div>Ingreso: '+esc(e.ingreso||'—')+' · Egreso: '+esc(e.fechaEgreso||'—')+' · Días internación: '+esc(e.diasInternacion!=null?e.diasInternacion:'—')+'</div>'+
+      '<div>Diagnóstico: '+esc(e.dx||'—')+'</div>'+
+      '<div>Comorbilidades: '+esc(comorb)+' · Charlson: '+esc(e.charlson!=null?e.charlson:'—')+'</div>'+
+      '<div>Estado egreso: '+egEstadoPill(e)+' · Motivo: '+esc(e.motivo||'—')+'</div>'+
+      (e.obs?'<div>Observaciones: '+esc(e.obs)+'</div>':'')+'</div>'+
+    '<div class="section-card"><h4>Infecciones / Gérmenes / Antibiograma</h4>'+infHtml+'</div>'+
+    '<div class="section-card"><h4>Antibióticos</h4>'+atbHtml+'</div>'+
+    '<div class="section-card"><h4>Evolución</h4>'+evolHtml+'</div>'+
+    '<div class="section-card"><h4>Paraclínica</h4>'+paraHtml+'</div>';
+  document.getElementById('modalEgHist').style.display='flex';
+}
+function egHistPDF(){
+  if(_egHistIdx===null) return;
+  var e=getEgresados()[_egHistIdx]; if(!e){ alert('Registro no encontrado.'); return; }
+  if(!getJsPDF()){ alert('jsPDF no disponible.'); return; }
+  // reconstruir un objeto tipo paciente para buildPDF
+  var p={
+    name:e.name, ci:e.ci, edad:e.edad, sexo:e.sexo, ingreso:e.ingreso,
+    dx:e.dx, comorb:e.comorb||{},
+    infecciones:(e.infecciones&&e.infecciones.length)?e.infecciones:[{foco:e.foco,germen:e.germen,muestra:'',fechaCultivo:'',abg:{},aislamiento:e.aislamiento||''}],
+    atb:e.atb||[], evol:e.evol||[],
+    para:e.para||{dates:[],vals:{}}
+  };
+  buildPDF(p,{areaName:e.areaName, bed:e.bed, fechaEgreso:e.fechaEgreso, diasInternacion:e.diasInternacion});
+}
 function exportEgresadosExcel(){
   var egres=getEgresados();
   if(!egres.length){ alert('No hay egresados para exportar.'); return; }
@@ -1888,6 +2639,13 @@ function hexToRgb(h){ return [parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16
 function exportPatientPDF(){
   var p=currentPatient();
   if(!p){ alert('Seleccione un paciente (una cama) primero.'); return; }
+  var a=state.areas[state.activeArea];
+  buildPDF(p,{areaName:a.name, bed:state.activeBed+1});
+}
+/* Genera el PDF de un paciente (activo o egresado). meta={areaName,bed}. */
+function buildPDF(p,meta){
+  if(!p){ alert('Sin datos de paciente.'); return; }
+  meta=meta||{};
   var J=getJsPDF(); if(!J){ alert('jsPDF no disponible.'); return; }
   var doc=new J({unit:'mm',format:'a4'});
   var col=hexToRgb(state.pdfcolor);
@@ -1908,20 +2666,25 @@ function exportPatientPDF(){
   function h(t){ if(y>270){doc.addPage();y=16;} doc.setFontSize(11); doc.setFont(undefined,'bold'); doc.setTextColor(col[0],col[1],col[2]); doc.text(t,M,y); y+=5; doc.setFont(undefined,'normal'); doc.setTextColor(30,30,30); doc.setFontSize(9.5); }
   function line(t){ if(y>282){doc.addPage();y=16;} var ls=doc.splitTextToSize(t,W-2*M); ls.forEach(function(l){ if(y>288){doc.addPage();y=16;} doc.text(l,M,y); y+=4.6; }); }
 
-  var a=state.areas[state.activeArea];
   h('Datos del paciente');
   line('Nombre: '+(p.name||'—')+'   |   CI: '+(p.ci||'—')+'   |   Edad: '+(p.edad||'—')+'   |   Sexo: '+(p.sexo||'—'));
-  line('Área: '+a.name+'   |   Cama: '+(state.activeBed+1)+'   |   Ingreso: '+(p.ingreso||'—')+'   |   Días: '+(p.ingreso?daysSince(p.ingreso):'—'));
+  var _diasTxt=meta.diasInternacion!=null?meta.diasInternacion:(p.ingreso?daysSince(p.ingreso):'—');
+  line('Área: '+(meta.areaName||'—')+'   |   Cama: '+(meta.bed||'—')+'   |   Ingreso: '+(p.ingreso||'—')+(meta.fechaEgreso?('   |   Egreso: '+meta.fechaEgreso):'')+'   |   Días: '+_diasTxt);
   line('Diagnóstico: '+(p.dx||'—'));
   var comorb=COMORB.filter(function(x){return p.comorb&&p.comorb[x.k];}).map(function(x){return x.label;}).join(', ')||'—';
   line('Comorbilidades: '+comorb+'   |   Charlson: '+calcCharlson(p)+' pts ('+charlsonMortality(calcCharlson(p))+')'); y+=2;
 
   h('Foco y microbiología');
-  line('Foco: '+(p.foco||'—')+'   |   Germen: '+(p.germen||'—')+(isMDR(p.germen)?' [MULTIRRESISTENTE]':''));
-  line('Muestra: '+(p.muestra||'—')+'   |   Fecha cultivo: '+(p.fechaCultivo||'—')+'   |   Aislamiento: '+(p.aislamiento||'ninguno'));
-  var sens=Object.keys(p.abg||{}).filter(function(k){return p.abg[k]==='S';}).join(', ')||'—';
-  var res=Object.keys(p.abg||{}).filter(function(k){return p.abg[k]==='R';}).join(', ')||'—';
-  line('Antibiograma — Sensible: '+sens); line('Antibiograma — Resistente: '+res); y+=2;
+  var _infs=patInfections(p);
+  _infs.forEach(function(inf,ii){
+    if(_infs.length>1) line('— Infección #'+(ii+1)+' —');
+    line('Foco: '+(inf.foco||'—')+'   |   Germen: '+(inf.germen||'—')+(isMDR(inf.germen)?' [MULTIRRESISTENTE]':''));
+    line('Muestra: '+(inf.muestra||'—')+'   |   Fecha cultivo: '+(inf.fechaCultivo||'—')+'   |   Aislamiento: '+(inf.aislamiento||'ninguno'));
+    var sens=Object.keys(inf.abg||{}).filter(function(k){return inf.abg[k]==='S';}).join(', ')||'—';
+    var res=Object.keys(inf.abg||{}).filter(function(k){return inf.abg[k]==='R';}).join(', ')||'—';
+    line('Antibiograma — Sensible: '+sens); line('Antibiograma — Resistente: '+res);
+  });
+  y+=2;
 
   h('Antibióticos activos');
   if(p.atb&&p.atb.length){ p.atb.forEach(function(x){ var d=(x.inicio&&x.fin)?daysBetween(x.inicio,x.fin):(x.inicio?daysSince(x.inicio):''); line('• '+(x.atb||'?')+' '+(x.dosis||'')+' '+(x.frec||'')+' '+(x.via||'')+' | '+(x.inicio||'')+'→'+(x.fin||'actual')+' ('+(d!==''?d+'d':'—')+')'); }); }
@@ -1947,9 +2710,9 @@ function exportPatientPDF(){
   doc.setPage(pages);
   if(y<250){ y+=14; doc.setDrawColor(150,150,150); doc.line(W-M-60,y,W-M,y); y+=4; doc.setFontSize(8.5); doc.setTextColor(80,80,80); doc.text('Firma y sello — '+(hdr.nombre||''),W-M-60,y); }
 
-  var tag=(p.name||('cama'+(state.activeBed+1))).replace(/[^a-zA-Z0-9]/g,'_').slice(0,30);
+  var tag=(p.name||('cama'+(meta.bed||''))).replace(/[^a-zA-Z0-9]/g,'_').slice(0,30);
   doc.save('InfectSmart_'+tag+'_'+todayStr()+'.pdf');
-  logInforme('Paciente '+(p.name||('Cama '+(state.activeBed+1))));
+  logInforme('Paciente '+(p.name||('Cama '+(meta.bed||''))));
   toast('PDF generado');
 }
 
@@ -2009,6 +2772,19 @@ function exportStatsPDF(){
       });
     }
   }
+
+  // 6 · IAAS
+  var I=S.iaas||{};
+  var umbral=getIaasUmbral();
+  if(on('iaas_tipo')||on('iaas_esp')||on('iaas_oper')||on('iaas_disp')||on('iaas_mes')){
+    h('6 · IAAS — tasa global');
+    line('  Tasa global de IAAS: '+(I.tasaGlobal||0)+'% ('+(I.pacientes||0)+'/'+(I.total||0)+' pacientes) · Umbral: '+umbral+'%'+((I.tasaGlobal||0)>umbral?'  [SUPERA UMBRAL]':''));
+  }
+  if(on('iaas_tipo')){ h('IAAS — desglose por tipo'); if(I.porTipo&&I.porTipo.length) I.porTipo.forEach(function(t){ line('  • '+t.label+': '+t.n); }); else line('  Sin datos'); }
+  if(on('iaas_esp')){ h('IAAS — infecciones postop./proc. por especialidad'); if(I.porEspecialidad&&I.porEspecialidad.length) I.porEspecialidad.forEach(function(t){ line('  • '+t.label+': '+t.n); }); else line('  Sin datos'); }
+  if(on('iaas_oper')){ h('IAAS — ranking de operadores'); if(I.operadores&&I.operadores.length) I.operadores.forEach(function(t){ line('  • '+t.label+': '+t.n); }); else line('  Sin datos'); }
+  if(on('iaas_disp')){ h('IAAS — por tipo de dispositivo'); if(I.porDispositivo&&I.porDispositivo.length) I.porDispositivo.forEach(function(t){ line('  • '+t.label+': '+t.n); }); else line('  Sin datos'); }
+  if(on('iaas_mes')){ h('IAAS — evolución por mes'); if(I.porMes&&I.porMes.length) I.porMes.forEach(function(t){ line('  • '+t.label+': '+t.n); }); else line('  Sin datos'); }
 
   var pages=doc.internal.getNumberOfPages();
   for(var i=1;i<=pages;i++){ doc.setPage(i); doc.setFontSize(7.5); doc.setTextColor(140,140,140);
