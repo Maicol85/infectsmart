@@ -529,6 +529,27 @@ footer{text-align:center;padding:16px;color:var(--muted);font-size:11px;border-t
   </div>
 </div>
 
+<style>
+.tr-table{width:100%;border-collapse:collapse;font-size:12px}
+.tr-table th{background:var(--surface2);color:var(--muted);text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);font-weight:600}
+.tr-table td{padding:6px 8px;border-bottom:1px solid var(--border)}
+</style>
+<div id="modalTransfer" class="modal" style="display:none">
+  <div class="modal-box">
+    <h3 id="tr-title">🔄 Transferir paciente</h3>
+    <div class="field-row">
+      <div class="field-group"><label>Sector destino</label><select id="tr-sector" onchange="trOnSector()"></select></div>
+      <div class="field-group"><label>Cama destino</label><select id="tr-cama"><option value="">Seleccioná primero el sector</option></select></div>
+    </div>
+    <div id="tr-cama-msg" style="font-size:12px;margin-top:4px"></div>
+    <div class="field-group" style="margin-top:8px"><label>Motivo de transferencia (opcional)</label><textarea id="tr-motivo" rows="2"></textarea></div>
+    <div class="field-group" style="margin-top:8px"><label>Fecha y hora</label><input type="datetime-local" id="tr-fecha"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline btn-sm" onclick="closeModal('modalTransfer')">Cancelar</button>
+      <button class="btn btn-teal btn-sm" id="tr-confirm" onclick="confirmTransferencia()">✅ Confirmar transferencia</button>
+    </div>
+  </div>
+</div>
 <div id="modalLimpiarPac" class="modal" style="display:none">
   <div class="modal-box">
     <h3>🗑️ Limpiar datos del paciente</h3>
@@ -1168,6 +1189,7 @@ function renderBeds(){
       badges=bedBadges(p);
       // infección cruzada
       if(hasCrossAlert(p)) badges+='<span class="bed-badge" style="color:var(--red)" title="Infección cruzada">🔴</span>';
+      if(p.lastTransfer && (Date.now()-new Date(p.lastTransfer).getTime())<864e5) badges+='<span class="bed-badge" title="Transferido en las últimas 24 h">🔄</span>';
       eyeBtn='<button class="bed-eye" title="Vista rápida" onclick="event.stopPropagation();openQuickPanel('+state.activeArea+','+bi+')">👁️</button>';
     } else {
       cls+=' empty';
@@ -1941,7 +1963,9 @@ function renderPtDatos(){
         '<button class="btn btn-teal btn-sm" onclick="guardarDatosPaciente()">💾 Guardar</button>'+
         '<button class="btn btn-outline btn-sm" onclick="askLimpiarPac()">🗑️ Limpiar</button>'+
         '<button class="btn btn-red btn-sm" onclick="openEgreso()">🚪 Egreso</button>'+
-      '</div></div>';
+        '<button class="btn btn-outline btn-sm" onclick="openTransferencia()">🔄 Transferir</button>'+
+      '</div></div>'+
+    trayectoriaHTML(currentPatient());
 }
 function guardarDatosPaciente(){ if(!currentPatient()){ toast('No hay paciente activo'); return; } save(); toast('Guardado correctamente'); }
 function askLimpiarPac(){ if(!currentPatient()){ toast('No hay paciente activo'); return; } document.getElementById('modalLimpiarPac').style.display='flex'; }
@@ -1953,6 +1977,74 @@ function confirmLimpiarPac(){
   renderPatientPanel();
   toast('Datos del paciente limpiados');
 }
+
+// ══ Transferencia de paciente entre sectores/camas ══
+function _trNowLocal(){ var d=new Date(), p=function(n){return String(n).padStart(2,'0');}; return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+'T'+p(d.getHours())+':'+p(d.getMinutes()); }
+function _trFmt(v){ return v?String(v).replace('T',' '):''; }
+function openTransferencia(){
+  var p=currentPatient(); if(!p){ toast('No hay paciente activo'); return; }
+  document.getElementById('tr-title').textContent='Transferir paciente — '+(p.name||'(sin nombre)');
+  var sel=document.getElementById('tr-sector'); sel.innerHTML='<option value="">Seleccionar sector…</option>';
+  state.areas.forEach(function(a,ai){ if(ai===state.activeArea) return; sel.innerHTML+='<option value="'+ai+'">'+a.icon+' '+esc(a.name)+'</option>'; });
+  document.getElementById('tr-cama').innerHTML='<option value="">Seleccioná primero el sector</option>';
+  var msg=document.getElementById('tr-cama-msg'); msg.textContent='';
+  document.getElementById('tr-motivo').value='';
+  document.getElementById('tr-fecha').value=_trNowLocal();
+  document.getElementById('tr-confirm').disabled=true;
+  document.getElementById('modalTransfer').style.display='flex';
+}
+function trOnSector(){
+  var v=document.getElementById('tr-sector').value;
+  var camaSel=document.getElementById('tr-cama'), msg=document.getElementById('tr-cama-msg'), conf=document.getElementById('tr-confirm');
+  camaSel.innerHTML=''; msg.textContent='';
+  if(v===''){ camaSel.innerHTML='<option value="">Seleccioná primero el sector</option>'; conf.disabled=true; return; }
+  var a=state.areas[+v], libres=[];
+  a.beds.forEach(function(b,bi){ if(b===null) libres.push(bi); });
+  if(!libres.length){ camaSel.innerHTML='<option value="">—</option>'; msg.textContent='No hay camas disponibles en este sector'; msg.style.color='var(--red)'; conf.disabled=true; return; }
+  camaSel.innerHTML='<option value="">Seleccionar cama…</option>';
+  libres.forEach(function(bi){ camaSel.innerHTML+='<option value="'+bi+'">Cama '+(bi+1)+(a.pending[bi]?' (pend. limpieza)':'')+'</option>'; });
+  conf.disabled=false;
+}
+function confirmTransferencia(){
+  var p=currentPatient(); if(!p){ toast('No hay paciente activo'); return; }
+  var vS=document.getElementById('tr-sector').value, vC=document.getElementById('tr-cama').value;
+  if(vS===''||vC===''){ toast('Elegí sector y cama destino'); return; }
+  var aiD=+vS, biD=+vC, aiO=state.activeArea, biO=state.activeBed;
+  var aO=state.areas[aiO], aD=state.areas[aiD];
+  if(aD.beds[biD]!==null){ toast('La cama destino ya no está libre'); trOnSector(); return; }
+  var fechaVal=document.getElementById('tr-fecha').value||_trNowLocal();
+  var fechaDia=fechaVal.split('T')[0]||todayStr(), fechaTxt=_trFmt(fechaVal);
+  var motivo=(document.getElementById('tr-motivo').value||'').trim();
+  if(!Array.isArray(p.trayectoria)) p.trayectoria=[];
+  if(!p.trayectoria.length){ p.trayectoria.push({areaId:aO.id,areaName:aO.name,bed:biO+1,ingreso:(p.ingreso||''),egreso:fechaTxt}); }
+  else { p.trayectoria[p.trayectoria.length-1].egreso=fechaTxt; }
+  p.trayectoria.push({areaId:aD.id,areaName:aD.name,bed:biD+1,ingreso:fechaTxt,egreso:''});
+  var nota='Transferido desde '+aO.name+' cama '+(biO+1)+' a '+aD.name+' cama '+(biD+1)+' — '+fechaTxt+'. Motivo: '+(motivo||'No especificado');
+  if(!Array.isArray(p.evol)) p.evol=[];
+  p.evol.unshift({fecha:fechaDia,texto:nota});
+  p.bed=biD+1; p.lastTransfer=new Date().toISOString();
+  aD.beds[biD]=p; aO.beds[biO]=null; aO.pending[biO]={fecha:fechaDia,responsable:''};
+  state.activeArea=aiD; state.activeBed=biD;
+  save();
+  closeModal('modalTransfer');
+  if(typeof runAlertsEngine==='function') runAlertsEngine();
+  if(typeof renderBeds==='function') renderBeds();
+  renderPatientPanel();
+  toast('Paciente transferido a '+aD.name+' · Cama '+(biD+1));
+}
+function trayectoriaHTML(p){
+  if(!p) return '';
+  var rows;
+  if(Array.isArray(p.trayectoria) && p.trayectoria.length){
+    rows=p.trayectoria.map(function(t){ return '<tr><td>'+esc(t.areaName||'')+'</td><td>Cama '+esc(String(t.bed||''))+'</td><td>'+esc(t.ingreso||'—')+'</td><td>'+(t.egreso?esc(t.egreso):'<i>actual</i>')+'</td></tr>'; }).join('');
+  } else {
+    var a=state.areas[state.activeArea]; if(!a) return '';
+    rows='<tr><td>'+esc(a.name)+'</td><td>Cama '+((state.activeBed|0)+1)+'</td><td>'+esc(p.ingreso||'—')+'</td><td><i>actual</i></td></tr>';
+  }
+  return '<div class="section-card"><h4>🧭 Trayectoria institucional</h4>'+
+    '<div style="overflow-x:auto"><table class="tr-table"><thead><tr><th>Sector</th><th>Cama</th><th>Ingreso</th><th>Egreso</th></tr></thead><tbody>'+rows+'</tbody></table></div></div>';
+}
+window.openTransferencia=openTransferencia; window.trOnSector=trOnSector; window.confirmTransferencia=confirmTransferencia; window.trayectoriaHTML=trayectoriaHTML;
 function fg(label,field,type,val){ return '<div class="field-group"><label>'+label+'</label><input type="'+type+'" value="'+esc(val)+'" oninput="pset(\''+field+'\',this.value)"></div>'; }
 function toggleComorb(k,v){ var p=currentPatient(); if(!p) return; if(!p.comorb) p.comorb={}; p.comorb[k]=v; save(); renderPtDatos(); }
 
