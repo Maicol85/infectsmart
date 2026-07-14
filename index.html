@@ -103,6 +103,9 @@ label{font-size:12px;color:var(--muted);display:block;margin-bottom:3px}
 .area-tab{background:var(--surface2);border:1px solid var(--border);color:var(--muted);border-radius:20px;padding:6px 14px;font-size:12px;transition:all .15s;display:flex;align-items:center;gap:5px}
 .area-tab:hover{border-color:var(--teal);color:var(--text)}
 .area-tab.active{background:var(--teal);color:#fff;border-color:var(--teal);font-weight:700}
+#bedsGrid.todos-view{display:block}
+.todos-section{margin-bottom:22px}
+.todos-sec-hdr{font-size:14px;font-weight:700;color:var(--text);padding:8px 4px;margin-bottom:8px;border-bottom:2px solid var(--teal);display:flex;align-items:center;gap:6px}
 .beds-header{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
 .beds-header h3{font-size:15px;font-weight:700;color:var(--text)}
 .beds-header .an{border-bottom:1px dashed transparent;cursor:text;padding:1px 2px}
@@ -1143,15 +1146,25 @@ function renderAll(){ renderAreas(); updateAlertBadge(); }
 function renderAreas(){
   var tabs=document.getElementById('areaTabs'); tabs.innerHTML='';
   state.areas.forEach(function(a,i){
-    var b=document.createElement('button'); b.className='area-tab'+(i===state.activeArea?' active':'');
+    var b=document.createElement('button'); b.className='area-tab'+(!todosMode && i===state.activeArea?' active':'');
     var occ=a.beds.filter(function(x){return x;}).length;
     b.innerHTML=a.icon+' '+esc(a.name)+' <span style="opacity:.7">('+occ+'/'+a.beds.length+')</span>';
-    b.onclick=function(){ state.activeArea=i; renderAreas(); };
+    b.onclick=function(){ state.activeArea=i; todosMode=false; renderAreas(); };
     tabs.appendChild(b);
   });
-  var a=state.areas[state.activeArea];
-  document.getElementById('areaTitle').textContent=a.icon+' '+a.name;
-  renderBeds();
+  var todosBtn=document.createElement('button'); todosBtn.className='area-tab'+(todosMode?' active':''); todosBtn.id='area-tab-todos';
+  todosBtn.innerHTML='🏥 Todos';
+  todosBtn.onclick=function(){ showAreaTodos(todosBtn); };
+  tabs.appendChild(todosBtn);
+  if(todosMode){
+    document.getElementById('areaTitle').textContent='🏥 Todos los sectores';
+    renderTodosLossectores();
+  } else {
+    var a=state.areas[state.activeArea];
+    document.getElementById('areaTitle').textContent=a.icon+' '+a.name;
+    document.getElementById('bedsGrid').classList.remove('todos-view');
+    renderBeds();
+  }
 }
 function renameArea(el){
   var a=state.areas[state.activeArea]; var t=el.textContent.trim();
@@ -1203,6 +1216,54 @@ function renderBeds(){
       (info?'<div class="bed-info">'+info+'</div>':'');
     card.onclick=function(){ onBedClick(state.activeArea,bi); };
     g.appendChild(card);
+  });
+}
+/* ---- Vista "Todos los sectores" ---- */
+var todosMode=false;
+function showAreaTodos(btn){ todosMode=true; renderAreas(); }
+/* Construye una card de cama para (ai,bi), idéntica a renderBeds() pero parametrizada por área. */
+function _buildBedCard(ai,bi){
+  var a=state.areas[ai], p=a.beds[bi];
+  var card=document.createElement('div');
+  var cls='bed-card', badges='', info='', name='Cama libre', dx='', eyeBtn='';
+  if(p){
+    var isolMax=maxAislamiento(p);
+    if(isolMax==='contacto') cls+=' aisl-contacto';
+    if(isolMax==='aereo') cls+=' aisl-aereo';
+    name=esc(p.name||'(sin nombre)'); dx=esc(p.dx||'');
+    var dias=p.ingreso?daysSince(p.ingreso):'';
+    var germ=p.germen?('<span class="germ-pill'+(isMDR(p.germen)?' mdr':'')+'">'+esc(p.germen)+'</span>'):'—';
+    info='<span>📅 <b>'+(dias!==''?dias+'d':'—')+'</b></span><span>🦠 '+germ+'</span>';
+    badges=bedBadges(p);
+    if(hasCrossAlert(p)) badges+='<span class="bed-badge" style="color:var(--red)" title="Infección cruzada">🔴</span>';
+    if(p.lastTransfer && (Date.now()-new Date(p.lastTransfer).getTime())<864e5) badges+='<span class="bed-badge" title="Transferido en las últimas 24 h">🔄</span>';
+    eyeBtn='<button class="bed-eye" title="Vista rápida" onclick="event.stopPropagation();openQuickPanel('+ai+','+bi+')">👁️</button>';
+  } else {
+    cls+=' empty';
+    if(a.pending[bi]){ cls+=' pending'; badges='<span class="bed-badge" style="color:var(--amber)" title="Pendiente limpieza terminal">⚠️</span>'; name='Pendiente limpieza terminal'; dx='Confirmar limpieza para reutilizar'; }
+  }
+  card.className=cls;
+  card.innerHTML='<div class="bed-badges">'+badges+'</div>'+eyeBtn+
+    '<div class="bed-num">'+a.icon+' Cama '+(bi+1)+'</div>'+
+    '<div class="bed-name">'+name+'</div>'+
+    '<div class="bed-dx">'+dx+'</div>'+
+    (info?'<div class="bed-info">'+info+'</div>':'');
+  card.onclick=function(){ onBedClick(ai,bi); };
+  return card;
+}
+function renderTodosLossectores(){
+  var g=document.getElementById('bedsGrid');
+  g.classList.add('todos-view'); g.innerHTML='';
+  state.areas.forEach(function(a,ai){
+    var occ=a.beds.filter(function(x){return x;}).length;
+    var sec=document.createElement('div'); sec.className='todos-section';
+    var h=document.createElement('div'); h.className='todos-sec-hdr';
+    h.innerHTML=a.icon+' '+esc(a.name)+' <span style="opacity:.7;font-weight:400">('+occ+'/'+a.beds.length+' ocupadas)</span>';
+    sec.appendChild(h);
+    var grid=document.createElement('div'); grid.className='beds-grid';
+    a.beds.forEach(function(p,bi){ grid.appendChild(_buildBedCard(ai,bi)); });
+    sec.appendChild(grid);
+    g.appendChild(sec);
   });
 }
 /* ---- Helpers para badges de camas ---- */
