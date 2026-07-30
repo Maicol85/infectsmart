@@ -255,6 +255,25 @@ label{font-size:12px;color:var(--muted);display:block;margin-bottom:3px}
 .stats-section-title{font-size:13px;font-weight:700;color:var(--teal);text-transform:uppercase;letter-spacing:.5px;margin:18px 0 8px}
 .stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 @media(max-width:700px){.stats-grid{grid-template-columns:1fr}.field-row.four,.field-row.three{grid-template-columns:1fr 1fr}}
+/* ── Responsive: tablet (768px) y mobile (480px) ── */
+@media(max-width:768px){
+  .beds-grid{grid-template-columns:repeat(auto-fill,minmax(170px,1fr))}
+  .ptg-grid{grid-template-columns:repeat(auto-fill,minmax(155px,1fr))}
+  .main-tab{padding:10px 10px;font-size:12px}
+  .modal-box{padding:16px}
+  .beds-header{gap:8px}
+}
+@media(max-width:480px){
+  .beds-grid,.ptg-grid{grid-template-columns:1fr}
+  .field-row,.field-row.three,.field-row.four{grid-template-columns:1fr}
+  .stats-grid{grid-template-columns:1fr}
+  .topbar{padding:6px 10px;gap:6px}
+  .main-tabs{padding:0 4px}
+  .main-tab{padding:9px 8px;font-size:11.5px}
+  .panel{padding:10px}
+  .modal-box{padding:14px;max-height:92vh}
+  .bed-badges{max-width:70px}
+}
 .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px;box-shadow:var(--shadow)}
 .stat-card h4{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:10px}
 /* Referencias */
@@ -323,7 +342,7 @@ footer{text-align:center;padding:16px;color:var(--muted);font-size:11px;border-t
 <body>
 
 <!-- ===================== LOGIN ===================== -->
-<div id="modal-login">
+<div id="modal-login" role="dialog" aria-modal="true" aria-label="Acceso">
   <div class="login-box">
     <div class="login-logo">
       <svg id="uci-bact" width="120" height="106" viewBox="0 0 132 116" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;margin:0 auto 8px;filter:drop-shadow(0 4px 14px rgba(163,230,53,.4))">
@@ -369,7 +388,7 @@ footer{text-align:center;padding:16px;color:var(--muted);font-size:11px;border-t
       <button type="button" id="login-eye" onclick="toggleLoginPass()" title="Mostrar / ocultar"
         style="position:absolute;top:50%;right:8px;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;padding:0;line-height:1">👁️</button>
     </div>
-    <div id="login-error" style="display:none;color:var(--red);font-size:12px;margin-top:8px">✕ Contraseña incorrecta.</div>
+    <div id="login-error" role="alert" aria-live="assertive" style="display:none;color:var(--red);font-size:12px;margin-top:8px">✕ Contraseña incorrecta.</div>
     <div style="display:flex;justify-content:flex-end;margin-top:18px">
       <button class="btn btn-teal btn-sm" onclick="doLogin()">Ingresar</button>
     </div>
@@ -378,7 +397,7 @@ footer{text-align:center;padding:16px;color:var(--muted);font-size:11px;border-t
 </div>
 
 <!-- ===================== AVISO / ADVERTENCIA ===================== -->
-<div id="modal-advertencia" style="position:fixed;inset:0;z-index:9999;background:rgba(8,14,24,.86);backdrop-filter:blur(5px);display:none;align-items:center;justify-content:center;padding:20px">
+<div id="modal-advertencia" role="dialog" aria-modal="true" style="position:fixed;inset:0;z-index:9999;background:rgba(8,14,24,.86);backdrop-filter:blur(5px);display:none;align-items:center;justify-content:center;padding:20px">
   <div class="login-box" style="max-width:460px">
     <div class="login-logo" style="margin-bottom:14px">
       <div class="big" style="font-size:34px">InfectSmart</div>
@@ -410,7 +429,7 @@ footer{text-align:center;padding:16px;color:var(--muted);font-size:11px;border-t
 <div id="app">
   <div class="topbar">
     <div class="logo">🦠 InfectSmart</div>
-    <div class="centro-badge" id="centroBadge" onclick="showCentroSelect()">— Centro —</div>
+    <div role="button" tabindex="0" onkeydown="isKey(event)" class="centro-badge" id="centroBadge" onclick="showCentroSelect()">— Centro —</div>
     <div class="medico-badge" id="medicoBadge" style="display:none"></div>
     <div class="hdr-fields" id="hdrFields"></div>
     <div class="spacer"></div>
@@ -484,7 +503,7 @@ footer{text-align:center;padding:16px;color:var(--muted);font-size:11px;border-t
 
   <div id="panel-micro" class="panel"></div>
   <div id="panel-atb" class="panel"></div>
-  <div id="panel-alertas" class="panel"></div>
+  <div id="panel-alertas" class="panel" aria-live="polite"></div>
   <div id="panel-stats" class="panel"></div>
   <div id="panel-egresados" class="panel"></div>
   <div id="panelReferencias" class="panel"></div>
@@ -493,10 +512,10 @@ footer{text-align:center;padding:16px;color:var(--muted);font-size:11px;border-t
 </div>
 
 <div id="easymed-corner">EasyMed</div>
-<div id="toast" style="position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--teal);color:#fff;padding:8px 18px;border-radius:20px;font-size:12px;font-weight:600;z-index:2000;display:none;box-shadow:0 4px 14px rgba(0,0,0,.3)"></div>
+<div id="toast" role="status" aria-live="polite" style="position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--teal);color:#fff;padding:8px 18px;border-radius:20px;font-size:12px;font-weight:600;z-index:2000;display:none;box-shadow:0 4px 14px rgba(0,0,0,.3)"></div>
 
 <!-- ===================== MODALES ===================== -->
-<div id="modalEgreso" class="modal" style="display:none">
+<div id="modalEgreso" class="modal" style="display:none" role="dialog" aria-modal="true">
   <div class="modal-box">
     <h3>🚪 Egreso del paciente</h3>
     <div class="field-row">
@@ -512,7 +531,7 @@ footer{text-align:center;padding:16px;color:var(--muted);font-size:11px;border-t
   </div>
 </div>
 
-<div id="modalEgHist" class="modal" style="display:none">
+<div id="modalEgHist" class="modal" style="display:none" role="dialog" aria-modal="true">
   <div class="modal-box" style="max-width:720px">
     <div style="display:flex;align-items:flex-start;gap:10px">
       <h3 id="egHistTitle" style="flex:1">Historia clínica (egresado)</h3>
@@ -523,7 +542,7 @@ footer{text-align:center;padding:16px;color:var(--muted);font-size:11px;border-t
   </div>
 </div>
 
-<div id="modalImport" class="modal" style="display:none">
+<div id="modalImport" class="modal" style="display:none" role="dialog" aria-modal="true">
   <div class="modal-box">
     <h3>⬇️ Importar datos</h3>
     <p style="font-size:13px;line-height:1.6;color:var(--text);margin:8px 0 4px">¿Importar datos? Esto reemplazará todos los datos actuales.</p>
@@ -540,7 +559,7 @@ footer{text-align:center;padding:16px;color:var(--muted);font-size:11px;border-t
 .tr-table th{background:var(--surface2);color:var(--muted);text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);font-weight:600}
 .tr-table td{padding:6px 8px;border-bottom:1px solid var(--border)}
 </style>
-<div id="modalTransfer" class="modal" style="display:none">
+<div id="modalTransfer" class="modal" style="display:none" role="dialog" aria-modal="true">
   <div class="modal-box">
     <h3 id="tr-title">🔄 Transferir paciente</h3>
     <div class="field-row">
@@ -556,7 +575,7 @@ footer{text-align:center;padding:16px;color:var(--muted);font-size:11px;border-t
     </div>
   </div>
 </div>
-<div id="modalLimpiarPac" class="modal" style="display:none">
+<div id="modalLimpiarPac" class="modal" style="display:none" role="dialog" aria-modal="true">
   <div class="modal-box">
     <h3>🗑️ Limpiar datos del paciente</h3>
     <p style="font-size:13px;line-height:1.6;color:var(--text);margin:8px 0 4px">¿Estás seguro que querés limpiar todos los datos de este paciente? Esta acción no se puede deshacer.</p>
@@ -567,7 +586,7 @@ footer{text-align:center;padding:16px;color:var(--muted);font-size:11px;border-t
   </div>
 </div>
 
-<div id="modalInformes" class="modal" style="display:none">
+<div id="modalInformes" class="modal" style="display:none" role="dialog" aria-modal="true">
   <div class="modal-box" style="max-width:640px">
     <h3>🗂️ Informes guardados</h3>
     <div id="informesList" style="font-size:12px"></div>
@@ -575,7 +594,7 @@ footer{text-align:center;padding:16px;color:var(--muted);font-size:11px;border-t
   </div>
 </div>
 
-<div id="modalHelp" class="modal" style="display:none">
+<div id="modalHelp" class="modal" style="display:none" role="dialog" aria-modal="true">
   <div class="modal-box">
     <h3>❔ Ayuda — InfectSmart</h3>
     <div style="font-size:12px;line-height:1.7;color:var(--muted)">
@@ -593,12 +612,12 @@ footer{text-align:center;padding:16px;color:var(--muted);font-size:11px;border-t
   </div>
 </div>
 
-<div id="modalImg" class="modal" style="display:none" onclick="closeModal('modalImg')">
+<div id="modalImg" class="modal" style="display:none" role="dialog" aria-modal="true" onclick="closeModal('modalImg')">
   <div style="max-width:92vw;max-height:90vh"><img id="modalImgSrc" alt="Imagen ampliada" style="max-width:92vw;max-height:90vh;border-radius:8px"></div>
 </div>
 
 <!-- ===================== VISTA RÁPIDA (👁️) ===================== -->
-<div id="quickPanel" onclick="if(event.target===this)closeQuickPanel()">
+<div id="quickPanel" role="dialog" aria-modal="true" onclick="if(event.target===this)closeQuickPanel()">
   <div class="qp-box" id="quickPanelBox"></div>
 </div>
 
@@ -781,6 +800,9 @@ var state={ centro:null, areas:[], activeArea:0, activeBed:null, pdfcolor:'#00a4
    Utilidades
    ============================================================ */
 function esc(s){ if(s===null||s===undefined) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+// a11y: activar div[role=button] con teclado (Enter/Espacio)
+function isKey(e){ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); (e.currentTarget||e.target).click(); } }
+window.isKey=isKey;
 // setItem con control de cuota: avisa al usuario si el almacenamiento del navegador esta lleno.
 function lsSet(k,v){ try{ localStorage.setItem(k,v); return true; }catch(e){ console.error('setItem fallo para '+k,e); alert('No se pudieron guardar los datos: el almacenamiento del navegador esta lleno o no disponible. Los últimos cambios podrían no persistir. Considere exportar un backup.'); return false; } }
 function todayStr(){ return new Date().toISOString().slice(0,10); }
@@ -1952,7 +1974,7 @@ function renderPtGlobal(){
       var dias=p.ingreso?daysSince(p.ingreso):'';
       var badges=bedBadges(p);
       if(hasCrossAlert(p)) badges+='<span class="bed-badge" style="color:var(--red)" title="Infección cruzada">🔴</span>';
-      html+='<div class="ptg-card" onclick="openPatientDetail('+r.ai+','+r.bi+')" style="border-top-color:'+col+'">'+
+      html+='<div role="button" tabindex="0" onkeydown="isKey(event)" class="ptg-card" onclick="openPatientDetail('+r.ai+','+r.bi+')" style="border-top-color:'+col+'">'+
         '<div class="ptg-badges">'+badges+'</div>'+
         '<button class="ptg-eye" title="Vista rápida" onclick="event.stopPropagation();openQuickPanel('+r.ai+','+r.bi+')">👁️</button>'+
         '<div class="ptg-cama">'+a.icon+' Cama '+(r.bi+1)+'</div>'+
@@ -2448,7 +2470,7 @@ function renderPtImagenes(){
   }).join('');
   document.getElementById('pt-imagenes').innerHTML=
     '<div class="section-card"><h4>🖼️ Imágenes (RxTx / TAC / ECO)</h4>'+
-      '<div class="img-drop" onclick="document.getElementById(\'imgInput\').click()">📤 Clic para subir imagen (se guarda localmente)</div>'+
+      '<div role="button" tabindex="0" onkeydown="isKey(event)" class="img-drop" onclick="document.getElementById(\'imgInput\').click()">📤 Clic para subir imagen (se guarda localmente)</div>'+
       '<input type="file" id="imgInput" accept="image/*" class="hidden" onchange="imgUpload(event)">'+
       '<div class="img-grid">'+cards+'</div></div>';
 }
@@ -2641,7 +2663,7 @@ function cultivoResultado(ai,bi,idx){
    ============================================================ */
 function renderVade(){
   var cards=VADE.map(function(v,i){
-    return '<div class="vade-card" id="vade'+i+'"><div class="vade-head" onclick="document.getElementById(\'vade'+i+'\').classList.toggle(\'open\')"><h4>'+esc(v.n)+'</h4><span class="cls">'+esc(v.c)+'</span></div>'+
+    return '<div class="vade-card" id="vade'+i+'"><div role="button" tabindex="0" onkeydown="isKey(event)" class="vade-head" onclick="document.getElementById(\'vade'+i+'\').classList.toggle(\'open\')"><h4>'+esc(v.n)+'</h4><span class="cls">'+esc(v.c)+'</span></div>'+
       '<div class="vade-body"><p><strong>Dosis estándar:</strong> '+esc(v.d)+'</p>'+
       '<p><strong>Ajuste renal:</strong> '+esc(v.renal)+'</p>'+
       '<p><strong>Espectro:</strong> '+esc(v.esp)+'</p>'+
@@ -3302,7 +3324,7 @@ function renderEgWidgets(egres){
   function topArr(obj,n){ return Object.keys(obj).map(function(k){return {k:k,n:obj[k]};}).sort(function(a,b){return b.n-a.n;}).slice(0,n); }
   var isActive=function(type,value){ return _egWidget && _egWidget.type===type && _egWidget.value===value; };
   var itemHtml=function(type,value,label,cnt){
-    return '<div class="ew-item'+(isActive(type,value)?' active':'')+'" onclick="egWidgetSet(\''+type+'\',\''+esc(value).replace(/'/g,"\\'")+'\')" title="'+esc(label)+'"><span class="ew-lbl">'+esc(label)+'</span><span class="ew-cnt">'+cnt+'</span></div>';
+    return '<div role="button" tabindex="0" onkeydown="isKey(event)" class="ew-item'+(isActive(type,value)?' active':'')+'" onclick="egWidgetSet(\''+type+'\',\''+esc(value).replace(/'/g,"\\'")+'\')" title="'+esc(label)+'"><span class="ew-lbl">'+esc(label)+'</span><span class="ew-cnt">'+cnt+'</span></div>';
   };
   // 1. Total egresados
   var wTotal='<div class="eg-widget plain"><h6>📊 Total egresados</h6>'+
@@ -3319,7 +3341,7 @@ function renderEgWidgets(egres){
   // 4. IAAS
   var iaasArr=Object.keys(iaasTipo).map(function(k){return {k:k,n:iaasTipo[k]};}).sort(function(a,b){return b.n-a.n;});
   var wIaas='<div class="eg-widget"><h6>⚠️ IAAS</h6>'+
-    '<div class="ew-item'+(isActive('iaas','')?' active':'')+'" onclick="egWidgetSet(\'iaas\',\'\')"><span class="ew-lbl">Total infecciones IAAS</span><span class="ew-cnt">'+iaasTotal+'</span></div>'+
+    '<div role="button" tabindex="0" onkeydown="isKey(event)" class="ew-item'+(isActive('iaas','')?' active':'')+'" onclick="egWidgetSet(\'iaas\',\'\')"><span class="ew-lbl">Total infecciones IAAS</span><span class="ew-cnt">'+iaasTotal+'</span></div>'+
     '<div class="ew-list" style="margin-top:6px">'+
     (iaasArr.map(function(x){ return '<div class="ew-item" style="cursor:default"><span class="ew-lbl">'+esc(x.k)+'</span><span class="ew-cnt">'+x.n+'</span></div>'; }).join('')||'<div class="ew-sub">Sin IAAS.</div>')+
     '</div></div>';
@@ -4270,7 +4292,7 @@ function renderReferencias(){
     html+='<div class="ref-section-title" data-refsec="'+si+'">'+sec.icon+' '+esc(sec.title)+'</div>';
     sec.fiches.forEach(function(f,fi){
       html+='<div class="fiche" id="fiche-'+si+'-'+fi+'">'+
-        '<div class="fiche-head" onclick="refToggle(\''+si+'-'+fi+'\')"><span class="fic">'+f.icon+'</span><span>'+esc(f.title)+'</span>'+refTag(f.tag)+'<span class="caret">▶</span></div>'+
+        '<div role="button" tabindex="0" onkeydown="isKey(event)" class="fiche-head" onclick="refToggle(\''+si+'-'+fi+'\')"><span class="fic">'+f.icon+'</span><span>'+esc(f.title)+'</span>'+refTag(f.tag)+'<span class="caret">▶</span></div>'+
         '<div class="fiche-body">'+f.body+'</div>'+
       '</div>';
     });
