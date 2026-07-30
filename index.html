@@ -315,6 +315,9 @@ footer{text-align:center;padding:16px;color:var(--muted);font-size:11px;border-t
 .pill.orange{background:var(--orange-dim);color:var(--orange)}
 .pill.amber{background:var(--amber-dim);color:var(--amber)}
 .pill.teal{background:var(--teal-dim);color:var(--teal)}
+/* === Accesibilidad (auditoria UX/a11y P1/P2) === */
+:focus-visible{outline:3px solid var(--teal,#38bdf8)!important;outline-offset:2px!important;border-radius:4px}
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;scroll-behavior:auto!important}}
 </style>
 </head>
 <body>
@@ -411,7 +414,7 @@ footer{text-align:center;padding:16px;color:var(--muted);font-size:11px;border-t
     <div class="medico-badge" id="medicoBadge" style="display:none"></div>
     <div class="hdr-fields" id="hdrFields"></div>
     <div class="spacer"></div>
-    <img id="logoThumb" class="logo-thumb hidden">
+    <img id="logoThumb" alt="Logo institucional" class="logo-thumb hidden">
     <button class="topbtn" onclick="document.getElementById('logoInput').click()">+ Logo</button>
     <input type="file" id="logoInput" accept="image/*" class="hidden" onchange="uploadLogo(event)">
     <div class="pdf-swatches" id="pdfSwatches" title="Color de PDF"></div>
@@ -497,10 +500,10 @@ footer{text-align:center;padding:16px;color:var(--muted);font-size:11px;border-t
   <div class="modal-box">
     <h3>🚪 Egreso del paciente</h3>
     <div class="field-row">
-      <div class="field-group"><label>Fecha de egreso</label><input type="date" id="eg-fecha"></div>
-      <div class="field-group"><label>Motivo</label><select id="eg-motivo"><option>Alta</option><option>Traslado</option><option>Fallecimiento</option></select></div>
+      <div class="field-group"><label for="eg-fecha">Fecha de egreso</label><input type="date" id="eg-fecha"></div>
+      <div class="field-group"><label for="eg-motivo">Motivo</label><select id="eg-motivo"><option>Alta</option><option>Traslado</option><option>Fallecimiento</option></select></div>
     </div>
-    <div class="field-group" style="margin-top:8px"><label>Observaciones</label><textarea id="eg-obs" rows="2"></textarea></div>
+    <div class="field-group" style="margin-top:8px"><label for="eg-obs">Observaciones</label><textarea id="eg-obs" rows="2"></textarea></div>
     <div id="eg-resumen" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px;margin-top:10px;font-size:12px;line-height:1.6"></div>
     <div class="modal-actions">
       <button class="btn btn-outline btn-sm" onclick="closeModal('modalEgreso')">Cancelar</button>
@@ -514,7 +517,7 @@ footer{text-align:center;padding:16px;color:var(--muted);font-size:11px;border-t
     <div style="display:flex;align-items:flex-start;gap:10px">
       <h3 id="egHistTitle" style="flex:1">Historia clínica (egresado)</h3>
       <button class="btn btn-teal btn-sm" id="egHistPdfBtn" onclick="egHistPDF()">📄 Exportar PDF</button>
-      <button class="btn btn-outline btn-sm" onclick="closeModal('modalEgHist')">✕</button>
+      <button class="btn btn-outline btn-sm" aria-label="Cerrar" onclick="closeModal('modalEgHist')">✕</button>
     </div>
     <div id="egHistBody" style="margin-top:10px;font-size:13px;line-height:1.6"></div>
   </div>
@@ -541,12 +544,12 @@ footer{text-align:center;padding:16px;color:var(--muted);font-size:11px;border-t
   <div class="modal-box">
     <h3 id="tr-title">🔄 Transferir paciente</h3>
     <div class="field-row">
-      <div class="field-group"><label>Sector destino</label><select id="tr-sector" onchange="trOnSector()"></select></div>
-      <div class="field-group"><label>Cama destino</label><select id="tr-cama"><option value="">Seleccioná primero el sector</option></select></div>
+      <div class="field-group"><label for="tr-sector">Sector destino</label><select id="tr-sector" onchange="trOnSector()"></select></div>
+      <div class="field-group"><label for="tr-cama">Cama destino</label><select id="tr-cama"><option value="">Seleccioná primero el sector</option></select></div>
     </div>
     <div id="tr-cama-msg" style="font-size:12px;margin-top:4px"></div>
-    <div class="field-group" style="margin-top:8px"><label>Motivo de transferencia (opcional)</label><textarea id="tr-motivo" rows="2"></textarea></div>
-    <div class="field-group" style="margin-top:8px"><label>Fecha y hora</label><input type="datetime-local" id="tr-fecha"></div>
+    <div class="field-group" style="margin-top:8px"><label for="tr-motivo">Motivo de transferencia (opcional)</label><textarea id="tr-motivo" rows="2"></textarea></div>
+    <div class="field-group" style="margin-top:8px"><label for="tr-fecha">Fecha y hora</label><input type="datetime-local" id="tr-fecha"></div>
     <div class="modal-actions">
       <button class="btn btn-outline btn-sm" onclick="closeModal('modalTransfer')">Cancelar</button>
       <button class="btn btn-teal btn-sm" id="tr-confirm" onclick="confirmTransferencia()">✅ Confirmar transferencia</button>
@@ -591,7 +594,7 @@ footer{text-align:center;padding:16px;color:var(--muted);font-size:11px;border-t
 </div>
 
 <div id="modalImg" class="modal" style="display:none" onclick="closeModal('modalImg')">
-  <div style="max-width:92vw;max-height:90vh"><img id="modalImgSrc" style="max-width:92vw;max-height:90vh;border-radius:8px"></div>
+  <div style="max-width:92vw;max-height:90vh"><img id="modalImgSrc" alt="Imagen ampliada" style="max-width:92vw;max-height:90vh;border-radius:8px"></div>
 </div>
 
 <!-- ===================== VISTA RÁPIDA (👁️) ===================== -->
@@ -1366,7 +1369,7 @@ function openQuickPanel(ai,bi){
   }
   document.getElementById('quickPanelBox').innerHTML=
     '<div class="qp-head"><h3>👁️ '+esc(p.name||'(sin nombre)')+'</h3>'+
-      '<button class="qp-close" onclick="closeQuickPanel()">✕</button></div>'+
+      '<button class="qp-close" aria-label="Cerrar panel" onclick="closeQuickPanel()">✕</button></div>'+
     '<div class="qp-meta">'+esc(p.edad||'?')+' años · '+a.icon+' '+esc(a.name)+' · Cama '+(bi+1)+' · '+(dias!==''?dias+' días internación':'—')+'</div>'+
     '<div class="qp-sec"><h5>Diagnóstico principal</h5><div class="qp-val">'+esc(p.dx||'—')+'</div></div>'+
     '<div class="qp-sec"><h5>Infecciones activas</h5>'+infHtml+'</div>'+
@@ -2336,14 +2339,14 @@ function renderPtAtb(){
       '<td><input type="date" value="'+esc(x.inicio)+'" oninput="atbSet('+i+',\'inicio\',this.value)"></td>'+
       '<td><input type="date" value="'+esc(x.fin)+'" oninput="atbSet('+i+',\'fin\',this.value)"></td>'+
       '<td style="text-align:center">'+(dias!==''&&dias!==null?dias+'d':'—')+'</td>'+
-      '<td><button class="tbl-del" onclick="atbDel('+i+')">✕</button></td></tr>';
+      '<td><button class="tbl-del" aria-label="Eliminar fila" onclick="atbDel('+i+')">✕</button></td></tr>';
   }).join('');
   var escRows=p.escal.map(function(x,i){
     return '<tr>'+
       '<td><input type="date" value="'+esc(x.fecha)+'" oninput="escSet('+i+',\'fecha\',this.value)"></td>'+
       '<td><select onchange="escSet('+i+',\'tipo\',this.value)"><option'+(x.tipo==='Escalamiento'?' selected':'')+'>Escalamiento</option><option'+(x.tipo==='Desescalamiento'?' selected':'')+'>Desescalamiento</option></select></td>'+
       '<td><input value="'+esc(x.motivo)+'" oninput="escSet('+i+',\'motivo\',this.value)"></td>'+
-      '<td><button class="tbl-del" onclick="escDel('+i+')">✕</button></td></tr>';
+      '<td><button class="tbl-del" aria-label="Eliminar fila" onclick="escDel('+i+')">✕</button></td></tr>';
   }).join('');
   document.getElementById('pt-atbpt').innerHTML=
     '<div class="section-card"><h4>💊 Antibióticos activos</h4>'+
@@ -2361,12 +2364,12 @@ function durCalcBlock(p){
   var inicioVal=window._durInicio||inicioDef;
   return '<div class="section-card"><h4>⏱️ Calculadora de duración de tratamiento</h4>'+
     '<div class="field-row three">'+
-      '<div class="field-group"><label>Tipo de infección</label><select id="dur-tipo" onchange="window._durTipo=this.value;calcDurATB()"><option value="">-</option>'+tipoOpts+'</select></div>'+
-      '<div class="field-group"><label>Germen (opcional)</label><input type="text" id="dur-germen" value="'+esc(window._durGerm||'')+'" oninput="window._durGerm=this.value;calcDurATB()"></div>'+
-      '<div class="field-group"><label>Estado inmune</label><select id="dur-inmuno" onchange="window._durInmuno=this.value;calcDurATB()"><option value="competente"'+((window._durInmuno||'competente')==='competente'?' selected':'')+'>Inmunocompetente</option><option value="comprometido"'+((window._durInmuno||'')==='comprometido'?' selected':'')+'>Inmunocomprometido</option></select></div>'+
+      '<div class="field-group"><label for="dur-tipo">Tipo de infección</label><select id="dur-tipo" onchange="window._durTipo=this.value;calcDurATB()"><option value="">-</option>'+tipoOpts+'</select></div>'+
+      '<div class="field-group"><label for="dur-germen">Germen (opcional)</label><input type="text" id="dur-germen" value="'+esc(window._durGerm||'')+'" oninput="window._durGerm=this.value;calcDurATB()"></div>'+
+      '<div class="field-group"><label for="dur-inmuno">Estado inmune</label><select id="dur-inmuno" onchange="window._durInmuno=this.value;calcDurATB()"><option value="competente"'+((window._durInmuno||'competente')==='competente'?' selected':'')+'>Inmunocompetente</option><option value="comprometido"'+((window._durInmuno||'')==='comprometido'?' selected':'')+'>Inmunocomprometido</option></select></div>'+
     '</div>'+
     '<div class="field-row three">'+
-      '<div class="field-group"><label>Inicio del tratamiento</label><input type="date" id="dur-inicio" value="'+esc(inicioVal)+'" onchange="window._durInicio=this.value;calcDurATB()"></div>'+
+      '<div class="field-group"><label for="dur-inicio">Inicio del tratamiento</label><input type="date" id="dur-inicio" value="'+esc(inicioVal)+'" onchange="window._durInicio=this.value;calcDurATB()"></div>'+
     '</div>'+
     '<div id="dur-result" class="calc-val" style="margin-top:8px">Seleccione tipo de infección</div>'+
     '<p style="font-size:11px;color:var(--muted);margin-top:6px">Rangos orientativos IDSA/ESCMID. Ajustar según control de foco y respuesta clínica.</p>'+
@@ -2398,7 +2401,7 @@ function renderPtEvol(){
   var rows=p.evol.map(function(x,i){
     return '<tr><td style="width:130px"><input type="date" value="'+esc(x.fecha)+'" oninput="evolSet('+i+',\'fecha\',this.value)"></td>'+
       '<td><textarea rows="2" oninput="evolSet('+i+',\'texto\',this.value)">'+esc(x.texto)+'</textarea></td>'+
-      '<td style="width:30px"><button class="tbl-del" onclick="evolDel('+i+')">✕</button></td></tr>';
+      '<td style="width:30px"><button class="tbl-del" aria-label="Eliminar fila" onclick="evolDel('+i+')">✕</button></td></tr>';
   }).join('');
   document.getElementById('pt-evolucion').innerHTML=
     '<div class="section-card"><h4>📝 Notas de evolución</h4>'+
@@ -2438,8 +2441,8 @@ function paraVal(k,ci,val){ var p=currentPatient(); var d=p.para.dates[ci]; p.pa
 function renderPtImagenes(){
   var p=currentPatient(); if(!p) return; if(!p.imagenes) p.imagenes=[];
   var cards=p.imagenes.map(function(im,i){
-    return '<div class="img-card"><button class="img-del" onclick="imgDel('+i+')">✕</button>'+
-      '<img src="'+im.data+'" onclick="showImg(\''+i+'\')">'+
+    return '<div class="img-card"><button class="img-del" aria-label="Eliminar imagen" onclick="imgDel('+i+')">✕</button>'+
+      '<img src="'+im.data+'" alt="Imagen clínica adjunta" onclick="showImg(\''+i+'\')">'+
       '<input type="date" value="'+esc(im.fecha)+'" oninput="imgSet('+i+',\'fecha\',this.value)">'+
       '<input placeholder="Descripción" value="'+esc(im.desc)+'" oninput="imgSet('+i+',\'desc\',this.value)"></div>';
   }).join('');
@@ -2479,7 +2482,7 @@ function renderPtInterconsultas(){
       '<td><textarea rows="2" oninput="icSet('+i+',\'conducta\',this.value)" placeholder="Conducta sugerida">'+esc(x.conducta||'')+'</textarea></td>'+
       '<td style="width:120px"><input type="date" value="'+esc(x.fechaSeg||'')+'" oninput="icSet('+i+',\'fechaSeg\',this.value)"></td>'+
       '<td style="width:110px">'+estSel+'</td>'+
-      '<td style="width:30px"><button class="tbl-del" onclick="icDel('+i+')">✕</button></td></tr>';
+      '<td style="width:30px"><button class="tbl-del" aria-label="Eliminar fila" onclick="icDel('+i+')">✕</button></td></tr>';
   }).join('')||'<tr><td colspan="9" style="color:var(--muted)">Sin interconsultas.</td></tr>';
   document.getElementById('pt-interconsultas').innerHTML=
     '<div class="section-card"><h4>📋 Interconsultas</h4>'+
@@ -2648,10 +2651,10 @@ function renderVade(){
   document.getElementById('panel-atb').innerHTML=
     '<div class="stats-grid" style="margin-bottom:14px">'+
       '<div class="stat-card"><h4>🧮 Calculadora ClCr (Cockcroft-Gault)</h4>'+
-        '<div class="field-row"><div class="field-group"><label>Edad (años)</label><input type="number" id="cc-age" oninput="calcClCr()"></div>'+
-          '<div class="field-group"><label>Peso (kg)</label><input type="number" id="cc-w" oninput="calcClCr()"></div></div>'+
-        '<div class="field-row"><div class="field-group"><label>Creatinina (mg/dL)</label><input type="number" step="0.1" id="cc-cr" oninput="calcClCr()"></div>'+
-          '<div class="field-group"><label>Sexo</label><select id="cc-sex" onchange="calcClCr()"><option value="M">Masculino</option><option value="F">Femenino</option></select></div></div>'+
+        '<div class="field-row"><div class="field-group"><label for="cc-age">Edad (años)</label><input type="number" id="cc-age" oninput="calcClCr()"></div>'+
+          '<div class="field-group"><label for="cc-w">Peso (kg)</label><input type="number" id="cc-w" oninput="calcClCr()"></div></div>'+
+        '<div class="field-row"><div class="field-group"><label for="cc-cr">Creatinina (mg/dL)</label><input type="number" step="0.1" id="cc-cr" oninput="calcClCr()"></div>'+
+          '<div class="field-group"><label for="cc-sex">Sexo</label><select id="cc-sex" onchange="calcClCr()"><option value="M">Masculino</option><option value="F">Femenino</option></select></div></div>'+
         '<div id="cc-result" class="calc-val" style="margin-top:8px">Ingrese datos</div>'+
         '<p style="font-size:11px;color:var(--muted);margin-top:6px">Use el ClCr para ajustar dosis según la columna "Ajuste renal" de cada fármaco.</p></div>'+
       '<div class="stat-card"><h4>⏱️ Duración recomendada por infección</h4>'+
@@ -3385,7 +3388,7 @@ function renderEgresados(){
       '<td class="'+(e.mdr?'mdr':'')+'">'+esc(e.germen||'—')+(e.mdr?' <span class="pill red">MDR</span>':'')+'</td>'+
       '<td>'+esc(isolTxt)+'</td>'+
       '<td>'+egEstadoPill(e)+'</td>'+
-      '<td><button class="tbl-del" onclick="event.stopPropagation();delEgresado('+realIdx+')">✕</button></td></tr>';
+      '<td><button class="tbl-del" aria-label="Eliminar egresado" onclick="event.stopPropagation();delEgresado('+realIdx+')">✕</button></td></tr>';
   }).join('')||'<tr><td colspan="11" style="color:var(--muted)">Sin egresados.</td></tr>';
   var clearBar=_egWidget?('<div class="eg-clear-bar"><span class="pill teal">'+esc(egWidgetLabel())+'</span> <button class="btn btn-teal btn-sm" onclick="egWidgetClear()">✕ Limpiar filtro</button></div>'):'';
   document.getElementById('panel-egresados').innerHTML=
@@ -3908,11 +3911,11 @@ function refSections(){
   {icon:'🧮',title:'CALCULADORAS',fiches:[
     refFiche('🧮','ClCr (Cockcroft-Gault)','prefill',
       '<div class="field-row three">'+
-        '<div class="field-group"><label>Edad (años)</label><input type="number" id="rc-age" oninput="rcCalcAll()"></div>'+
-        '<div class="field-group"><label>Peso (kg)</label><input type="number" id="rc-w" oninput="rcCalcAll()"></div>'+
-        '<div class="field-group"><label>Creatinina (mg/dL)</label><input type="number" step="0.1" id="rc-cr" oninput="rcCalcAll()"></div>'+
+        '<div class="field-group"><label for="rc-age">Edad (años)</label><input type="number" id="rc-age" oninput="rcCalcAll()"></div>'+
+        '<div class="field-group"><label for="rc-w">Peso (kg)</label><input type="number" id="rc-w" oninput="rcCalcAll()"></div>'+
+        '<div class="field-group"><label for="rc-cr">Creatinina (mg/dL)</label><input type="number" step="0.1" id="rc-cr" oninput="rcCalcAll()"></div>'+
       '</div>'+
-      '<div class="field-row"><div class="field-group"><label>Sexo</label><select id="rc-sex" onchange="rcCalcAll()"><option value="M">Masculino</option><option value="F">Femenino</option></select></div>'+
+      '<div class="field-row"><div class="field-group"><label for="rc-sex">Sexo</label><select id="rc-sex" onchange="rcCalcAll()"><option value="M">Masculino</option><option value="F">Femenino</option></select></div>'+
         '<div class="field-group"><label>&nbsp;</label><button class="btn btn-outline btn-sm" onclick="rcPrefill()">↺ Usar paciente actual</button></div></div>'+
       '<div class="field-group" style="margin-top:8px"><label>Resultado</label><div id="rc-clcr" class="calc-val">Ingrese datos</div></div>'+
       '<p style="font-size:11px;color:var(--muted);margin-top:6px">Este ClCr alimenta también las dosis de vancomicina y aminoglucósidos de abajo.</p>'),
@@ -3920,11 +3923,11 @@ function refSections(){
       '<p style="font-size:12px;color:var(--muted)">Usa peso y ClCr de la calculadora de ClCr. Objetivo AUC/CIM 400–600.</p>'+
       '<div class="field-group" style="margin-top:6px"><label>Carga y mantenimiento sugeridos</label><div id="rc-vanco" class="calc-val">Complete edad, peso, creatinina y sexo arriba</div></div>'),
     refFiche('🧮','Dosis de aminoglucósidos','intervalo',
-      '<div class="field-row"><div class="field-group"><label>Fármaco</label><select id="rc-ag" onchange="rcCalcAll()"><option value="genta">Gentamicina (5-7 mg/kg)</option><option value="amika">Amikacina (15-20 mg/kg)</option></select></div></div>'+
+      '<div class="field-row"><div class="field-group"><label for="rc-ag">Fármaco</label><select id="rc-ag" onchange="rcCalcAll()"><option value="genta">Gentamicina (5-7 mg/kg)</option><option value="amika">Amikacina (15-20 mg/kg)</option></select></div></div>'+
       '<div class="field-group" style="margin-top:6px"><label>Dosis e intervalo (por peso y ClCr)</label><div id="rc-amino" class="calc-val">Complete peso y ClCr arriba</div></div>'),
     refFiche('🧮','Índice de masa corporal (IMC)','',
-      '<div class="field-row"><div class="field-group"><label>Peso (kg)</label><input type="number" id="rc-imcw" oninput="rcCalcImc()"></div>'+
-        '<div class="field-group"><label>Talla (cm)</label><input type="number" id="rc-imch" oninput="rcCalcImc()"></div></div>'+
+      '<div class="field-row"><div class="field-group"><label for="rc-imcw">Peso (kg)</label><input type="number" id="rc-imcw" oninput="rcCalcImc()"></div>'+
+        '<div class="field-group"><label for="rc-imch">Talla (cm)</label><input type="number" id="rc-imch" oninput="rcCalcImc()"></div></div>'+
       '<div class="field-group" style="margin-top:6px"><label>IMC</label><div id="rc-imc" class="calc-val">Ingrese datos</div></div>'),
     refFiche('🧮','Índice de Charlson','comorbilidades',
       '<p style="font-size:12px;color:var(--muted)">Calcula el Charlson del paciente actualmente seleccionado (pestaña Pacientes).</p>'+
