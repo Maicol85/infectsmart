@@ -777,7 +777,9 @@ var state={ centro:null, areas:[], activeArea:0, activeBed:null, pdfcolor:'#00a4
 /* ============================================================
    Utilidades
    ============================================================ */
-function esc(s){ if(s===null||s===undefined) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function esc(s){ if(s===null||s===undefined) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+// setItem con control de cuota: avisa al usuario si el almacenamiento del navegador esta lleno.
+function lsSet(k,v){ try{ localStorage.setItem(k,v); return true; }catch(e){ console.error('setItem fallo para '+k,e); alert('No se pudieron guardar los datos: el almacenamiento del navegador esta lleno o no disponible. Los últimos cambios podrían no persistir. Considere exportar un backup.'); return false; } }
 function todayStr(){ return new Date().toISOString().slice(0,10); }
 function toast(m){ var t=document.getElementById('toast'); t.textContent=m; t.style.display='block'; clearTimeout(window._tt); window._tt=setTimeout(function(){t.style.display='none';},1800); }
 function closeModal(id){ var m=document.getElementById(id); if(m) m.style.display='none'; }
@@ -819,9 +821,20 @@ function importBackupFile(ev){
     try{
       var obj=JSON.parse(r.result);
       var d=(obj && obj.data) ? obj.data : obj; // acepta {data:{}} o el objeto plano
-      if(!d || typeof d!=='object') throw new Error('formato');
-      _importPayload=d;
-      var n=Object.keys(d).filter(function(k){return k.indexOf('infectsmart_')===0;}).length;
+      if(!d || typeof d!=='object' || Array.isArray(d)) throw new Error('formato');
+      // Validacion de esquema antes de aplicar: solo claves infectsmart_ con valores string.
+      // Se BLOQUEA la clave de sesion/login para impedir inyeccion de expiracion (bypass de auth).
+      var clean={};
+      Object.keys(d).forEach(function(k){
+        if(k==='__proto__' || k==='constructor' || k==='prototype') return;
+        if(k.indexOf('infectsmart_')!==0) return;   // ignora claves ajenas
+        if(k===LOGIN_KEY) return;                    // bloquea infectsmart_login_expira
+        if(typeof d[k]!=='string') return;           // los valores de localStorage deben ser strings
+        clean[k]=d[k];
+      });
+      if(Object.keys(clean).length===0) throw new Error('sin datos válidos');
+      _importPayload=clean;
+      var n=Object.keys(clean).length;
       var info=document.getElementById('importInfo');
       if(info) info.textContent='Archivo: '+f.name+' · '+n+' registro(s)'+(obj.exported?(' · exportado '+String(obj.exported).slice(0,10)):'');
       document.getElementById('modalImport').style.display='flex';
@@ -832,12 +845,14 @@ function importBackupFile(ev){
 function cancelImport(){ _importPayload=null; closeModal('modalImport'); }
 function confirmImport(){
   if(!_importPayload){ closeModal('modalImport'); return; }
-  // eliminar claves infectsmart_ actuales
+  // eliminar claves infectsmart_ actuales (preservando la sesion de login del usuario legitimo)
   var toDel=[];
-  for(var i=0;i<localStorage.length;i++){ var k=localStorage.key(i); if(k && k.indexOf('infectsmart_')===0) toDel.push(k); }
+  for(var i=0;i<localStorage.length;i++){ var k=localStorage.key(i); if(k && k.indexOf('infectsmart_')===0 && k!==LOGIN_KEY) toDel.push(k); }
   toDel.forEach(function(k){ localStorage.removeItem(k); });
-  // restaurar
-  Object.keys(_importPayload).forEach(function(k){ if(k.indexOf('infectsmart_')===0) localStorage.setItem(k, _importPayload[k]); });
+  // restaurar (el payload ya fue validado: solo claves infectsmart_ string y sin la clave de login)
+  try{
+    Object.keys(_importPayload).forEach(function(k){ if(k.indexOf('infectsmart_')===0 && k!==LOGIN_KEY) localStorage.setItem(k, _importPayload[k]); });
+  }catch(e){ alert('No se pudieron guardar todos los datos: el almacenamiento del navegador esta lleno o no disponible.'); }
   _importPayload=null;
   alert('Datos importados correctamente. La aplicación se recargará.');
   location.reload();
@@ -858,7 +873,7 @@ function applyTheme(t){
   else document.documentElement.removeAttribute('data-theme');
   var b=document.getElementById('themeToggle'); if(b) b.textContent = t==='dark'?'☀️':'🌙';
 }
-function toggleTheme(){ var cur=localStorage.getItem(LS_THEME)==='dark'?'dark':'light'; var n=cur==='dark'?'light':'dark'; localStorage.setItem(LS_THEME,n); applyTheme(n); }
+function toggleTheme(){ var cur=localStorage.getItem(LS_THEME)==='dark'?'dark':'light'; var n=cur==='dark'?'light':'dark'; lsSet(LS_THEME,n); applyTheme(n); }
 function loadTheme(){ applyTheme(localStorage.getItem(LS_THEME)==='dark'?'dark':'light'); }
 
 /* ============================================================
@@ -875,7 +890,7 @@ function loadHeader(){
   });
   box.querySelectorAll('.val').forEach(function(el){
     el.addEventListener('focus',function(){ if(this.textContent==='—') this.textContent=''; });
-    el.addEventListener('blur',function(){ var h=getHeader(); h[this.dataset.k]=this.textContent.trim(); localStorage.setItem(LS_HDR,JSON.stringify(h)); if(!this.textContent.trim()) this.textContent='—'; });
+    el.addEventListener('blur',function(){ var h=getHeader(); h[this.dataset.k]=this.textContent.trim(); lsSet(LS_HDR,JSON.stringify(h)); if(!this.textContent.trim()) this.textContent='—'; });
     el.addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); this.blur(); } });
   });
 }
@@ -899,7 +914,7 @@ function loadPdfColor(){
 /* ============================================================
    Médico / usuario
    ============================================================ */
-function saveMedico(){ var el=document.getElementById('medicoInput'); if(el) localStorage.setItem(LS_MEDICO,el.value.trim()); updateMedicoBadge(); }
+function saveMedico(){ var el=document.getElementById('medicoInput'); if(el) lsSet(LS_MEDICO,el.value.trim()); updateMedicoBadge(); }
 function loadMedico(){ var el=document.getElementById('medicoInput'); if(el) el.value=localStorage.getItem(LS_MEDICO)||''; updateMedicoBadge(); }
 function updateMedicoBadge(){ var b=document.getElementById('medicoBadge'); if(!b) return; var v=localStorage.getItem(LS_MEDICO)||''; if(v){ b.textContent='👤 '+v; b.style.display=''; } else { b.style.display='none'; } }
 
@@ -911,7 +926,7 @@ function loadMeta(){
     CENTROS=m.centros.map(function(c,i){ return {id:c.id,name:c.name,sub:c.sub||'Institución',color:c.color||CENTRO_COLORS[i%CENTRO_COLORS.length]}; });
   } }catch(e){}
 }
-function saveMeta(){ localStorage.setItem(LS_META,JSON.stringify({centros:CENTROS})); }
+function saveMeta(){ lsSet(LS_META,JSON.stringify({centros:CENTROS})); }
 function centroColorDim(hex){ var r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16); return 'rgba('+r+','+g+','+b+',0.12)'; }
 
 /* Icono 1: bacteria con movimiento sutil (SMIL) */
@@ -1111,7 +1126,7 @@ function save(){
   catch(e){ alert('No se pudo guardar (posible límite de almacenamiento con imágenes).'); }
 }
 function getEgresados(){ try{ return JSON.parse(localStorage.getItem(egresadosKey()))||[]; }catch(e){ return []; } }
-function setEgresados(arr){ localStorage.setItem(egresadosKey(),JSON.stringify(arr)); }
+function setEgresados(arr){ lsSet(egresadosKey(),JSON.stringify(arr)); }
 
 /* Todos los pacientes activos del centro (con área/cama) */
 function allActive(){
@@ -1869,7 +1884,7 @@ function dismissIAAS(id){
   toast('IAAS descartada');
 }
 function getResolved(){ try{ return JSON.parse(localStorage.getItem('infectsmart_resolved_'+state.centro))||{}; }catch(e){ return {}; } }
-function setResolved(o){ localStorage.setItem('infectsmart_resolved_'+state.centro,JSON.stringify(o)); }
+function setResolved(o){ lsSet('infectsmart_resolved_'+state.centro,JSON.stringify(o)); }
 function resolveAlert(id){
   var obs=prompt('Observación al resolver la alerta:',''); if(obs===null) return;
   // buscar la alerta activa para guardar una etiqueta legible
@@ -3456,12 +3471,14 @@ function egHistPDF(){
   };
   buildPDF(p,{areaName:e.areaName, bed:e.bed, fechaEgreso:e.fechaEgreso, diasInternacion:e.diasInternacion});
 }
+// Prevencion de formula/CSV injection en Excel: neutraliza celdas de texto que empiezan con = + - @
+function safeCell(v){ if(typeof v==='string' && /^[=+\-@\t\r]/.test(v)) return "'"+v; return v; }
 function exportEgresadosExcel(){
   var egres=getEgresados();
   if(!egres.length){ alert('No hay egresados para exportar.'); return; }
   var rows=egres.map(function(e){
     var comorb=COMORB.filter(function(c){return e.comorb&&e.comorb[c.k];}).map(function(c){return c.label;}).join('; ');
-    return {
+    var obj={
       'Nombre':e.name,'CI':e.ci,'Edad':e.edad,'Sexo':e.sexo,'Cobertura':e.cobertura,
       'Área':e.areaName,'Cama':e.bed,'Ingreso':e.ingreso,'Egreso':e.fechaEgreso,
       'Días internación':e.diasInternacion,'Motivo':e.motivo,'Resultado':e.resultado,
@@ -3469,6 +3486,8 @@ function exportEgresadosExcel(){
       'ATB utilizados':e.atbList,'Días ATB':e.diasAtb,'Charlson':e.charlson,
       'Comorbilidades':comorb,'Evolución':e.evolucion,'Observaciones':e.obs
     };
+    Object.keys(obj).forEach(function(k){ obj[k]=safeCell(obj[k]); });
+    return obj;
   });
   var ws=XLSX.utils.json_to_sheet(rows);
   var wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Egresados');
@@ -3487,7 +3506,7 @@ function openInformes(){
     :'<p style="color:var(--muted)">Aún no se generaron informes. Genere un PDF de paciente para registrarlo aquí.</p>';
   document.getElementById('modalInformes').style.display='flex';
 }
-function logInforme(name){ var arr=getInformes(); arr.push({name:name,fecha:new Date().toLocaleString('es')}); localStorage.setItem(LS_INFORMES+state.centro,JSON.stringify(arr)); }
+function logInforme(name){ var arr=getInformes(); arr.push({name:name,fecha:new Date().toLocaleString('es')}); lsSet(LS_INFORMES+state.centro,JSON.stringify(arr)); }
 
 /* ============================================================
    PDF por paciente (jsPDF)
