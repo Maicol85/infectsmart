@@ -4,8 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>InfectSmart · Gestión de Infectología Institucional</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+<link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏥</text></svg>">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 <style>
 :root{
   --bg:#f4f6fa;--surface:#ffffff;--surface2:#eef1f6;--border:#d8dee9;
@@ -433,7 +436,7 @@ footer{text-align:center;padding:16px;color:var(--muted);font-size:11px;border-t
     <div class="medico-badge" id="medicoBadge" style="display:none"></div>
     <div class="hdr-fields" id="hdrFields"></div>
     <div class="spacer"></div>
-    <img id="logoThumb" alt="Logo institucional" class="logo-thumb hidden">
+    <img id="logoThumb" loading="lazy" alt="Logo institucional" class="logo-thumb hidden">
     <button class="topbtn" onclick="document.getElementById('logoInput').click()">+ Logo</button>
     <input type="file" id="logoInput" accept="image/*" class="hidden" onchange="uploadLogo(event)">
     <div class="pdf-swatches" id="pdfSwatches" title="Color de PDF"></div>
@@ -632,7 +635,7 @@ footer{text-align:center;padding:16px;color:var(--muted);font-size:11px;border-t
 </div>
 
 <div id="modalImg" class="modal" style="display:none" role="dialog" aria-modal="true" onclick="closeModal('modalImg')">
-  <div style="max-width:92vw;max-height:90vh"><img id="modalImgSrc" alt="Imagen ampliada" style="max-width:92vw;max-height:90vh;border-radius:8px"></div>
+  <div style="max-width:92vw;max-height:90vh"><img id="modalImgSrc" loading="lazy" alt="Imagen ampliada" style="max-width:92vw;max-height:90vh;border-radius:8px"></div>
 </div>
 
 <!-- ===================== VISTA RÁPIDA (👁️) ===================== -->
@@ -919,7 +922,7 @@ function confirmImport(){
   location.reload();
 }
 function afterLogin(){
-  loadMeta(); loadTheme(); loadHeader(); loadLogo(); loadPdfColor();
+  loadMeta(); loadTheme(); loadHeader(); loadLogo(); setTimeout(loadPdfColor, 0);
   document.getElementById('app').style.display='flex';
   showAdvertencia();
 }
@@ -2517,7 +2520,7 @@ function renderPtImagenes(){
   var cards=p.imagenes.map(function(im,i){
     // FIX XSS: no interpolar im.data en innerHTML; se valida y se asigna el src por JS más abajo.
     var media = isValidImgData(im.data)
-      ? '<img alt="Imagen clínica adjunta" data-img-idx="'+i+'" onclick="showImg(\''+i+'\')">'
+      ? '<img loading="lazy" alt="Imagen clínica adjunta" data-img-idx="'+i+'" onclick="showImg(\''+i+'\')">'
       : '<div class="img-invalid" style="display:flex;align-items:center;justify-content:center;min-height:100px;background:var(--surface2);color:var(--muted);border-radius:6px;font-size:12px">Imagen no válida</div>';
     return '<div class="img-card"><button class="img-del" aria-label="Eliminar imagen" onclick="imgDel('+i+')">✕</button>'+
       media+
