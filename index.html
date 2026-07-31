@@ -531,6 +531,25 @@ footer{text-align:center;padding:16px;color:var(--muted);font-size:11px;border-t
   </div>
 </div>
 
+<div id="modalConfirmIAAS" class="modal" style="display:none" role="dialog" aria-modal="true" aria-labelledby="ciaas-title">
+  <div class="modal-box">
+    <h3 id="ciaas-title">⚠ Confirmar IAAS — Verificación requerida</h3>
+    <div id="ciaas-alerta" style="font-size:12px;color:var(--muted);margin-bottom:10px"></div>
+    <div class="alert-box warn" style="font-size:12px">Está por registrar esta infección como <b>confirmada</b>. Esto modificará las estadísticas institucionales.</div>
+    <div style="margin-top:12px;font-size:13px;font-weight:600">Antes de confirmar verifique:</div>
+    <label style="display:flex;gap:8px;align-items:flex-start;margin-top:8px;font-size:13px;cursor:pointer"><input type="checkbox" id="ciaas-chk1"> Criterios clínicos completos evaluados</label>
+    <div class="field-group" style="margin-top:8px"><label for="ciaas-def">Definición utilizada</label><input type="text" id="ciaas-def" placeholder="Ej.: CDC/NHSN 2026 PNEU · criterio institucional…"></div>
+    <label style="display:flex;gap:8px;align-items:flex-start;margin-top:8px;font-size:13px;cursor:pointer"><input type="checkbox" id="ciaas-chk3"> Criterios cumplidos documentados</label>
+    <div class="field-group" style="margin-top:8px"><label for="ciaas-prof">Profesional que confirma</label><input type="text" id="ciaas-prof" placeholder="Nombre / matrícula"></div>
+    <div class="field-group" style="margin-top:8px"><label for="ciaas-obs">Observación</label><textarea id="ciaas-obs" rows="2"></textarea></div>
+    <p style="font-size:11px;color:var(--muted);border-left:3px solid var(--amber);padding-left:8px;margin-top:8px">Esta detección usa criterios de <b>screening clínico</b>, no el protocolo CDC/NHSN completo.</p>
+    <div class="modal-actions">
+      <button class="btn btn-outline btn-sm" onclick="closeModal('modalConfirmIAAS')">Cancelar</button>
+      <button class="btn btn-teal btn-sm" onclick="doConfirmIAAS()">Confirmar</button>
+    </div>
+  </div>
+</div>
+
 <div id="modalEgHist" class="modal" style="display:none" role="dialog" aria-modal="true">
   <div class="modal-box" style="max-width:720px">
     <div style="display:flex;align-items:flex-start;gap:10px">
@@ -712,8 +731,8 @@ var ETIQUETAS=['ASSE','Mutualista','Particular','Externo','Investigación'];
 /* Patrones de multirresistencia -> protocolo */
 var MDR_PATTERNS=[
   {re:/MRSA|SAMR/i, name:'MRSA', protocolo:'Aislamiento de CONTACTO. Habitación individual o cohorte. Descolonización según protocolo. Vancomicina/linezolid según sitio.'},
-  {re:/KPC|carbapenem|CRE/i, name:'KPC / Carbapenemasa', protocolo:'Aislamiento de CONTACTO ESTRICTO. Cohorte + personal dedicado. Ceftazidima-avibactam / meropenem-vaborbactam / colistina según CIM.'},
-  {re:/BLEE|ESBL/i, name:'BLEE / ESBL', protocolo:'Aislamiento de CONTACTO. Carbapenémicos como tratamiento de elección. Higiene de manos reforzada.'},
+  {re:/KPC|carbapenem|CRE/i, name:'KPC / Carbapenemasa', protocolo:'Aislamiento de CONTACTO ESTRICTO. Cohorte + personal dedicado. PRIMERA LÍNEA según carbapenemasa — KPC: ceftazidima-avibactam o meropenem-vaborbactam; NDM/MBL: ceftazidima-avibactam + aztreonam u otras combinaciones específicas; OXA-48: ceftazidima-avibactam. ALTERNATIVA EXCEPCIONAL: colistina/polimixina B solo cuando no existe otro agente activo disponible (alto riesgo de nefrotoxicidad; requiere TDM si disponible). Ref.: IDSA AMR Guidance 2024.'},
+  {re:/BLEE|ESBL/i, name:'BLEE / ESBL', protocolo:'Aislamiento de CONTACTO. Higiene de manos reforzada. Tratamiento según foco — BACTERIEMIA / infección invasiva grave: carbapenémico de elección (ertapenem si no P. aeruginosa). PIELONEFRITIS / ITU alta: carbapenémico en casos graves; considerar aminoglucósido o fosfomicina IV si susceptible y función renal adecuada. CISTITIS NO COMPLICADA: nitrofurantoína, fosfomicina oral o TMP-SMX si susceptible — NO carbapenémico. Reservar carbapenémicos para infecciones graves (IDSA AMR Guidance 2024).'},
   {re:/\bVRE\b|enterococo.*vanco/i, name:'VRE', protocolo:'Aislamiento de CONTACTO. Cohorte. Linezolid / daptomicina.'},
   {re:/VISA|VRSA/i, name:'VISA/VRSA', protocolo:'Aislamiento de CONTACTO ESTRICTO. Notificar epidemiología. Daptomicina alta dosis / linezolid / ceftarolina.'}
 ];
@@ -800,6 +819,23 @@ var state={ centro:null, areas:[], activeArea:0, activeBed:null, pdfcolor:'#00a4
    Utilidades
    ============================================================ */
 function esc(s){ if(s===null||s===undefined) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+// FIX XSS: whitelist de iconos de área; un icono no permitido (backup manipulado) cae al default.
+var ICONOS_VALIDOS=['🏠','🚑','🏥','🩺','⚕️','🔴','👤','🦠','💊','🔬','🧫','🛡️','🔒','🧪','💧'];
+function iconSafe(ic){ return ICONOS_VALIDOS.indexOf(ic)>=0 ? ic : '🏥'; }
+// FIX XSS: solo aceptar data-URI de imagen base64 conocidos (jpeg/png/gif/webp).
+function isValidImgData(d){ return typeof d==='string' && /^data:image\/(jpeg|png|gif|webp);base64,/.test(d); }
+// FIX: carga centralizada tolerante a datos corruptos (una clave rota ya no bloquea la app).
+function safeISLoad(key, fallback){
+  try{
+    const raw=localStorage.getItem(key);
+    if(raw==null) return fallback;
+    const data=JSON.parse(raw);
+    return data!=null ? data : fallback;
+  }catch(e){
+    console.warn('InfectSmart: dato corrupto en', key, e);
+    return fallback;
+  }
+}
 // a11y: activar div[role=button] con teclado (Enter/Espacio)
 function isKey(e){ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); (e.currentTarget||e.target).click(); } }
 window.isKey=isKey;
@@ -905,7 +941,7 @@ function loadTheme(){ applyTheme(localStorage.getItem(LS_THEME)==='dark'?'dark':
    Header editable (médico) + logo + pdf color
    ============================================================ */
 var HDR_FIELDS=[{k:'nombre',label:'Médico'},{k:'esp',label:'Especialidad'},{k:'matricula',label:'Matrícula'},{k:'inst',label:'Institución'},{k:'ciudad',label:'Ciudad'}];
-function getHeader(){ try{ return JSON.parse(localStorage.getItem(LS_HDR))||{}; }catch(e){ return {}; } }
+function getHeader(){ return safeISLoad(LS_HDR, {}); }
 function loadHeader(){
   var h=getHeader(); var box=document.getElementById('hdrFields'); box.innerHTML='';
   HDR_FIELDS.forEach(function(f){
@@ -947,9 +983,10 @@ function updateMedicoBadge(){ var b=document.getElementById('medicoBadge'); if(!
    Meta de centros (editable) + iconos animados
    ============================================================ */
 function loadMeta(){
-  try{ var m=JSON.parse(localStorage.getItem(LS_META)); if(m && Array.isArray(m.centros) && m.centros.length){
+  var m=safeISLoad(LS_META, null);
+  if(m && Array.isArray(m.centros) && m.centros.length){
     CENTROS=m.centros.map(function(c,i){ return {id:c.id,name:c.name,sub:c.sub||'Institución',color:c.color||CENTRO_COLORS[i%CENTRO_COLORS.length]}; });
-  } }catch(e){}
+  }
 }
 function saveMeta(){ lsSet(LS_META,JSON.stringify({centros:CENTROS})); }
 function centroColorDim(hex){ var r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16); return 'rgba('+r+','+g+','+b+',0.12)'; }
@@ -1127,13 +1164,8 @@ function newAreas(){
   });
 }
 function loadCentro(){
-  try{
-    var raw=localStorage.getItem(centroKey());
-    if(raw){
-      var d=JSON.parse(raw);
-      if(d && Array.isArray(d.areas)){ state.areas=d.areas; normalizeAreas(); return; }
-    }
-  }catch(e){}
+  var d=safeISLoad(centroKey(), null);
+  if(d && Array.isArray(d.areas)){ state.areas=d.areas; normalizeAreas(); return; }
   state.areas=newAreas();
   save();
 }
@@ -1150,7 +1182,7 @@ function save(){
   try{ localStorage.setItem(centroKey(),JSON.stringify({v:1,areas:state.areas,lastSave:new Date().toISOString()})); }
   catch(e){ alert('No se pudo guardar (posible límite de almacenamiento con imágenes).'); }
 }
-function getEgresados(){ try{ return JSON.parse(localStorage.getItem(egresadosKey()))||[]; }catch(e){ return []; } }
+function getEgresados(){ return safeISLoad(egresadosKey(), []); }
 function setEgresados(arr){ lsSet(egresadosKey(),JSON.stringify(arr)); }
 
 /* Todos los pacientes activos del centro (con área/cama) */
@@ -1188,7 +1220,7 @@ function renderAreas(){
   state.areas.forEach(function(a,i){
     var b=document.createElement('button'); b.className='area-tab'+(!todosMode && i===state.activeArea?' active':'');
     var occ=a.beds.filter(function(x){return x;}).length;
-    b.innerHTML=a.icon+' '+esc(a.name)+' <span style="opacity:.7">('+occ+'/'+a.beds.length+')</span>';
+    b.innerHTML=iconSafe(a.icon)+' '+esc(a.name)+' <span style="opacity:.7">('+occ+'/'+a.beds.length+')</span>';
     b.onclick=function(){ state.activeArea=i; todosMode=false; renderAreas(); };
     tabs.appendChild(b);
   });
@@ -1201,7 +1233,7 @@ function renderAreas(){
     renderTodosLossectores();
   } else {
     var a=state.areas[state.activeArea];
-    document.getElementById('areaTitle').textContent=a.icon+' '+a.name;
+    document.getElementById('areaTitle').textContent=iconSafe(a.icon)+' '+a.name;
     document.getElementById('bedsGrid').classList.remove('todos-view');
     renderBeds();
   }
@@ -1250,7 +1282,7 @@ function renderBeds(){
     }
     card.className=cls;
     card.innerHTML='<div class="bed-badges">'+badges+'</div>'+eyeBtn+
-      '<div class="bed-num">'+a.icon+' Cama '+(bi+1)+'</div>'+
+      '<div class="bed-num">'+iconSafe(a.icon)+' Cama '+(bi+1)+'</div>'+
       '<div class="bed-name">'+name+'</div>'+
       '<div class="bed-dx">'+dx+'</div>'+
       (info?'<div class="bed-info">'+info+'</div>':'');
@@ -1284,7 +1316,7 @@ function _buildBedCard(ai,bi){
   }
   card.className=cls;
   card.innerHTML='<div class="bed-badges">'+badges+'</div>'+eyeBtn+
-    '<div class="bed-num">'+a.icon+' Cama '+(bi+1)+'</div>'+
+    '<div class="bed-num">'+iconSafe(a.icon)+' Cama '+(bi+1)+'</div>'+
     '<div class="bed-name">'+name+'</div>'+
     '<div class="bed-dx">'+dx+'</div>'+
     (info?'<div class="bed-info">'+info+'</div>':'');
@@ -1298,7 +1330,7 @@ function renderTodosLossectores(){
     var occ=a.beds.filter(function(x){return x;}).length;
     var sec=document.createElement('div'); sec.className='todos-section';
     var h=document.createElement('div'); h.className='todos-sec-hdr';
-    h.innerHTML=a.icon+' '+esc(a.name)+' <span style="opacity:.7;font-weight:400">('+occ+'/'+a.beds.length+' ocupadas)</span>';
+    h.innerHTML=iconSafe(a.icon)+' '+esc(a.name)+' <span style="opacity:.7;font-weight:400">('+occ+'/'+a.beds.length+' ocupadas)</span>';
     sec.appendChild(h);
     var grid=document.createElement('div'); grid.className='beds-grid';
     a.beds.forEach(function(p,bi){ grid.appendChild(_buildBedCard(ai,bi)); });
@@ -1340,8 +1372,8 @@ function bedBadges(p){
   else if(isol==='contacto') b+='<span class="bed-badge" style="color:var(--orange)" title="Aislamiento contacto / gotas">🔒</span>';
   // ⚠️ múltiples infecciones simultáneas
   if(withData.length>1) b+='<span class="bed-badge" style="color:var(--amber)" title="Múltiples infecciones simultáneas ('+withData.length+')">⚠️</span>';
-  // 🆘 qSOFA≥2 (posible sepsis)
-  try{ var q=calcQSOFA(p); if(q.score>=2) b+='<span class="bed-badge" style="color:var(--red)" title="Posible sepsis — qSOFA '+q.score+'/3">🆘</span>'; }catch(e){}
+  // ⚠ qSOFA≥2 — estratificación de riesgo (no diagnóstico de sepsis)
+  try{ var q=calcQSOFA(p); if(q.score>=2) b+='<span class="bed-badge" style="color:var(--red)" title="qSOFA ≥2: evaluar clínicamente">⚠</span>'; }catch(e){}
   // 🧫 sospecha/confirmación de IAAS auto-detectada
   try{
     var iaasT=iaasSuspechaTipos(p);
@@ -1392,7 +1424,7 @@ function openQuickPanel(ai,bi){
   document.getElementById('quickPanelBox').innerHTML=
     '<div class="qp-head"><h3>👁️ '+esc(p.name||'(sin nombre)')+'</h3>'+
       '<button class="qp-close" aria-label="Cerrar panel" onclick="closeQuickPanel()">✕</button></div>'+
-    '<div class="qp-meta">'+esc(p.edad||'?')+' años · '+a.icon+' '+esc(a.name)+' · Cama '+(bi+1)+' · '+(dias!==''?dias+' días internación':'—')+'</div>'+
+    '<div class="qp-meta">'+esc(p.edad||'?')+' años · '+iconSafe(a.icon)+' '+esc(a.name)+' · Cama '+(bi+1)+' · '+(dias!==''?dias+' días internación':'—')+'</div>'+
     '<div class="qp-sec"><h5>Diagnóstico principal</h5><div class="qp-val">'+esc(p.dx||'—')+'</div></div>'+
     '<div class="qp-sec"><h5>Infecciones activas</h5>'+infHtml+'</div>'+
     '<div class="qp-sec"><h5>ATB activos</h5>'+atbHtml+'</div>'+
@@ -1608,9 +1640,9 @@ function detectSepsisAlerts(active){
     var q=calcQSOFA(p);
     if(q.score>=2){
       var sofa=calcSOFA(p);
-      out.push({sev:3,tipo:'Posible sepsis (qSOFA≥2)',pac:p.name||'(sin nombre)',cama:camaTxt,area:a.name,
+      out.push({sev:3,tipo:'⚠ qSOFA ≥2 — riesgo elevado de disfunción orgánica. Evaluar sospecha de infección y criterios Sepsis-3 (SSC 2026)',pac:p.name||'(sin nombre)',cama:camaTxt,area:a.name,
         fecha:todayStr(),
-        accion:'qSOFA = '+q.score+'/3 ('+q.items.join(', ')+'). SOFA simplificado = '+sofa.score+'. Evaluar sepsis: hemocultivos, lactato, ATB precoz, control de foco.',
+        accion:'qSOFA = '+q.score+'/3 ('+q.items.join(', ')+'). SOFA simplificado = '+sofa.score+'. qSOFA es una herramienta de estratificación de riesgo, no un criterio diagnóstico de sepsis. Evaluar clínicamente: sospecha de infección, hemocultivos, lactato, ATB precoz y control de foco.',
         id:p.id+'_qsofa'});
     }
   });
@@ -1788,8 +1820,8 @@ function detectIAASAlerts(active){
         crit.push('Secreciones purulentas: sin campo estructurado');
         // Disparar si ARM>48h + al menos una señal clínica (leucocitosis o imagen)
         if(leuco===true || tieneImagen){
-          push('nav','⚠️ Posible NAV',
-            'Posible neumonía asociada a ventilador — evaluar criterios diagnósticos. '+crit.join('; ')+'.',
+          push('nav','🔬 Screening clínico preliminar: posible NAV',
+            'Posible neumonía asociada a ventilador — evaluar criterios diagnósticos. '+crit.join('; ')+'. Detección basada en criterios clínicos simplificados. Para clasificación NHSN formal se requiere aplicar el protocolo CDC/NHSN 2026 completo con todos sus criterios, ventanas temporales y exclusiones.',
             crit, inf.fechaCultivo||inf.fechaDispositivo);
         }
       }
@@ -1804,8 +1836,8 @@ function detectIAASAlerts(active){
       var otroFoco=infs.some(function(inf){ var f=norm(inf.foco); return inf.germen && f && f!=='bacteriemia'; });
       if(hemo && !otroFoco){
         var crit2=['CVC '+deviceDays(cvcInf)+' día(s) (>48h)','Hemocultivo positivo: '+esc(hemo.germen),'Sin otro foco aparente'];
-        push('cvc','⚠️ Posible bacteriemia asociada a CVC',
-          'Posible bacteriemia asociada a catéter venoso central. '+crit2.join('; ')+'.',
+        push('cvc','🔬 Screening clínico preliminar: posible CLABSI',
+          'Posible bacteriemia asociada a catéter venoso central (CLABSI). '+crit2.join('; ')+'. Detección basada en criterios clínicos simplificados. Para clasificación NHSN formal se requiere aplicar el protocolo CDC/NHSN 2026 completo con todos sus criterios, ventanas temporales y exclusiones.',
           crit2, hemo.fechaCultivo||cvcInf.fechaDispositivo);
       }
     }
@@ -1822,8 +1854,8 @@ function detectIAASAlerts(active){
         crit3.push('Urocultivo positivo: '+esc(uro.germen)+' (UFC: sin campo estructurado, se asume ≥100.000)');
         crit3.push(leuco===true?'Leucocitosis (GB>12)':leuco===false?'GB normal':'Fiebre/síntomas urinarios: sin dato');
         // Disparar con sonda + urocultivo positivo (fiebre/leucocitosis opcional)
-        push('itu','⚠️ Posible ITU asociada a sonda vesical',
-          'Posible infección urinaria asociada a sonda vesical. '+crit3.join('; ')+'.',
+        push('itu','🔬 Screening clínico preliminar: posible CAUTI/ITU-SC',
+          'Posible infección urinaria asociada a sonda vesical (CAUTI/ITU-SC). '+crit3.join('; ')+'. Detección basada en criterios clínicos simplificados. Para clasificación NHSN formal se requiere aplicar el protocolo CDC/NHSN 2026 completo con todos sus criterios, ventanas temporales y exclusiones.',
           crit3, uro.fechaCultivo);
       }
     }
@@ -1835,8 +1867,8 @@ function detectIAASAlerts(active){
         if(span!==null && span>=0 && span<=30){
           var crit4=['Procedimiento ('+esc(inf.procedimiento||inf.origen)+') el '+esc(inf.fechaProc),
             'Cultivo positivo del sitio a '+span+' día(s) (≤30d): '+esc(inf.germen)];
-          push('isq','⚠️ Posible infección de sitio quirúrgico',
-            'Posible infección de sitio quirúrgico postoperatoria. '+crit4.join('; ')+'.',
+          push('isq','🔬 Screening clínico preliminar: posible ISQ',
+            'Posible infección de sitio quirúrgico postoperatoria (ISQ). '+crit4.join('; ')+'. Detección basada en criterios clínicos simplificados. Para clasificación NHSN formal se requiere aplicar el protocolo CDC/NHSN 2026 completo con todos sus criterios, ventanas temporales y exclusiones.',
             crit4, inf.fechaCultivo);
         }
       }
@@ -1860,10 +1892,27 @@ function iaasSuspechaTipos(p){
 }
 /* Confirmar una IAAS auto-detectada: registra en datos del paciente para estadísticas. */
 function confirmIAAS(id){
+  // FIX: abre un modal de verificación antes de registrar (esto modifica estadísticas institucionales).
   var al=buildAlerts().filter(function(a){ return a.id===id; })[0];
   if(!al || !al.auto){ toast('Alerta no encontrada'); return; }
-  var obs=prompt('Observación al CONFIRMAR la IAAS ('+al.tipo+'):',''); if(obs===null) return;
-  // localizar paciente
+  window._pendingIAAS=id;
+  var box=document.getElementById('ciaas-alerta');
+  if(box) box.innerHTML='<b>'+esc(al.tipo)+'</b><br>'+esc(al.pac)+' · '+esc(al.area)+' · '+esc(al.cama);
+  ['ciaas-chk1','ciaas-chk3'].forEach(function(k){ var e=document.getElementById(k); if(e) e.checked=false; });
+  ['ciaas-def','ciaas-prof','ciaas-obs'].forEach(function(k){ var e=document.getElementById(k); if(e) e.value=''; });
+  document.getElementById('modalConfirmIAAS').style.display='flex';
+}
+function doConfirmIAAS(){
+  var id=window._pendingIAAS; if(!id){ closeModal('modalConfirmIAAS'); return; }
+  var chk1=document.getElementById('ciaas-chk1'), chk3=document.getElementById('ciaas-chk3');
+  var def=(document.getElementById('ciaas-def').value||'').trim();
+  var prof=(document.getElementById('ciaas-prof').value||'').trim();
+  var obs=(document.getElementById('ciaas-obs').value||'').trim();
+  if(!chk1.checked || !chk3.checked){ toast('Marque los ítems de verificación antes de confirmar'); return; }
+  if(!def){ toast('Indique la definición utilizada'); return; }
+  if(!prof){ toast('Indique el profesional que confirma'); return; }
+  var al=buildAlerts().filter(function(a){ return a.id===id; })[0];
+  if(!al || !al.auto){ toast('Alerta no encontrada'); closeModal('modalConfirmIAAS'); return; }
   var rec=allActive().filter(function(r){ return r.p.id===al.pid; })[0];
   if(!rec){ toast('Paciente no encontrado'); return; }
   var p=rec.p;
@@ -1893,9 +1942,11 @@ function confirmIAAS(id){
     setOrigen(iq,'Postoperatoria',{});
   }
   mirrorPrimaryInfection(p);
-  // marcar resuelta (confirmada) para que no se vuelva a disparar
-  var r=getResolved(); r[id]={fecha:todayStr(),obs:'IAAS CONFIRMADA. '+obs,label:al.tipo+' — '+al.pac+' · '+al.area+' · '+al.cama+' (confirmada)'}; setResolved(r);
+  // marcar resuelta (confirmada) — registra definición usada y profesional que confirmó
+  var r=getResolved(); r[id]={fecha:todayStr(),obs:'IAAS CONFIRMADA (screening clínico). Definición: '+def+'. Profesional: '+prof+(obs?'. Obs: '+obs:''),label:al.tipo+' — '+al.pac+' · '+al.area+' · '+al.cama+' (confirmada)'}; setResolved(r);
   save();
+  window._pendingIAAS=null;
+  closeModal('modalConfirmIAAS');
   renderAlertas(); updateAlertBadge(); renderBeds();
   toast('IAAS confirmada y registrada en estadísticas');
 }
@@ -1908,7 +1959,7 @@ function dismissIAAS(id){
   renderAlertas(); updateAlertBadge();
   toast('IAAS descartada');
 }
-function getResolved(){ try{ return JSON.parse(localStorage.getItem('infectsmart_resolved_'+state.centro))||{}; }catch(e){ return {}; } }
+function getResolved(){ return safeISLoad('infectsmart_resolved_'+state.centro, {}); }
 function setResolved(o){ lsSet('infectsmart_resolved_'+state.centro,JSON.stringify(o)); }
 function resolveAlert(id){
   var obs=prompt('Observación al resolver la alerta:',''); if(obs===null) return;
@@ -1966,7 +2017,7 @@ function renderPtGlobal(){
     if(!recs.length) return;
     var col=areaStripColor(a.name);
     html+='<div class="ptg-area" style="border-left-color:'+col+'">'+
-      '<div class="ptg-head" style="background:'+col+'"><span>'+a.icon+' '+esc(a.name)+'</span>'+
+      '<div class="ptg-head" style="background:'+col+'"><span>'+iconSafe(a.icon)+' '+esc(a.name)+'</span>'+
         '<span class="ptg-count">'+recs.length+'</span></div>'+
       '<div class="ptg-grid">';
     recs.forEach(function(r){
@@ -1977,7 +2028,7 @@ function renderPtGlobal(){
       html+='<div role="button" tabindex="0" onkeydown="isKey(event)" class="ptg-card" onclick="openPatientDetail('+r.ai+','+r.bi+')" style="border-top-color:'+col+'">'+
         '<div class="ptg-badges">'+badges+'</div>'+
         '<button class="ptg-eye" title="Vista rápida" onclick="event.stopPropagation();openQuickPanel('+r.ai+','+r.bi+')">👁️</button>'+
-        '<div class="ptg-cama">'+a.icon+' Cama '+(r.bi+1)+'</div>'+
+        '<div class="ptg-cama">'+iconSafe(a.icon)+' Cama '+(r.bi+1)+'</div>'+
         '<div class="ptg-name">'+esc(p.name||'(sin nombre)')+'</div>'+
         '<div class="ptg-dx">'+esc(p.dx||'—')+'</div>'+
         '<div class="ptg-dias">📅 <b>'+(dias!==''?dias+'d':'—')+'</b> internación</div>'+
@@ -2007,7 +2058,7 @@ function renderPtDetail(){
   document.getElementById('ptEmpty').classList.add('hidden'); document.getElementById('ptBody').classList.remove('hidden');
   var a=state.areas[state.activeArea];
   document.getElementById('ptTitle').textContent=p.name||'(paciente sin nombre)';
-  document.getElementById('ptLoc').textContent=a.icon+' '+a.name+' · Cama '+(state.activeBed+1);
+  document.getElementById('ptLoc').textContent=iconSafe(a.icon)+' '+a.name+' · Cama '+(state.activeBed+1);
   renderPtDatos(); renderPtInfeccion(); renderPtAtb(); renderPtEvol(); renderPtPara(); renderPtImagenes(); renderPtInterconsultas();
 }
 function showPt(tab,btn){
@@ -2056,7 +2107,8 @@ function renderPtDatos(){
     '</div><div class="field-row"><div class="field-group" style="grid-column:1/-1"><label>Diagnóstico</label><input value="'+esc(p.dx)+'" oninput="pset(\'dx\',this.value)"></div></div>'+
     '</div>'+
     '<div class="section-card"><h4>🩺 Comorbilidades</h4><div class="comorb-grid">'+comorbHtml+'</div>'+
-      '<div class="field-row" style="margin-top:12px"><div class="field-group"><label>Charlson</label><div class="calc-val'+(ch>=5?' danger':ch>=3?' warn':'')+'">'+ch+' pts</div></div><div class="field-group"><label>Mortalidad estimada 10 años</label><div class="calc-val">'+charlsonMortality(ch)+'</div></div></div>'+
+      '<div class="field-row" style="margin-top:12px"><div class="field-group"><label>Índice de Charlson (versión institucional modificada)</label><div class="calc-val'+(ch>=5?' danger':ch>=3?' warn':'')+'">'+ch+' pts</div></div><div class="field-group"><label>Mortalidad estimada 10 años</label><div class="calc-val">'+charlsonMortality(ch)+'</div></div></div>'+
+      '<p style="font-size:11px;color:var(--muted);border-left:3px solid var(--amber);padding-left:8px;margin-top:8px">Esta implementación incluye adaptaciones respecto al Age-Adjusted Charlson original (Charlson 1987, Quan 2011). Los resultados pueden diferir de calculadoras externas.</p>'+
     '</div>'+
     '<div class="section-card"><h4>Acciones</h4>'+
       '<p style="font-size:12px;color:var(--muted);margin-bottom:10px">Al egresar, el paciente se archiva en Egresados y la cama queda pendiente de limpieza terminal.</p>'+
@@ -2086,7 +2138,7 @@ function openTransferencia(){
   var p=currentPatient(); if(!p){ toast('No hay paciente activo'); return; }
   document.getElementById('tr-title').textContent='Transferir paciente — '+(p.name||'(sin nombre)');
   var sel=document.getElementById('tr-sector'); sel.innerHTML='<option value="">Seleccionar sector…</option>';
-  state.areas.forEach(function(a,ai){ if(ai===state.activeArea) return; sel.innerHTML+='<option value="'+ai+'">'+a.icon+' '+esc(a.name)+'</option>'; });
+  state.areas.forEach(function(a,ai){ if(ai===state.activeArea) return; sel.innerHTML+='<option value="'+ai+'">'+iconSafe(a.icon)+' '+esc(a.name)+'</option>'; });
   document.getElementById('tr-cama').innerHTML='<option value="">Seleccioná primero el sector</option>';
   var msg=document.getElementById('tr-cama-msg'); msg.textContent='';
   document.getElementById('tr-motivo').value='';
@@ -2269,7 +2321,8 @@ function renderPtInfeccion(){
       '</div>'+mdrHtml+
       '<h4 style="margin-top:12px">🧫 Antibiograma (S / I / R)</h4>'+
       '<table class="abg-table"><thead><tr><th style="text-align:left">Antibiótico</th><th>Sensibilidad</th></tr></thead><tbody>'+abgRows+'</tbody></table>'+
-      '<p style="font-size:11px;color:var(--muted);margin-top:8px">S = sensible · I = intermedio · R = resistente</p>'+
+      '<p style="font-size:11px;color:var(--muted);margin-top:8px">S = Sensible · I = Susceptible, exposición aumentada (optimizar dosis/vía según EUCAST) · R = Resistente</p>'+
+      '<p style="font-size:11px;color:var(--amber);margin-top:4px;background:var(--amber-dim);border-radius:6px;padding:6px 8px">ℹ️ La categoría <b>I</b> indica que el antibiótico puede ser eficaz con dosis aumentadas o vía IV. <b>No equivale a resistencia parcial.</b> EUCAST Clinical Breakpoints v16.1 (2026)</p>'+
       origenBlock(inf,idx)+
     '</div>';
   }).join('');
@@ -2287,12 +2340,13 @@ function sepsisBlock(p){
   var concSel='<div class="field-group"><label>Conciencia</label><select onchange="clinSet(\'conciencia\',this.value)">'+
     ['','Normal','Alterada'].map(function(o){ return '<option value="'+esc(o)+'"'+((p.conciencia||'')===o?' selected':'')+'>'+(o||'-')+'</option>'; }).join('')+'</select></div>';
   var qClass=q.score>=2?'danger':(q.score===1?'warn':'');
-  var qWarn=q.score>=2?'<div class="alert-box danger" style="margin-top:8px">🆘 <b>qSOFA ≥ 2 — posible sepsis.</b> Evaluar: hemocultivos, lactato, ATB precoz, control de foco.</div>':'';
+  var qWarn=q.score>=2?'<div class="alert-box danger" style="margin-top:8px">⚠ <b>qSOFA ≥2 — riesgo elevado de disfunción orgánica.</b> Evaluar sospecha de infección y criterios Sepsis-3 (SSC 2026): hemocultivos, lactato, ATB precoz, control de foco.</div>':'';
   var sofaRows=sofa.detail.map(function(d){ return '<tr><td>'+esc(d.k)+'</td><td style="text-align:center"><b>'+d.v+'</b></td></tr>'; }).join('');
   return '<div class="section-card"><h4>🆘 Score de sepsis (qSOFA + SOFA)</h4>'+
     '<div class="field-row three">'+inp('FR (resp/min)','fr','number',p.fr)+concSel+inp('PAS (mmHg)','pas','number',p.pas)+'</div>'+
     '<div class="field-group" style="margin-top:8px"><label>qSOFA</label><div class="calc-val'+(qClass?' '+qClass:'')+'">'+q.score+'/3'+(q.items.length?' · '+esc(q.items.join(', ')):'')+'</div></div>'+
     qWarn+
+    '<div class="alert-box" style="margin-top:8px;font-size:11px">ℹ️ qSOFA es una herramienta de <b>estratificación de riesgo, no un criterio diagnóstico de sepsis</b>. SSC 2026 recomienda evaluación clínica integral con NEWS2/MEWS + sospecha de infección + disfunción orgánica (Sepsis-3).</div>'+
     '<h4 style="margin-top:12px">SOFA simplificado</h4>'+
     '<div class="field-row three">'+inp('PaFI (PaO₂/FiO₂)','pafi','number',p.pafi)+inp('Plaquetas (x10³)','plaquetas','number',p.plaquetas)+inp('Bilirrubina (mg/dL)','bilirrubina','number',p.bilirrubina)+'</div>'+
     '<div class="field-row three">'+inp('PAM (mmHg)','pam','number',p.pam)+inp('GCS','gcs','number',p.gcs)+inp('Creatinina (mg/dL)','creatSofa','number',p.creatSofa)+'</div>'+
@@ -2394,20 +2448,18 @@ function durCalcBlock(p){
       '<div class="field-group"><label for="dur-inicio">Inicio del tratamiento</label><input type="date" id="dur-inicio" value="'+esc(inicioVal)+'" onchange="window._durInicio=this.value;calcDurATB()"></div>'+
     '</div>'+
     '<div id="dur-result" class="calc-val" style="margin-top:8px">Seleccione tipo de infección</div>'+
-    '<p style="font-size:11px;color:var(--muted);margin-top:6px">Rangos orientativos IDSA/ESCMID. Ajustar según control de foco y respuesta clínica.</p>'+
+    '<p style="font-size:11px;color:var(--muted);margin-top:6px;border-left:3px solid var(--amber);padding-left:8px">La duración final debe individualizarse según: microorganismo, control de foco, respuesta clínica, procalcitonina/biomarcadores, material protésico y criterios de stewardship (IDSA AMR 2024).</p>'+
   '</div>';
 }
 function calcDurATB(){
   var tipo=window._durTipo||'', el=document.getElementById('dur-result'); if(!el) return;
   var d=DUR_CALC[tipo];
   if(!d){ el.textContent='Seleccione tipo de infección'; el.className='calc-val'; return; }
+  // FIX: rango orientativo, sin fecha de finalización automática (la duración se individualiza).
   var inmuno=(window._durInmuno||'competente')==='comprometido';
   var rango = inmuno ? d.inmuno+' días' : (d.min===d.max?d.min+' días':d.min+'-'+d.max+' días');
-  var maxDias = inmuno ? (parseInt(String(d.inmuno).split('-').pop(),10)||d.max) : d.max;
-  var inicio=window._durInicio||todayStr();
-  var fin=''; if(inicio){ var dt=new Date(inicio); if(!isNaN(dt)){ dt.setDate(dt.getDate()+maxDias); fin=dt.toISOString().slice(0,10); } }
   var germTxt=(window._durGerm||'').trim()?(' · Germen: '+esc(window._durGerm.trim())):'';
-  el.innerHTML='Duración recomendada: <b>'+esc(rango)+'</b>'+germTxt+'<br>'+esc(d.nota)+(fin?('<br>Fin estimado (máximo): <b>'+esc(fin)+'</b>'):'');
+  el.innerHTML='Duración orientativa: <b>'+esc(rango)+'</b> (ver contexto)'+germTxt+'<br>'+esc(d.nota);
   el.className='calc-val';
 }
 function atbAdd(){ var p=currentPatient(); p.atb.push({atb:'',dosis:'',frec:'',via:'IV',inicio:todayStr(),fin:''}); save(); renderPtAtb(); }
@@ -2463,8 +2515,12 @@ function paraVal(k,ci,val){ var p=currentPatient(); var d=p.para.dates[ci]; p.pa
 function renderPtImagenes(){
   var p=currentPatient(); if(!p) return; if(!p.imagenes) p.imagenes=[];
   var cards=p.imagenes.map(function(im,i){
+    // FIX XSS: no interpolar im.data en innerHTML; se valida y se asigna el src por JS más abajo.
+    var media = isValidImgData(im.data)
+      ? '<img alt="Imagen clínica adjunta" data-img-idx="'+i+'" onclick="showImg(\''+i+'\')">'
+      : '<div class="img-invalid" style="display:flex;align-items:center;justify-content:center;min-height:100px;background:var(--surface2);color:var(--muted);border-radius:6px;font-size:12px">Imagen no válida</div>';
     return '<div class="img-card"><button class="img-del" aria-label="Eliminar imagen" onclick="imgDel('+i+')">✕</button>'+
-      '<img src="'+im.data+'" alt="Imagen clínica adjunta" onclick="showImg(\''+i+'\')">'+
+      media+
       '<input type="date" value="'+esc(im.fecha)+'" oninput="imgSet('+i+',\'fecha\',this.value)">'+
       '<input placeholder="Descripción" value="'+esc(im.desc)+'" oninput="imgSet('+i+',\'desc\',this.value)"></div>';
   }).join('');
@@ -2473,6 +2529,12 @@ function renderPtImagenes(){
       '<div role="button" tabindex="0" onkeydown="isKey(event)" class="img-drop" onclick="document.getElementById(\'imgInput\').click()">📤 Clic para subir imagen (se guarda localmente)</div>'+
       '<input type="file" id="imgInput" accept="image/*" class="hidden" onchange="imgUpload(event)">'+
       '<div class="img-grid">'+cards+'</div></div>';
+  // Asignar src validado por JS (evita interpolar data-URI no confiable en innerHTML)
+  document.querySelectorAll('#pt-imagenes img[data-img-idx]').forEach(function(el){
+    var idx=parseInt(el.getAttribute('data-img-idx'),10);
+    var im=p.imagenes[idx];
+    if(im && isValidImgData(im.data)) el.src=im.data;
+  });
 }
 function imgUpload(ev){
   var f=ev.target.files[0]; if(!f) return; var p=currentPatient();
@@ -2487,7 +2549,7 @@ function imgUpload(ev){
 }
 function imgSet(i,f,v){ var p=currentPatient(); p.imagenes[i][f]=v; save(); }
 function imgDel(i){ var p=currentPatient(); if(!confirm('¿Eliminar imagen?')) return; p.imagenes.splice(i,1); save(); renderPtImagenes(); }
-function showImg(i){ var p=currentPatient(); document.getElementById('modalImgSrc').src=p.imagenes[i].data; document.getElementById('modalImg').style.display='flex'; }
+function showImg(i){ var p=currentPatient(); var d=p.imagenes[i]&&p.imagenes[i].data; if(!isValidImgData(d)){ toast('Imagen no válida'); return; } document.getElementById('modalImgSrc').src=d; document.getElementById('modalImg').style.display='flex'; }
 
 /* -- F6: INTERCONSULTAS -- */
 function renderPtInterconsultas(){
@@ -3068,7 +3130,7 @@ function renderStats(){
       card('🩺 Días internación prom. por diagnóstico',diasDxBars,'p_diasdx')+
       card('💀 Mortalidad por foco',mortFocoBars,'p_mortfoco')+
       card('☠️ Mortalidad por germen',mortGermBars,'p_mortgerm')+
-      card('🧮 Score de Charlson promedio',charlsonHtml,'p_charlson')+
+      card('🧮 Charlson promedio (versión institucional modificada)',charlsonHtml,'p_charlson')+
       card('🏥 Distribución por área',distBars,'p_dist')+
       card('👥 Población por etiqueta/cobertura',pobBars,'p_pob')+
     '</div>'+
@@ -3190,14 +3252,15 @@ function renderIaasSection(S,f,card,bar,bars,nodata){
   var tasa=I.tasaGlobal||0;
   var supera=tasa>umbral;
   // Banner umbral + tasa global
-  var banner='<div class="stat-card" style="margin-bottom:10px"><h4>🌡️ Tasa global de IAAS</h4>'+
+  var banner='<div class="stat-card" style="margin-bottom:10px"><h4>🌡️ % pacientes con ≥1 IAAS registrada (indicador institucional)</h4>'+
     '<div class="stats-big" style="color:'+(supera?'var(--red)':'var(--teal)')+'">'+tasa+'%</div>'+
     '<p style="font-size:11px;color:var(--muted)">'+(I.pacientes||0)+' de '+(I.total||0)+' paciente(s) con ≥1 infección de origen IAAS · IAAS = origen ≠ Comunitaria y ≠ Relacionada a atención ambulatoria.</p>'+
+    '<p style="font-size:11px;color:var(--muted);border-left:3px solid var(--amber);padding-left:8px;margin-top:4px">Las tasas institucionales se basan en criterios de screening clínico. Para tasas NHSN comparables se requiere implementar el protocolo de vigilancia CDC/NHSN 2026.</p>'+
     '<div class="filters" style="margin-top:8px;align-items:flex-end">'+
       '<div class="field-group" style="max-width:160px"><label>Umbral de alerta (%)</label><input type="number" min="0" step="0.5" value="'+esc(umbral)+'" onchange="setIaasUmbral(this.value);renderStats()"></div>'+
     '</div>'+
-    (supera?'<div class="alert-box danger" style="margin-top:8px">🔴 <b>Alerta:</b> la tasa global de IAAS ('+tasa+'%) supera el umbral establecido ('+umbral+'%).</div>'
-           :'<div class="alert-box ok" style="margin-top:8px">✅ Tasa global de IAAS dentro del umbral ('+umbral+'%).</div>')+
+    (supera?'<div class="alert-box danger" style="margin-top:8px">🔴 <b>Alerta:</b> el indicador institucional de IAAS ('+tasa+'%) supera el umbral establecido ('+umbral+'%).</div>'
+           :'<div class="alert-box ok" style="margin-top:8px">✅ Indicador institucional de IAAS dentro del umbral ('+umbral+'%).</div>')+
     '</div>';
   // Filtros propios de la sección
   var espOpts=['<option value="">Todas</option>'].concat(ESPECIALIDADES.map(function(e){ return '<option'+((f.especialidad===e)?' selected':'')+'>'+esc(e)+'</option>'; })).join('');
@@ -3524,7 +3587,7 @@ function exportEgresadosExcel(){
 /* ============================================================
    INFORMES (registro simple de PDFs generados)
    ============================================================ */
-function getInformes(){ try{ return JSON.parse(localStorage.getItem(LS_INFORMES+state.centro))||[]; }catch(e){ return []; } }
+function getInformes(){ return safeISLoad(LS_INFORMES+state.centro, []); }
 function openInformes(){
   var arr=getInformes();
   document.getElementById('informesList').innerHTML=arr.length?
@@ -3783,10 +3846,10 @@ function refSections(){
     refFiche('🟩','E. coli (BLEE / carbapenemasa)','BLEE',
       '<h5>Características</h5><ul><li>Bacilo Gram− enterobacteria, lactosa+.</li></ul>'+
       '<h5>Infecciones</h5><ul><li>ITU, sepsis urinaria, intraabdominal, colangitis.</li></ul>'+
-      '<h5>Resistencias</h5><ul><li><b>BLEE</b>: R a cefalosporinas 3ªG → carbapenem. <b>Carbapenemasa</b> → ceftazidima-avibactam, colistina.</li></ul>'),
+      '<h5>Resistencias</h5><ul><li><b>BLEE</b>: R a cefalosporinas 3ªG → carbapenem según foco. <b>Carbapenemasa</b> → ceftazidima-avibactam o meropenem-vaborbactam; colistina solo como alternativa excepcional (IDSA AMR 2024).</li></ul>'),
     refFiche('🟩','Klebsiella (KPC)','KPC',
       '<h5>Características</h5><ul><li>Enterobacteria capsulada.</li></ul><h5>Infecciones</h5><ul><li>Neumonía, ITU, bacteriemia, abscesos hepáticos.</li></ul>'+
-      '<h5>Resistencias</h5><ul><li>BLEE, <b>KPC</b> (carbapenemasa) → ceftazidima-avibactam, meropenem-vaborbactam, colistina.</li></ul>'),
+      '<h5>Resistencias</h5><ul><li>BLEE, <b>KPC</b> (carbapenemasa) → ceftazidima-avibactam o meropenem-vaborbactam; colistina solo como alternativa excepcional cuando no hay otro agente activo, por su toxicidad (IDSA AMR 2024).</li></ul>'),
     refFiche('🟩','Proteus / Enterobacter / Serratia','AmpC',
       '<h5>Proteus</h5><ul><li>Ureasa+ (cálculos), swarming. R intrínseca a nitrofurantoína/colistina.</li></ul>'+
       '<h5>Enterobacter / Serratia</h5><ul><li><b>AmpC</b> inducible → evitar cefalosporinas 3ªG en infección grave (usar cefepime/carbapenem).</li></ul>'),
@@ -3954,8 +4017,9 @@ function refSections(){
       '<div class="field-row"><div class="field-group"><label for="rc-imcw">Peso (kg)</label><input type="number" id="rc-imcw" oninput="rcCalcImc()"></div>'+
         '<div class="field-group"><label for="rc-imch">Talla (cm)</label><input type="number" id="rc-imch" oninput="rcCalcImc()"></div></div>'+
       '<div class="field-group" style="margin-top:6px"><label>IMC</label><div id="rc-imc" class="calc-val">Ingrese datos</div></div>'),
-    refFiche('🧮','Índice de Charlson','comorbilidades',
+    refFiche('🧮','Índice de Charlson (versión institucional modificada)','comorbilidades',
       '<p style="font-size:12px;color:var(--muted)">Calcula el Charlson del paciente actualmente seleccionado (pestaña Pacientes).</p>'+
+      '<p style="font-size:11px;color:var(--muted);border-left:3px solid var(--amber);padding-left:8px;margin-top:4px">Esta implementación incluye adaptaciones respecto al Age-Adjusted Charlson original (Charlson 1987, Quan 2011). Los resultados pueden diferir de calculadoras externas.</p>'+
       '<div class="field-group" style="margin-top:6px"><label>Resultado</label><div id="rc-charlson" class="calc-val">Sin paciente seleccionado</div></div>'+
       '<button class="btn btn-outline btn-sm" style="margin-top:8px" onclick="rcCalcCharlson()">↺ Recalcular</button>')
   ]},
