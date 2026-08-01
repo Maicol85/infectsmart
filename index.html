@@ -471,6 +471,7 @@ footer{text-align:center;padding:16px;color:var(--muted);font-size:11px;border-t
     <button class="main-tab" data-tab="stats" onclick="showMain('stats',this)">📊 Estadísticas</button>
     <button class="main-tab" data-tab="egresados" onclick="showMain('egresados',this)">📤 Egresados</button>
     <button class="main-tab" data-tab="referencias" onclick="showMain('referencias',this)">📚 Referencias</button>
+    <button class="main-tab" data-tab="ayuda" onclick="showMain('ayuda',this)">❓ Ayuda</button>
   </div>
 
   <div id="panel-areas" class="panel active">
@@ -522,6 +523,7 @@ footer{text-align:center;padding:16px;color:var(--muted);font-size:11px;border-t
   <div id="panel-stats" class="panel"></div>
   <div id="panel-egresados" class="panel"></div>
   <div id="panelReferencias" class="panel"></div>
+  <div id="panel-ayuda" class="panel"></div>
 
   <footer>© 2026 Dr. M. D. S. y col. · InfectSmart · Todos los derechos reservados · Uso clínico exclusivo</footer>
 </div>
@@ -1230,6 +1232,7 @@ function showMain(tab,btn){
   else if(tab==='stats') renderStats();
   else if(tab==='egresados') renderEgresados();
   else if(tab==='referencias') renderReferencias();
+  else if(tab==='ayuda') renderAyuda();
 }
 function renderAll(){ renderAreas(); updateAlertBadge(); }
 
@@ -4737,6 +4740,20 @@ function refSections(){
       '<li><b>Diagnóstico</b>: antígeno urinario (mejor rendimiento), cultivo, biopsia.</li>'+
       '<li><b>Leve-moderada</b>: itraconazol 200 mg c/8h x3d, luego c/12h x12 meses.</li>'+
       '<li><b>Grave/diseminada</b>: anfotericina B liposomal 3 mg/kg/día x2 semanas → itraconazol.</li></ul>')
+  ]},
+  {icon:'🚨',title:'PROTOCOLO DE MANEJO DE BROTES',fiches:[
+      refFiche('🎯','1. Objetivo y alcance','','<p>Establecer el procedimiento para la detección, confirmación, control y cierre de brotes infecciosos en la institución, en cumplimiento del <b>Decreto 274/010</b> y los lineamientos de la División Epidemiología del <b>MSP Uruguay</b>. Aplica a todos los sectores de la institución.</p>'),
+      refFiche('🦠','2. Definición de brote','','<p><b>Definición operativa:</b> dos o más casos de una misma enfermedad, relacionados en tiempo y lugar, que supera lo esperado para ese período y población. Para enfermedades de baja frecuencia o alta gravedad (meningitis bacteriana, cólera, rabia), un solo caso confirmado activa el protocolo.</p><p><b>Tipos según origen:</b></p><ul><li><b>Brote endémico (foco hospitalario):</b> casos originados dentro de la institución.</li><li><b>Brote epidémico comunitario:</b> casos importados que ingresan al sistema de salud.</li><li><b>Brote mixto:</b> origen hospitalario con diseminación comunitaria o viceversa.</li></ul>'),
+      refFiche('🔬','3. Diagnóstico y detección','','<p><b>Vigilancia continua:</b> revisar semanalmente registros de IAAS, resultados microbiológicos positivos agrupados y reportes de enfermería sobre síndromes febriles o gastrointestinales. InfectSmart permite registrar, rastrear y auditar casos por sector, facilitando la detección de agrupamiento temporal y espacial.</p><p><b>Criterios diagnósticos:</b></p><ul><li><b>Confirmado:</b> diagnóstico clínico + laboratorio positivo (cultivo, PCR, serología) + nexo epidemiológico.</li><li><b>Probable:</b> clínica compatible + nexo epidemiológico sin confirmación de laboratorio.</li><li><b>Sospechoso:</b> síntomas inespecíficos en contexto de brote ya declarado.</li></ul>'),
+      refFiche('🚦','4. Sistema de alertas — tres niveles','','<div class="alert-box" style="background:#fef9c3;color:#854d0e"><b>🟡 NIVEL AMARILLO — Alerta.</b><br><b>Criterio:</b> agrupamiento inusual o aumento &gt;20% de casos respecto a período previo.<br><b>Acciones:</b> notificar CIH, aumentar vigilancia, revisar medidas de higiene, reunión del equipo.</div><div class="alert-box danger" style="margin-top:6px"><b>🔴 NIVEL ROJO — Brote declarado.</b><br><b>Criterio:</b> caso confirmado + nexo epidemiológico, o dos o más casos probables vinculados.<br><b>Acciones:</b> declarar brote, activar protocolo completo, notificar Dirección y MSP/SINAVE, implementar medidas de control, investigación epidemiológica formal.</div><div class="alert-box" style="margin-top:6px;background:#1f2937;color:#f3f4f6"><b>⚫ NIVEL NEGRO — Brote grave/extenso.</b><br><b>Criterio:</b> propagación a múltiples sectores, casos graves o fallecidos, agente de alta peligrosidad.<br><b>Acciones:</b> escalada máxima, notificación inmediata MSP, evaluación de cierre de sector, coordinación con autoridades sanitarias.</div>'),
+      refFiche('🧑‍⚕️','5. Protección del personal','','<ul><li>EPP según microorganismo y modo de transmisión.</li><li>Refuerzo de higiene de manos — supervisión activa.</li><li>Vacunación según protocolo institucional.</li><li>PEP (post-exposición) según agente: HIV/HBV/HCV según protocolo vigente.</li><li>Monitoreo de salud del personal expuesto.</li><li>Apoyo en salud mental si el brote es prolongado.</li></ul>'),
+      refFiche('✅','6. Medidas de control inmediatas','checklist','<ul style="list-style:none;padding-left:0"><li>☐ Aislamientos según microorganismo.</li><li>☐ Cohorte de casos cuando sea posible.</li><li>☐ Refuerzo de precauciones estándar.</li><li>☐ Suspender admisiones al sector si es necesario.</li><li>☐ Comunicación al personal del sector.</li><li>☐ Notificación a Dirección Técnica.</li><li>☐ Notificación a MSP/SINAVE si corresponde (Decreto 274/010).</li></ul>'),
+      refFiche('🧴','7. Limpieza y desinfección','','<p><b>Área de aislamiento:</b></p><ul><li>Limpieza terminal al egreso del paciente.</li><li>Desinfección con hipoclorito 1.000 ppm (superficies) o 5.000 ppm (fluidos corporales).</li><li>Frecuencia aumentada según extensión del brote.</li></ul><p><b>Áreas comunes:</b></p><ul><li>Refuerzo de limpieza de superficies de alto contacto cada 4-6 horas durante el brote.</li><li>Registro de limpieza con responsable y hora.</li></ul>'),
+      refFiche('🔎','8. Investigación epidemiológica','checklist','<ul style="list-style:none;padding-left:0"><li>☐ Curva epidémica (casos por fecha de inicio).</li><li>☐ Mapa de distribución por sector y cama.</li><li>☐ Factores de riesgo comunes.</li><li>☐ Fuente probable: común puntual (exposición única) / común continua (exposición prolongada) / propagación persona a persona.</li><li>☐ Cultivos ambientales si está indicado.</li><li>☐ Tipificación molecular cuando esté disponible.</li></ul>'),
+      refFiche('🏁','9. Seguimiento y cierre','checklist','<p><b>Criterios de fin de brote:</b> ausencia de casos nuevos durante dos períodos de incubación máximos consecutivos, o 21 días si el período de incubación es desconocido.</p><p><b>Informe de cierre obligatorio:</b></p><ul style="list-style:none;padding-left:0"><li>☐ Número total de casos (confirmados/probables).</li><li>☐ Agente causal identificado.</li><li>☐ Fuente y modo de transmisión.</li><li>☐ Medidas implementadas y efectividad.</li><li>☐ Lecciones aprendidas.</li><li>☐ Plan de mejora post-brote.</li></ul>'),
+      refFiche('📝','10. Documentación en InfectSmart','','<p>Durante el brote, registrar en InfectSmart:</p><ul><li>Todos los casos con fecha, sector y cama.</li><li>Gérmenes aislados con mecanismo de resistencia.</li><li>Aislamientos implementados por paciente.</li><li>IAAS confirmadas según definición adoptada.</li><li>Intervenciones PROA relacionadas.</li><li>Alertas MDR generadas.</li></ul>'),
+      refFiche('📚','11. Referencias normativas','','<ul><li>Decreto 274/010 — MSP Uruguay.</li><li>SINAVE — Sistema Nacional de Vigilancia Epidemiológica, MSP Uruguay.</li><li>OPS/OMS — Gestión de brotes infecciosos 2022.</li><li>CDC — Principles of Epidemiology in Public Health Practice, 3ª ed.</li><li>SHEA/IDSA — Compendium of Strategies to Prevent Healthcare-Associated Infections.</li></ul>'),
+      refFiche('📋','Descargar checklist de brote (PDF)','','<p>Genera un PDF con los checklists de los puntos 6, 7, 8 y 9 con casillas para marcar durante el brote.</p><button class="btn btn-teal btn-sm" onclick="brotesChecklistPDF()">📋 Descargar checklist de brote (PDF)</button>')
   ]}
   ];
 }
@@ -4792,6 +4809,83 @@ function refFilter(){
     sec.classList.toggle('open', visible);
   });
   var none=document.getElementById('refNone'); if(none) none.style.display=(!any && q!=='')?'block':'none';
+}
+
+/* BLOQUE 1 — checklist de brote en PDF (puntos 6-9) */
+function brotesChecklistPDF(){
+  var jsPDF=window.jspdf.jsPDF; var doc=new jsPDF();
+  var y=18, L=16, W=210;
+  function h(t){ if(y>270){doc.addPage();y=18;} doc.setFont(undefined,'bold'); doc.setFontSize(13); doc.setTextColor(20,50,70); doc.text(t,L,y); y+=7; doc.setFont(undefined,'normal'); doc.setFontSize(10); doc.setTextColor(40,40,40); }
+  function item(t){ if(y>276){doc.addPage();y=18;} doc.rect(L,y-3.2,3.6,3.6); var lines=doc.splitTextToSize(t, W-L-16); doc.text(lines, L+6, y); y+=lines.length*5+1.6; }
+  function gap(){ y+=4; }
+  doc.setFontSize(15); doc.setFont(undefined,'bold'); doc.setTextColor(20,50,70); doc.text('Checklist de manejo de brote', L, y); y+=6;
+  doc.setFontSize(9); doc.setFont(undefined,'normal'); doc.setTextColor(120,120,120); doc.text('InfectSmart · CeiboMed — Decreto 274/010 MSP Uruguay · '+new Date().toLocaleDateString('es-UY'), L, y); y+=9;
+  h('6. Medidas de control inmediatas');
+  ['Aislamientos según microorganismo','Cohorte de casos cuando sea posible','Refuerzo de precauciones estándar','Suspender admisiones al sector si es necesario','Comunicación al personal del sector','Notificación a Dirección Técnica','Notificación a MSP/SINAVE si corresponde (Decreto 274/010)'].forEach(item); gap();
+  h('7. Limpieza y desinfección');
+  ['Limpieza terminal al egreso del paciente','Hipoclorito 1.000 ppm (superficies) / 5.000 ppm (fluidos corporales)','Frecuencia aumentada según extensión del brote','Áreas comunes: superficies de alto contacto cada 4-6 h','Registro de limpieza con responsable y hora'].forEach(item); gap();
+  h('8. Investigación epidemiológica');
+  ['Curva epidémica (casos por fecha de inicio)','Mapa de distribución por sector y cama','Factores de riesgo comunes','Fuente probable (común puntual / común continua / persona a persona)','Cultivos ambientales si está indicado','Tipificación molecular cuando esté disponible'].forEach(item); gap();
+  h('9. Seguimiento y cierre');
+  ['Fin de brote: 2 períodos de incubación máx. sin casos (o 21 días si desconocido)','Número total de casos (confirmados/probables)','Agente causal identificado','Fuente y modo de transmisión','Medidas implementadas y efectividad','Lecciones aprendidas','Plan de mejora post-brote'].forEach(item);
+  doc.save('checklist_brote_infectsmart.pdf');
+  toast('Checklist de brote generado');
+}
+
+
+var MANUAL_SECS=[{"t": "1. Descripción general", "b": "<p>InfectSmart es un sistema institucional de gestión infectológica diseñado para equipos de infectología y comités de infecciones hospitalarias. Integra el seguimiento individual del paciente con vigilancia microbiológica y análisis de la institución.</p><p>Gestión de pacientes por sectores y camas.</p><p>Registro de múltiples infecciones por paciente.</p><p>Cultivos, muestras, gérmenes y antibiogramas S/I/R.</p><p>Aislamientos y reconocimiento de patrones de multirresistencia.</p><p>Tratamientos antimicrobianos y duración.</p><p>Evolución, paraclínica e imágenes.</p><p>Interconsultas infectológicas.</p><p>Alertas de riesgo clínico, epidemiológico y stewardship.</p><p>Screening de IAAS con confirmación profesional.</p><p>Egresos, estadísticas, vademécum y referencias.</p>"}, {"t": "2. Acceso y selección de centro", "b": "<p>Ingresá la contraseña configurada.</p><p>Aceptá el aviso de uso clínico.</p><p>Ingresá el nombre del médico/usuario.</p><p>Seleccioná la institución correspondiente.</p><p>Confirmá el centro activo antes de comenzar la carga.</p><p>La información clínica se organiza por centro, por lo que la selección correcta de la institución es un paso crítico.</p>"}, {"t": "3. Áreas y camas", "b": "<p>La pantalla Áreas / Camas ofrece una vista operativa de la institución. La configuración inicial incluye Domiciliaria, Emergencia, Internación, Policlínica, Cuidados moderados, CTI y Ambulatorio, con número de camas configurable.</p><p>Ocupación por sector.</p><p>Paciente y diagnóstico principal.</p><p>Germen registrado y marcación de multirresistencia.</p><p>Aislamiento activo mediante indicadores visuales.</p><p>Camas pendientes de limpieza terminal.</p><p>Vista rápida del paciente sin abandonar el censo.</p><p>Vista consolidada de todos los sectores.</p>"}, {"t": "4. Ficha del paciente", "b": "<p>Al seleccionar una cama se accede a la ficha clínica infectológica. Las pestañas internas organizan la información en Datos, Infección, ATB, Evolución, Paraclínica, Imágenes e Interconsultas.</p><p>Identificación, edad, documento y datos administrativos.</p><p>Diagnóstico y antecedentes.</p><p>Comorbilidades y Charlson cuando corresponda.</p><p>Variables clínicas útiles para evaluación de sepsis.</p><p>Registro de una o más infecciones simultáneas.</p><p>Verificá nombre, sector y cama antes de ingresar o modificar información.</p>"}, {"t": "5. Registro de infecciones", "b": "<p>Cada paciente puede tener múltiples episodios o focos infecciosos registrados de forma independiente.</p><p>Foco infeccioso.</p><p>Origen de la infección.</p><p>Muestra microbiológica.</p><p>Germen aislado.</p><p>Fecha de cultivo.</p><p>Dispositivo o procedimiento relacionado cuando corresponda.</p><p>Estado del episodio.</p><p>Tipo de aislamiento.</p><p>Antibiograma asociado.</p><p>Esta estructura permite diferenciar, por ejemplo, una infección respiratoria de una bacteriemia concomitante y mantener sus datos microbiológicos separados.</p>"}, {"t": "6. Microbiología y antibiograma", "b": "<p>El módulo Microbiología consolida información de cultivos de los pacientes del centro y facilita la vigilancia institucional.</p><p>Germen y muestra.</p><p>Fecha del cultivo.</p><p>Sector/cama.</p><p>Foco infeccioso.</p><p>Identificación de microorganismos multirresistentes.</p><p>Antibiograma con clasificación S, I y R.</p><p>Consulta de sensibilidad y resistencia por antimicrobiano.</p>"}, {"t": "7. Tratamiento antibiótico", "b": "<p>La pestaña ATB del paciente permite documentar el tratamiento antimicrobiano activo y su duración.</p><p>Antimicrobiano.</p><p>Dosis.</p><p>Frecuencia.</p><p>Vía de administración.</p><p>Fecha de inicio.</p><p>Fecha de finalización cuando corresponda.</p><p>Cálculo/visualización de días de tratamiento.</p><p>Relación con foco, microbiología y evolución.</p>"}, {"t": "8. Evolución y paraclínica", "b": "<p>8.1 Evolución</p><p>Permite registrar notas clínicas fechadas para documentar respuesta, cambios diagnósticos y conducta infectológica.</p><p>8.2 Paraclínica</p><p>PCR.</p><p>Procalcitonina.</p><p>Glóbulos blancos.</p><p>Hemoglobina y plaquetas.</p><p>Creatinina y urea.</p><p>TGO/TGP y bilirrubina.</p><p>Glucemia.</p><p>Comparación entre fechas.</p><p>Las tendencias deben interpretarse junto con la evolución clínica, microbiología y control del foco.</p>"}, {"t": "9. Imágenes e interconsultas", "b": "<p>9.1 Imágenes</p><p>Carga de imágenes clínicas relevantes.</p><p>Fecha y descripción.</p><p>Visualización ampliada.</p><p>Eliminación cuando corresponda.</p><p>9.2 Interconsultas</p><p>Fecha.</p><p>Médico y servicio solicitante.</p><p>Motivo de consulta.</p><p>Respuesta infectológica.</p><p>Conducta.</p><p>Fecha de seguimiento.</p><p>Estado de la interconsulta.</p><p>El módulo de interconsultas permite seguir recomendaciones pendientes y documentar la respuesta del equipo tratante.</p>"}, {"t": "10. Aislamientos y multirresistencia", "b": "<p>InfectSmart reconoce patrones de microorganismos de relevancia epidemiológica y puede asociarlos a recomendaciones de aislamiento configuradas en la aplicación.</p><p>Aislamiento de contacto/gotas.</p><p>Aislamiento aéreo/estricto.</p><p>Identificación visual de pacientes con aislamiento activo.</p><p>Marcación de microorganismos MDR.</p><p>Protocolos orientativos asociados a determinados patrones de resistencia.</p>"}, {"t": "11. Alertas clínicas y epidemiológicas", "b": "<p>El motor de alertas revisa la información registrada y prioriza situaciones que requieren evaluación.</p><p>Microorganismos multirresistentes.</p><p>Posible infección cruzada entre pacientes epidemiológicamente relacionados.</p><p>Situaciones vinculadas a aislamiento.</p><p>Alertas de stewardship.</p><p>Riesgo de sepsis mediante qSOFA cuando existen datos suficientes.</p><p>Otros eventos configurados por el sistema.</p>"}, {"t": "12. IAAS", "b": "<p>La aplicación incorpora detección automática orientativa de infecciones asociadas a la atención de la salud a partir de los datos disponibles.</p><p>Origen de la infección.</p><p>Relación con dispositivos como CVC, sonda vesical o ARM.</p><p>Tiempo desde colocación del dispositivo cuando está registrado.</p><p>Cultivo positivo y tipo de muestra.</p><p>Paraclínica disponible.</p><p>Imágenes y procedimientos cuando aportan información al screening.</p><p>Cuando el sistema propone una IAAS, la confirmación requiere una verificación explícita del profesional, incluyendo definición utilizada, criterios documentados, responsable y observaciones.</p>"}, {"t": "13. Stewardship / PROA", "b": "<p>InfectSmart incorpora funciones orientadas a optimización de antimicrobianos, incluyendo detección de oportunidades de revisión o desescalamiento.</p><p>Contraste entre tratamiento activo y microbiología disponible.</p><p>Sugerencia de revisión/desescalamiento cuando corresponda.</p><p>Registro de decisión del profesional.</p><p>Posibilidad de aceptar la sugerencia o mantener el esquema.</p><p>Documentación de la justificación y fecha.</p>"}, {"t": "14. Transferencias y limpieza terminal", "b": "<p>14.1 Transferencia</p><p>Abrí la opción Transferir paciente.</p><p>Seleccioná sector destino.</p><p>Seleccioná una cama disponible.</p><p>Registrá motivo si corresponde.</p><p>Confirmá fecha y hora.</p><p>Verificá la nueva ubicación.</p><p>14.2 Limpieza terminal</p><p>Tras determinados egresos o movimientos, una cama puede quedar marcada como pendiente de limpieza terminal. La liberación requiere confirmación y permite registrar al responsable.</p>"}, {"t": "15. Egreso e historia de egresados", "b": "<p>Abrí Egreso desde el paciente.</p><p>Ingresá la fecha.</p><p>Seleccioná Alta, Traslado o Fallecimiento.</p><p>Agregá observaciones.</p><p>Revisá el resumen generado.</p><p>Confirmá el egreso.</p><p>El archivo Egresados conserva una historia clínica de solo lectura con información infectológica y permite filtros por diagnóstico, germen y estado de egreso.</p><p>Consulta de historia del egresado.</p><p>Exportación de historia a PDF.</p><p>Exportación de la base de egresados a Excel.</p><p>Uso de filtros para análisis y vigilancia.</p>"}, {"t": "16. Estadísticas institucionales", "b": "<p>El panel Estadísticas resume actividad infectológica y epidemiológica del centro a partir de los datos cargados.</p><p>Distribución de pacientes y eventos.</p><p>Microorganismos y focos frecuentes.</p><p>Resistencia y multirresistencia según registros disponibles.</p><p>IAAS confirmadas cuando corresponde.</p><p>Uso de antimicrobianos y otros indicadores configurados.</p><p>Filtros y reportes para análisis institucional.</p><p>Exportación de estadísticas a PDF cuando está disponible.</p><p>Antes de comunicar una tasa o indicador, verificá denominador, período, inclusión de egresados y definición utilizada.</p>"}, {"t": "17. Vademécum y referencias", "b": "<p>ATB Vademécum y Referencias ofrecen consulta rápida dentro de la aplicación.</p><p>Información resumida de antimicrobianos.</p><p>Orientación sobre dosis y uso clínico según el contenido incorporado.</p><p>Fichas de infectología y resistencia antimicrobiana.</p><p>Buscador de referencias.</p><p>Material de apoyo para aislamiento y manejo de microorganismos relevantes.</p>"}, {"t": "18. PDF, informes y respaldos", "b": "<p>PDF: genera un informe del paciente activo.</p><p>Informes: permite consultar los reportes generados/registrados por la aplicación.</p><p>Logo institucional: puede incorporarse al reporte.</p><p>Color de PDF: permite personalizar el aspecto del documento.</p><p>Exportar: genera un respaldo de los datos.</p><p>Importar: recupera un respaldo compatible y reemplaza los datos actuales tras confirmación.</p><p>Egresados: exportación a Excel.</p><p>Estadísticas: exportación a PDF cuando está habilitada.</p>"}, {"t": "19. Flujo de trabajo recomendado", "b": "<p>Ingresar y seleccionar centro/usuario.</p><p>Revisar Áreas / Camas y aislamientos activos.</p><p>Abrir pacientes nuevos o pendientes de revisión.</p><p>Actualizar cada infección: foco, origen, cultivo, germen y aislamiento.</p><p>Completar antibiograma cuando esté disponible.</p><p>Revisar y actualizar antimicrobianos activos.</p><p>Cargar evolución y paraclínica.</p><p>Revisar alertas, especialmente MDR, infección cruzada, IAAS, sepsis y stewardship.</p><p>Responder/documentar interconsultas.</p><p>Confirmar IAAS únicamente después de verificar la definición adoptada.</p><p>Transferir o egresar al paciente cuando corresponda.</p><p>Confirmar limpieza terminal antes de reutilizar una cama marcada.</p><p>Revisar estadísticas institucionales.</p><p>Exportar backup regularmente.</p>"}, {"t": "20. Buenas prácticas y seguridad", "b": "<p>Confirmar identidad, centro, sector y cama antes de modificar datos.</p><p>No registrar una IAAS como confirmada basándose únicamente en el screening automático.</p><p>No asumir que un patrón MDR determina por sí solo el tratamiento definitivo.</p><p>Revisar microbiología y antibiograma originales.</p><p>Documentar la justificación cuando se mantiene un antibiótico pese a una sugerencia de desescalamiento.</p><p>Mantener fechas de cultivos, dispositivos, procedimientos y antimicrobianos completas.</p><p>No reutilizar camas pendientes de limpieza terminal.</p><p>Proteger PDF, Excel y backups porque pueden contener datos clínicos identificables.</p><p>Realizar backups frecuentes y probar periódicamente su recuperación.</p><p>Actualizar referencias, reglas de resistencia y definiciones epidemiológicas cuando cambien las guías.</p>"}];
+function renderAyuda(){
+  var html='<div class="section-card" style="margin-bottom:12px">'+
+    '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">'+
+      '<h3 style="margin:0">❓ Manual de usuario — InfectSmart</h3>'+
+      '<span style="font-size:12px;color:var(--muted)">v1.0 · 2026</span></div>'+
+    '<div class="ref-search" style="margin-top:10px"><input type="text" id="ayudaSearch" placeholder="🔎 Buscar en el manual…" oninput="ayudaFilter()"></div>'+
+    '<div class="btn-row"><button class="btn btn-teal btn-sm" onclick="manualPDF()">📄 Descargar manual PDF</button></div>'+
+  '</div>';
+  MANUAL_SECS.forEach(function(sec,i){
+    html+='<div class="ref-section" id="aysec-'+i+'">'+
+      '<div role="button" tabindex="0" onkeydown="isKey(event)" class="ref-section-title" onclick="ayudaSecToggle('+i+')">'+esc(sec.t)+'<span class="sec-caret">▶</span></div>'+
+      '<div class="ref-section-body">'+sec.b+'</div>'+
+    '</div>';
+  });
+  html+='<div class="ref-none" id="ayudaNone" style="display:none">Sin resultados.</div>';
+  document.getElementById('panel-ayuda').innerHTML=html;
+}
+function ayudaSecToggle(i){
+  var el=document.getElementById('aysec-'+i); if(!el) return;
+  var was=el.classList.contains('open');
+  document.querySelectorAll('#panel-ayuda .ref-section').forEach(function(s){ s.classList.remove('open'); });
+  if(!was) el.classList.add('open');
+}
+function ayudaFilter(){
+  var q=(document.getElementById('ayudaSearch').value||'').toLowerCase().trim();
+  var any=false;
+  document.querySelectorAll('#panel-ayuda .ref-section').forEach(function(sec){
+    var txt=sec.textContent.toLowerCase();
+    var match=(q==='')||txt.indexOf(q)!==-1;
+    sec.style.display=match?'':'none';
+    if(q!==''&&match){ sec.classList.add('open'); any=true; }
+    else if(q===''){ sec.classList.remove('open'); }
+  });
+  var none=document.getElementById('ayudaNone'); if(none) none.style.display=(!any&&q!=='')?'block':'none';
+}
+function manualPDF(){
+  var jsPDF=window.jspdf.jsPDF; var doc=new jsPDF();
+  var y=18,L=16,W=210;
+  doc.setFontSize(16);doc.setFont(undefined,'bold');doc.setTextColor(20,50,70);doc.text('Manual de Usuario — InfectSmart',L,y);y+=7;
+  doc.setFontSize(9);doc.setFont(undefined,'normal');doc.setTextColor(120,120,120);doc.text('CeiboMed · v1.0 · 2026',L,y);y+=9;
+  function strip(h){ return h.replace(/<li>/g,'\n• ').replace(/<\/?[^>]+>/g,' ').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/[ \t]{2,}/g,' ').replace(/\n{2,}/g,'\n').trim(); }
+  MANUAL_SECS.forEach(function(sec){
+    if(y>270){doc.addPage();y=18;}
+    doc.setFont(undefined,'bold');doc.setFontSize(12);doc.setTextColor(20,50,70);
+    var tl=doc.splitTextToSize(sec.t,W-L-14); doc.text(tl,L,y); y+=tl.length*5+1;
+    doc.setFont(undefined,'normal');doc.setFontSize(9.5);doc.setTextColor(40,40,40);
+    var bl=doc.splitTextToSize(strip(sec.b),W-L-14);
+    for(var i=0;i<bl.length;i++){ if(y>286){doc.addPage();y=18;} doc.text(bl[i],L,y); y+=4.6; }
+    y+=4;
+  });
+  doc.save('Manual_InfectSmart_CeiboMed.pdf');
+  toast('Manual PDF generado');
 }
 
 /* ---- Calculadoras ---- */
