@@ -301,10 +301,10 @@ label{font-size:12px;color:var(--muted);display:block;margin-bottom:3px}
 .ref-section-body{display:none;padding:8px 0 2px}
 .ref-section.open .ref-section-body{display:block}
 /* Jerarquía visual de Referencias: categoría principal > subcategoría */
-#panelReferencias .ref-section-title{background:#1e3a5f;color:#fff;font-size:15px;font-weight:700;padding:14px 18px;border:0;border-radius:8px;box-shadow:none}
-#panelReferencias .ref-section-title:hover{background:#264b78}
+#panelReferencias .ref-section-title{background:#2563eb;color:#fff;font-size:15px;font-weight:700;padding:14px 18px;border:0;border-radius:8px;box-shadow:none}
+#panelReferencias .ref-section-title:hover{background:#1d4ed8}
 #panelReferencias .ref-section-title .sec-caret{color:#fff}
-#panelReferencias .ref-section.open .ref-section-title{background:#1e3a5f;color:#fff;border:0}
+#panelReferencias .ref-section.open .ref-section-title{background:#2563eb;color:#fff;border:0}
 #panelReferencias .ref-section-body{padding:8px 0 2px 8px}
 #panelReferencias .fiche{background:#f8f9fa;border:0;border-left:3px solid var(--teal);border-bottom:1px solid #d8dee9;border-radius:6px;margin:0 0 8px 12px;box-shadow:none}
 #panelReferencias .fiche-head{background:#f8f9fa;color:#1a1d27;font-size:13px;font-weight:400;padding:10px 16px}
@@ -4830,15 +4830,15 @@ function brotesChecklistPDF(){
   function h(t){ if(y>270){doc.addPage();y=18;} doc.setFont(undefined,'bold'); doc.setFontSize(13); doc.setTextColor(20,50,70); doc.text(t,L,y); y+=7; doc.setFont(undefined,'normal'); doc.setFontSize(10); doc.setTextColor(40,40,40); }
   function item(t){ if(y>276){doc.addPage();y=18;} doc.rect(L,y-3.2,3.6,3.6); var lines=doc.splitTextToSize(t, W-L-16); doc.text(lines, L+6, y); y+=lines.length*5+1.6; }
   function gap(){ y+=4; }
-  doc.setFontSize(15); doc.setFont(undefined,'bold'); doc.setTextColor(20,50,70); doc.text('Checklist de manejo de brote', L, y); y+=6;
+  doc.setFontSize(15); doc.setFont(undefined,'bold'); doc.setTextColor(20,50,70); doc.text('Checklist de Manejo de Brotes — CeiboMed InfectSmart', L, y); y+=6;
   doc.setFontSize(9); doc.setFont(undefined,'normal'); doc.setTextColor(120,120,120); doc.text('InfectSmart · CeiboMed — Decreto 274/010 MSP Uruguay · '+new Date().toLocaleDateString('es-UY'), L, y); y+=9;
-  h('6. Medidas de control inmediatas');
+  h('1. Medidas de control inmediatas');
   ['Aislamientos según microorganismo','Cohorte de casos cuando sea posible','Refuerzo de precauciones estándar','Suspender admisiones al sector si es necesario','Comunicación al personal del sector','Notificación a Dirección Técnica','Notificación a MSP/SINAVE si corresponde (Decreto 274/010)'].forEach(item); gap();
-  h('7. Limpieza y desinfección');
+  h('2. Limpieza y desinfección');
   ['Limpieza terminal al egreso del paciente','Hipoclorito 1.000 ppm (superficies) / 5.000 ppm (fluidos corporales)','Frecuencia aumentada según extensión del brote','Áreas comunes: superficies de alto contacto cada 4-6 h','Registro de limpieza con responsable y hora'].forEach(item); gap();
-  h('8. Investigación epidemiológica');
+  h('3. Investigación epidemiológica');
   ['Curva epidémica (casos por fecha de inicio)','Mapa de distribución por sector y cama','Factores de riesgo comunes','Fuente probable (común puntual / común continua / persona a persona)','Cultivos ambientales si está indicado','Tipificación molecular cuando esté disponible'].forEach(item); gap();
-  h('9. Seguimiento y cierre');
+  h('4. Seguimiento y cierre');
   ['Fin de brote: 2 períodos de incubación máx. sin casos (o 21 días si desconocido)','Número total de casos (confirmados/probables)','Agente causal identificado','Fuente y modo de transmisión','Medidas implementadas y efectividad','Lecciones aprendidas','Plan de mejora post-brote'].forEach(item);
   doc.save('checklist_brote_infectsmart.pdf');
   toast('Checklist de brote generado');
