@@ -1020,10 +1020,12 @@ function loadTheme(){ applyTheme(localStorage.getItem(LS_THEME)==='dark'?'dark':
 var HDR_FIELDS=[{k:'nombre',label:'Médico'},{k:'esp',label:'Especialidad'},{k:'matricula',label:'Matrícula'},{k:'inst',label:'Institución'},{k:'ciudad',label:'Ciudad'}];
 function getHeader(){ return safeISLoad(LS_HDR, {}); }
 function loadHeader(){
-  var h=getHeader(); var box=document.getElementById('hdrFields'); box.innerHTML='';
+  var h=getHeader(); var box=document.getElementById('hdrFields'); box.replaceChildren();
   HDR_FIELDS.forEach(function(f){
     var sp=document.createElement('span'); sp.className='pencil';
-    sp.innerHTML='<span class="pk">✏️ '+f.label+':</span> <span class="val" contenteditable="true" data-k="'+f.k+'">'+esc(h[f.k]||'—')+'</span>';
+    var pk=document.createElement('span'); pk.className='pk'; pk.textContent='✏️ '+f.label+':';
+    var val=document.createElement('span'); val.className='val'; val.contentEditable='true'; val.dataset.k=f.k; val.textContent=h[f.k]||'—';
+    sp.appendChild(pk); sp.appendChild(document.createTextNode(' ')); sp.appendChild(val);
     box.appendChild(sp);
   });
   box.querySelectorAll('.val').forEach(function(el){
@@ -1119,7 +1121,7 @@ var CENTRO_ICONS=[iconBacteria,iconMicroscopio,iconLab];
 function plusSVG(color){ return '<svg viewBox="0 0 24 24" fill="none" stroke="'+color+'" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v8"/><path d="M8 12h8"/></svg>'; }
 
 function showCentroSelect(){
-  var grid=document.getElementById('centroGrid'); grid.innerHTML='';
+  var grid=document.getElementById('centroGrid'); grid.replaceChildren();
   CENTROS.forEach(function(c,i){
     var card=document.createElement('div'); card.className='centro-card';
     card.style.setProperty('--cc',c.color); card.style.setProperty('--cc-dim',centroColorDim(c.color));
@@ -1134,13 +1136,15 @@ function showCentroSelect(){
     nm.addEventListener('blur',function(){ c.name=nm.textContent.trim()||c.name; nm.textContent=c.name; saveMeta(); });
     sb.addEventListener('blur',function(){ c.sub=sb.textContent.trim()||'Institución'; sb.textContent=c.sub; saveMeta(); });
     card.appendChild(icon); card.appendChild(nm); card.appendChild(sb);
-    card.onclick=function(){ selectCentro(c.id); };
+    card.addEventListener('click',function(){ selectCentro(c.id); });
     grid.appendChild(card);
   });
   var add=document.createElement('div'); add.className='centro-card add';
   add.style.gridColumn='1 / -1'; add.style.justifySelf='center'; add.style.width='180px';
-  add.innerHTML='<div class="cc-icon">'+plusSVG('#5b6270')+'</div><div class="cn">Agregar centro</div>';
-  add.onclick=function(){ addCentro(); };
+  var addIcon=document.createElement('div'); addIcon.className='cc-icon'; addIcon.innerHTML=plusSVG('#5b6270');
+  var addName=document.createElement('div'); addName.className='cn'; addName.textContent='Agregar centro';
+  add.appendChild(addIcon); add.appendChild(addName);
+  add.addEventListener('click',addCentro);
   grid.appendChild(add);
   loadMedico();
   document.getElementById('centroScreen').style.display='flex';
@@ -1347,17 +1351,18 @@ function renderAll(){ renderAreas(); updateAlertBadge(); updateBroteBadge(); }
    ÁREAS / CAMAS
    ============================================================ */
 function renderAreas(){
-  var tabs=document.getElementById('areaTabs'); tabs.innerHTML='';
+  var tabs=document.getElementById('areaTabs'); tabs.replaceChildren();
   state.areas.forEach(function(a,i){
     var b=document.createElement('button'); b.className='area-tab'+(!todosMode && i===state.activeArea?' active':'');
     var occ=a.beds.filter(function(x){return x;}).length;
-    b.innerHTML=iconSafe(a.icon)+' '+esc(a.name)+' <span style="opacity:.7">('+occ+'/'+a.beds.length+')</span>';
-    b.onclick=function(){ state.activeArea=i; todosMode=false; renderAreas(); };
+    b.appendChild(document.createTextNode(iconSafe(a.icon)+' '+a.name+' '));
+    var count=document.createElement('span'); count.style.opacity='.7'; count.textContent='('+occ+'/'+a.beds.length+')'; b.appendChild(count);
+    b.addEventListener('click',function(){ state.activeArea=i; todosMode=false; renderAreas(); });
     tabs.appendChild(b);
   });
   var todosBtn=document.createElement('button'); todosBtn.className='area-tab'+(todosMode?' active':''); todosBtn.id='area-tab-todos';
-  todosBtn.innerHTML='🏥 Todos';
-  todosBtn.onclick=function(){ showAreaTodos(todosBtn); };
+  todosBtn.textContent='🏥 Todos';
+  todosBtn.addEventListener('click',function(){ showAreaTodos(todosBtn); });
   tabs.appendChild(todosBtn);
   if(todosMode){
     document.getElementById('areaTitle').textContent='🏥 Todos los sectores';
@@ -1388,38 +1393,35 @@ function editAreaBeds(){
   save(); renderAreas();
 }
 function renderBeds(){
-  var a=state.areas[state.activeArea]; var g=document.getElementById('bedsGrid'); g.innerHTML='';
+  var a=state.areas[state.activeArea]; var g=document.getElementById('bedsGrid'); g.replaceChildren();
   a.beds.forEach(function(p,bi){
     var card=document.createElement('div');
     var cls='bed-card';
-    var badges='', info='', name='Cama libre', dx='';
-    var eyeBtn='';
+    var badges='', name='Cama libre', dx='', dias='', germName='', germMdr=false;
     if(p){
       var isolMax=maxAislamiento(p);
       if(isolMax==='contacto') cls+=' aisl-contacto';
       if(isolMax==='aereo') cls+=' aisl-aereo';
-      name=esc(p.name||'(sin nombre)'); dx=esc(p.dx||'');
-      var dias=p.ingreso?daysSince(p.ingreso):'';
-      var germ=p.germen?('<span class="germ-pill'+(isMDR(p.germen)?' mdr':'')+'">'+esc(p.germen)+'</span>'):'—';
-      info='<span>📅 <b>'+(dias!==''?dias+'d':'—')+'</b></span><span>🦠 '+germ+'</span>';
+      name=p.name||'(sin nombre)'; dx=p.dx||'';
+      dias=p.ingreso?daysSince(p.ingreso):''; germName=p.germen||''; germMdr=!!(p.germen&&isMDR(p.germen));
       badges=bedBadges(p);
       // infección cruzada
       if(hasCrossAlert(p)) badges+='<span class="bed-badge" style="color:var(--red)" title="Infección cruzada">🔴</span>';
       if(p.lastTransfer && (Date.now()-new Date(p.lastTransfer).getTime())<864e5) badges+='<span class="bed-badge" title="Transferido en las últimas 24 h">🔄</span>';
       // BLOQUE 5 — indicador de riesgo MDR previo (antecedente dentro del período de vigilancia)
       if(findMdrAntecedent(p)){ cls+=' mdr-previo'; badges+='<span class="bed-badge" style="color:var(--red)" title="Antecedente MDR en internación previa — evaluar precauciones de contacto y cultivos de vigilancia">🛡️</span>'; }
-      eyeBtn='<button class="bed-eye" title="Vista rápida" onclick="event.stopPropagation();openQuickPanel('+state.activeArea+','+bi+')">👁️</button>';
     } else {
       cls+=' empty';
       if(a.pending[bi]){ cls+=' pending'; badges='<span class="bed-badge" style="color:var(--amber)" title="Pendiente limpieza terminal">⚠️</span>'; name='Pendiente limpieza terminal'; dx='Confirmar limpieza para reutilizar'; }
     }
     card.className=cls;
-    card.innerHTML='<div class="bed-badges">'+badges+'</div>'+eyeBtn+
-      '<div class="bed-num">'+iconSafe(a.icon)+' Cama '+(bi+1)+'</div>'+
-      '<div class="bed-name">'+name+'</div>'+
-      '<div class="bed-dx">'+dx+'</div>'+
-      (info?'<div class="bed-info">'+info+'</div>':'');
-    card.onclick=function(){ onBedClick(state.activeArea,bi); };
+    var badgesEl=document.createElement('div'); badgesEl.className='bed-badges'; badgesEl.innerHTML=badges; card.appendChild(badgesEl);
+    if(p){ var eye=document.createElement('button'); eye.className='bed-eye'; eye.title='Vista rápida'; eye.textContent='👁️'; eye.addEventListener('click',function(event){ event.stopPropagation(); openQuickPanel(state.activeArea,bi); }); card.appendChild(eye); }
+    var num=document.createElement('div'); num.className='bed-num'; num.textContent=iconSafe(a.icon)+' Cama '+(bi+1); card.appendChild(num);
+    var nameEl=document.createElement('div'); nameEl.className='bed-name'; nameEl.textContent=name; card.appendChild(nameEl);
+    var dxEl=document.createElement('div'); dxEl.className='bed-dx'; dxEl.textContent=dx; card.appendChild(dxEl);
+    if(p){ var infoEl=document.createElement('div'); infoEl.className='bed-info'; var stay=document.createElement('span'); stay.appendChild(document.createTextNode('📅 ')); var stayVal=document.createElement('b'); stayVal.textContent=dias!==''?dias+'d':'—'; stay.appendChild(stayVal); var germ=document.createElement('span'); germ.appendChild(document.createTextNode('🦠 ')); if(germName){ var pill=document.createElement('span'); pill.className='germ-pill'+(germMdr?' mdr':''); pill.textContent=germName; germ.appendChild(pill); }else germ.appendChild(document.createTextNode('—')); infoEl.appendChild(stay); infoEl.appendChild(germ); card.appendChild(infoEl); }
+    card.addEventListener('click',function(){ onBedClick(state.activeArea,bi); });
     g.appendChild(card);
   });
 }
@@ -1430,41 +1432,40 @@ function showAreaTodos(btn){ todosMode=true; renderAreas(); }
 function _buildBedCard(ai,bi){
   var a=state.areas[ai], p=a.beds[bi];
   var card=document.createElement('div');
-  var cls='bed-card', badges='', info='', name='Cama libre', dx='', eyeBtn='';
+  var cls='bed-card', badges='', name='Cama libre', dx='', dias='', germName='', germMdr=false;
   if(p){
     var isolMax=maxAislamiento(p);
     if(isolMax==='contacto') cls+=' aisl-contacto';
     if(isolMax==='aereo') cls+=' aisl-aereo';
-    name=esc(p.name||'(sin nombre)'); dx=esc(p.dx||'');
-    var dias=p.ingreso?daysSince(p.ingreso):'';
-    var germ=p.germen?('<span class="germ-pill'+(isMDR(p.germen)?' mdr':'')+'">'+esc(p.germen)+'</span>'):'—';
-    info='<span>📅 <b>'+(dias!==''?dias+'d':'—')+'</b></span><span>🦠 '+germ+'</span>';
+    name=p.name||'(sin nombre)'; dx=p.dx||'';
+    dias=p.ingreso?daysSince(p.ingreso):''; germName=p.germen||''; germMdr=!!(p.germen&&isMDR(p.germen));
     badges=bedBadges(p);
     if(hasCrossAlert(p)) badges+='<span class="bed-badge" style="color:var(--red)" title="Infección cruzada">🔴</span>';
     if(p.lastTransfer && (Date.now()-new Date(p.lastTransfer).getTime())<864e5) badges+='<span class="bed-badge" title="Transferido en las últimas 24 h">🔄</span>';
     if(findMdrAntecedent(p)){ cls+=' mdr-previo'; badges+='<span class="bed-badge" style="color:var(--red)" title="Antecedente MDR en internación previa — evaluar precauciones de contacto y cultivos de vigilancia">🛡️</span>'; }
-    eyeBtn='<button class="bed-eye" title="Vista rápida" onclick="event.stopPropagation();openQuickPanel('+ai+','+bi+')">👁️</button>';
   } else {
     cls+=' empty';
     if(a.pending[bi]){ cls+=' pending'; badges='<span class="bed-badge" style="color:var(--amber)" title="Pendiente limpieza terminal">⚠️</span>'; name='Pendiente limpieza terminal'; dx='Confirmar limpieza para reutilizar'; }
   }
   card.className=cls;
-  card.innerHTML='<div class="bed-badges">'+badges+'</div>'+eyeBtn+
-    '<div class="bed-num">'+iconSafe(a.icon)+' Cama '+(bi+1)+'</div>'+
-    '<div class="bed-name">'+name+'</div>'+
-    '<div class="bed-dx">'+dx+'</div>'+
-    (info?'<div class="bed-info">'+info+'</div>':'');
-  card.onclick=function(){ onBedClick(ai,bi); };
+  var badgesEl=document.createElement('div'); badgesEl.className='bed-badges'; badgesEl.innerHTML=badges; card.appendChild(badgesEl);
+  if(p){ var eye=document.createElement('button'); eye.className='bed-eye'; eye.title='Vista rápida'; eye.textContent='👁️'; eye.addEventListener('click',function(event){ event.stopPropagation(); openQuickPanel(ai,bi); }); card.appendChild(eye); }
+  var num=document.createElement('div'); num.className='bed-num'; num.textContent=iconSafe(a.icon)+' Cama '+(bi+1); card.appendChild(num);
+  var nameEl=document.createElement('div'); nameEl.className='bed-name'; nameEl.textContent=name; card.appendChild(nameEl);
+  var dxEl=document.createElement('div'); dxEl.className='bed-dx'; dxEl.textContent=dx; card.appendChild(dxEl);
+  if(p){ var infoEl=document.createElement('div'); infoEl.className='bed-info'; var stay=document.createElement('span'); stay.appendChild(document.createTextNode('📅 ')); var stayVal=document.createElement('b'); stayVal.textContent=dias!==''?dias+'d':'—'; stay.appendChild(stayVal); var germ=document.createElement('span'); germ.appendChild(document.createTextNode('🦠 ')); if(germName){ var pill=document.createElement('span'); pill.className='germ-pill'+(germMdr?' mdr':''); pill.textContent=germName; germ.appendChild(pill); }else germ.appendChild(document.createTextNode('—')); infoEl.appendChild(stay); infoEl.appendChild(germ); card.appendChild(infoEl); }
+  card.addEventListener('click',function(){ onBedClick(ai,bi); });
   return card;
 }
 function renderTodosLossectores(){
   var g=document.getElementById('bedsGrid');
-  g.classList.add('todos-view'); g.innerHTML='';
+  g.classList.add('todos-view'); g.replaceChildren();
   state.areas.forEach(function(a,ai){
     var occ=a.beds.filter(function(x){return x;}).length;
     var sec=document.createElement('div'); sec.className='todos-section';
     var h=document.createElement('div'); h.className='todos-sec-hdr';
-    h.innerHTML=iconSafe(a.icon)+' '+esc(a.name)+' <span style="opacity:.7;font-weight:400">('+occ+'/'+a.beds.length+' ocupadas)</span>';
+    h.appendChild(document.createTextNode(iconSafe(a.icon)+' '+a.name+' '));
+    var count=document.createElement('span'); count.style.opacity='.7'; count.style.fontWeight='400'; count.textContent='('+occ+'/'+a.beds.length+' ocupadas)'; h.appendChild(count);
     sec.appendChild(h);
     var grid=document.createElement('div'); grid.className='beds-grid';
     a.beds.forEach(function(p,bi){ grid.appendChild(_buildBedCard(ai,bi)); });
@@ -1526,44 +1527,34 @@ function openQuickPanel(ai,bi){
   var a=state.areas[ai]; if(!a) return; var p=a.beds[bi]; if(!p) return;
   _quickAB={ai:ai,bi:bi};
   var dias=p.ingreso?daysSince(p.ingreso):'';
-  // infecciones activas
+  var box=document.getElementById('quickPanelBox'); box.replaceChildren();
+  function section(title){ var sec=document.createElement('div'); sec.className='qp-sec'; var h=document.createElement('h5'); h.textContent=title; sec.appendChild(h); box.appendChild(sec); return sec; }
+  function empty(sec,text){ var val=document.createElement('div'); val.className='qp-val'; val.style.color='var(--muted)'; val.textContent=text; sec.appendChild(val); }
+  var head=document.createElement('div'); head.className='qp-head'; var title=document.createElement('h3'); title.textContent='👁️ '+(p.name||'(sin nombre)'); var close=document.createElement('button'); close.className='qp-close'; close.setAttribute('aria-label','Cerrar panel'); close.textContent='✕'; close.addEventListener('click',closeQuickPanel); head.appendChild(title); head.appendChild(close); box.appendChild(head);
+  var meta=document.createElement('div'); meta.className='qp-meta'; meta.textContent=(p.edad||'?')+' años · '+iconSafe(a.icon)+' '+a.name+' · Cama '+(bi+1)+' · '+(dias!==''?dias+' días internación':'—'); box.appendChild(meta);
+  var dxSec=section('Diagnóstico principal'); var dx=document.createElement('div'); dx.className='qp-val'; dx.textContent=p.dx||'—'; dxSec.appendChild(dx);
   var infs=patInfections(p).filter(function(inf){ return inf.germen||inf.foco||inf.aislamiento; });
-  var infHtml=infs.length?infs.map(function(inf){
+  var infSec=section('Infecciones activas');
+  if(infs.length) infs.forEach(function(inf){
     var mm=mdrInfo(inf.germen);
     var isolTxt=inf.aislamiento==='aereo'?'Aéreo/Estricto':inf.aislamiento==='contacto'?'Contacto/Gotas':'Sin aislamiento';
-    return '<div class="qp-val">• <b>'+esc(inf.foco||'Foco —')+'</b>: '+
-      (inf.germen?esc(inf.germen)+(mm?' (MDR: '+esc(mm.name)+')':''):'sin germen')+
-      ' · Aisl.: '+esc(isolTxt)+'</div>';
-  }).join(''):'<div class="qp-val" style="color:var(--muted)">Sin infecciones registradas.</div>';
-  // ATB activos (sin fecha de fin o fin futuro)
+    var row=document.createElement('div'); row.className='qp-val'; row.appendChild(document.createTextNode('• ')); var focus=document.createElement('b'); focus.textContent=inf.foco||'Foco —'; row.appendChild(focus); row.appendChild(document.createTextNode(': '+(inf.germen?inf.germen+(mm?' (MDR: '+mm.name+')':''):'sin germen')+' · Aisl.: '+isolTxt)); infSec.appendChild(row);
+  }); else empty(infSec,'Sin infecciones registradas.');
   var hoy=todayStr();
   var atbAct=(p.atb||[]).filter(function(x){ return x.atb && (!x.fin || x.fin>=hoy); });
-  var atbHtml=atbAct.length?atbAct.map(function(x){
-    return '<div class="qp-val">• '+esc(x.atb)+' '+esc(x.dosis||'')+' '+esc(x.frec||'')+' '+esc(x.via||'')+'</div>';
-  }).join(''):'<div class="qp-val" style="color:var(--muted)">Sin ATB activos.</div>';
-  // últimos valores de paraclínica (último no vacío por parámetro)
-  var paraHtml='';
+  var atbSec=section('ATB activos');
+  if(atbAct.length) atbAct.forEach(function(x){ var row=document.createElement('div'); row.className='qp-val'; row.textContent='• '+x.atb+' '+(x.dosis||'')+' '+(x.frec||'')+' '+(x.via||''); atbSec.appendChild(row); }); else empty(atbSec,'Sin ATB activos.');
+  var paraSec=section('Últimos valores de paraclínica'), hasPara=false;
   if(p.para && p.para.dates && p.para.dates.length){
     var dsorted=p.para.dates.slice().sort();
-    var lines=[];
     PARA_PARAMS.forEach(function(pr){
       var val='',fecha='';
       for(var i=dsorted.length-1;i>=0;i--){ var v=p.para.vals[pr.k+'||'+dsorted[i]]; if(v!==undefined && String(v).trim()!==''){ val=v; fecha=dsorted[i]; break; } }
-      if(val!=='') lines.push('<div class="qp-val">• '+esc(pr.label)+': <b>'+esc(val)+'</b> <span class="qp-meta">('+esc(fecha)+')</span></div>');
+      if(val!==''){ hasPara=true; var row=document.createElement('div'); row.className='qp-val'; row.appendChild(document.createTextNode('• '+pr.label+': ')); var value=document.createElement('b'); value.textContent=val; row.appendChild(value); row.appendChild(document.createTextNode(' ')); var date=document.createElement('span'); date.className='qp-meta'; date.textContent='('+fecha+')'; row.appendChild(date); paraSec.appendChild(row); }
     });
-    paraHtml=lines.length?lines.join(''):'<div class="qp-val" style="color:var(--muted)">Sin valores cargados.</div>';
-  } else {
-    paraHtml='<div class="qp-val" style="color:var(--muted)">Sin paraclínica cargada.</div>';
-  }
-  document.getElementById('quickPanelBox').innerHTML=
-    '<div class="qp-head"><h3>👁️ '+esc(p.name||'(sin nombre)')+'</h3>'+
-      '<button class="qp-close" aria-label="Cerrar panel" onclick="closeQuickPanel()">✕</button></div>'+
-    '<div class="qp-meta">'+esc(p.edad||'?')+' años · '+iconSafe(a.icon)+' '+esc(a.name)+' · Cama '+(bi+1)+' · '+(dias!==''?dias+' días internación':'—')+'</div>'+
-    '<div class="qp-sec"><h5>Diagnóstico principal</h5><div class="qp-val">'+esc(p.dx||'—')+'</div></div>'+
-    '<div class="qp-sec"><h5>Infecciones activas</h5>'+infHtml+'</div>'+
-    '<div class="qp-sec"><h5>ATB activos</h5>'+atbHtml+'</div>'+
-    '<div class="qp-sec"><h5>Últimos valores de paraclínica</h5>'+paraHtml+'</div>'+
-    '<div class="modal-actions" style="margin-top:16px"><button class="btn btn-teal btn-sm" onclick="quickOpenFull()">Ver historia completa</button></div>';
+    if(!hasPara) empty(paraSec,'Sin valores cargados.');
+  } else empty(paraSec,'Sin paraclínica cargada.');
+  var actions=document.createElement('div'); actions.className='modal-actions'; actions.style.marginTop='16px'; var full=document.createElement('button'); full.className='btn btn-teal btn-sm'; full.textContent='Ver historia completa'; full.addEventListener('click',quickOpenFull); actions.appendChild(full); box.appendChild(actions);
   document.getElementById('quickPanel').style.display='flex';
 }
 function closeQuickPanel(){ document.getElementById('quickPanel').style.display='none'; }
@@ -2118,7 +2109,7 @@ function confirmIAAS(id){
   if(!al || !al.auto){ toast('Alerta no encontrada'); return; }
   window._pendingIAAS=id;
   var box=document.getElementById('ciaas-alerta');
-  if(box) box.innerHTML='<b>'+esc(al.tipo)+'</b><br>'+esc(al.pac)+' · '+esc(al.area)+' · '+esc(al.cama);
+  if(box){ box.replaceChildren(); var type=document.createElement('b'); type.textContent=al.tipo; box.appendChild(type); box.appendChild(document.createElement('br')); box.appendChild(document.createTextNode(al.pac+' · '+al.area+' · '+al.cama)); }
   ['ciaas-chk1','ciaas-chk3'].forEach(function(k){ var e=document.getElementById(k); if(e) e.checked=false; });
   ['ciaas-def','ciaas-prof','ciaas-obs'].forEach(function(k){ var e=document.getElementById(k); if(e) e.value=''; });
   document.getElementById('modalConfirmIAAS').style.display='flex';
@@ -2336,7 +2327,7 @@ function renderPtDatos(){
   }).join('');
   var covOpts='<option value="">-</option>'+ETIQUETAS.map(function(e){ return '<option'+(p.cobertura===e?' selected':'')+'>'+esc(e)+'</option>'; }).join('');
   var el=document.getElementById('pt-datos');
-  el.innerHTML=prevPanel+mdrHtml+reHtml+
+  var rendered=prevPanel+mdrHtml+reHtml+
     '<div class="section-card"><h4>👤 Datos del paciente</h4>'+
     '<div class="field-row three">'+
       fg('Nombre','name','text',p.name)+fg('CI / Documento','ci','text',p.ci)+fg('Edad','edad','number',p.edad)+
@@ -2360,6 +2351,7 @@ function renderPtDatos(){
         '<button class="btn btn-outline btn-sm" onclick="openTransferencia()">🔄 Transferir</button>'+
       '</div></div>'+
     trayectoriaHTML(currentPatient());
+  el.innerHTML=rendered;
 }
 function guardarDatosPaciente(){ if(!currentPatient()){ toast('No hay paciente activo'); return; } save(); toast('Guardado correctamente'); }
 function askLimpiarPac(){ if(!currentPatient()){ toast('No hay paciente activo'); return; } document.getElementById('modalLimpiarPac').style.display='flex'; }
@@ -2378,9 +2370,10 @@ function _trFmt(v){ return v?String(v).replace('T',' '):''; }
 function openTransferencia(){
   var p=currentPatient(); if(!p){ toast('No hay paciente activo'); return; }
   document.getElementById('tr-title').textContent='Transferir paciente — '+(p.name||'(sin nombre)');
-  var sel=document.getElementById('tr-sector'); sel.innerHTML='<option value="">Seleccionar sector…</option>';
-  state.areas.forEach(function(a,ai){ if(ai===state.activeArea) return; sel.innerHTML+='<option value="'+ai+'">'+iconSafe(a.icon)+' '+esc(a.name)+'</option>'; });
-  document.getElementById('tr-cama').innerHTML='<option value="">Seleccioná primero el sector</option>';
+  var sel=document.getElementById('tr-sector'); sel.replaceChildren();
+  var first=document.createElement('option'); first.value=''; first.textContent='Seleccionar sector…'; sel.appendChild(first);
+  state.areas.forEach(function(a,ai){ if(ai===state.activeArea) return; var option=document.createElement('option'); option.value=String(ai); option.textContent=iconSafe(a.icon)+' '+a.name; sel.appendChild(option); });
+  var cama=document.getElementById('tr-cama'); cama.replaceChildren(); var camaFirst=document.createElement('option'); camaFirst.value=''; camaFirst.textContent='Seleccioná primero el sector'; cama.appendChild(camaFirst);
   var msg=document.getElementById('tr-cama-msg'); msg.textContent='';
   document.getElementById('tr-motivo').value='';
   document.getElementById('tr-fecha').value=_trNowLocal();
@@ -2390,13 +2383,14 @@ function openTransferencia(){
 function trOnSector(){
   var v=document.getElementById('tr-sector').value;
   var camaSel=document.getElementById('tr-cama'), msg=document.getElementById('tr-cama-msg'), conf=document.getElementById('tr-confirm');
-  camaSel.innerHTML=''; msg.textContent='';
-  if(v===''){ camaSel.innerHTML='<option value="">Seleccioná primero el sector</option>'; conf.disabled=true; return; }
+  camaSel.replaceChildren(); msg.textContent='';
+  function addOption(value,text){ var option=document.createElement('option'); option.value=value; option.textContent=text; camaSel.appendChild(option); }
+  if(v===''){ addOption('','Seleccioná primero el sector'); conf.disabled=true; return; }
   var a=state.areas[+v], libres=[];
   a.beds.forEach(function(b,bi){ if(b===null) libres.push(bi); });
-  if(!libres.length){ camaSel.innerHTML='<option value="">—</option>'; msg.textContent='No hay camas disponibles en este sector'; msg.style.color='var(--red)'; conf.disabled=true; return; }
-  camaSel.innerHTML='<option value="">Seleccionar cama…</option>';
-  libres.forEach(function(bi){ camaSel.innerHTML+='<option value="'+bi+'">Cama '+(bi+1)+(a.pending[bi]?' (pend. limpieza)':'')+'</option>'; });
+  if(!libres.length){ addOption('','—'); msg.textContent='No hay camas disponibles en este sector'; msg.style.color='var(--red)'; conf.disabled=true; return; }
+  addOption('','Seleccionar cama…');
+  libres.forEach(function(bi){ addOption(String(bi),'Cama '+(bi+1)+(a.pending[bi]?' (pend. limpieza)':'')); });
   conf.disabled=false;
 }
 function confirmTransferencia(){
@@ -2576,10 +2570,10 @@ function renderPtInfeccion(){
       origenBlock(inf,idx)+
     '</div>';
   }).join('');
-  document.getElementById('pt-infeccion').innerHTML=
-    summary+blocks+
+  var rendered=summary+blocks+
     '<div class="btn-row"><button class="btn btn-teal btn-sm" onclick="infAdd()">+ Agregar infección</button></div>'+
     sepsisBlock(p)+neutropeniaBlock(p);
+  document.getElementById('pt-infeccion').innerHTML=rendered;
 }
 /* Setter de campos clínicos simples del paciente (sepsis/neutropenia). */
 function clinSet(field,val){ var p=currentPatient(); if(!p) return; p[field]=val; save(); renderPtInfeccion(); }
@@ -2674,14 +2668,14 @@ function renderPtAtb(){
       '<td><input value="'+esc(x.motivo)+'" oninput="escSet('+i+',\'motivo\',this.value)"></td>'+
       '<td><button class="tbl-del" aria-label="Eliminar fila" onclick="escDel('+i+')">✕</button></td></tr>';
   }).join('');
-  document.getElementById('pt-atbpt').innerHTML=
-    '<div class="section-card"><h4>💊 Antibióticos activos</h4>'+
+  var rendered='<div class="section-card"><h4>💊 Antibióticos activos</h4>'+
       '<table class="mini-tbl"><thead><tr><th>ATB</th><th>Dosis</th><th>Frecuencia</th><th>Vía</th><th>Inicio</th><th>Fin</th><th>Días</th><th></th></tr></thead><tbody>'+(rows||'<tr><td colspan="8" style="color:var(--muted)">Sin antibióticos.</td></tr>')+'</tbody></table>'+
       '<div class="btn-row"><button class="btn btn-teal btn-sm" onclick="atbAdd()">+ Antibiótico</button></div></div>'+
     '<div class="section-card"><h4>🔀 Escalamiento / Desescalamiento</h4>'+
       '<table class="mini-tbl"><thead><tr><th>Fecha</th><th>Tipo</th><th>Motivo</th><th></th></tr></thead><tbody>'+(escRows||'<tr><td colspan="4" style="color:var(--muted)">Sin registros.</td></tr>')+'</tbody></table>'+
       '<div class="btn-row"><button class="btn btn-teal btn-sm" onclick="escAdd()">+ Registro</button></div></div>'+
     durCalcBlock(p);
+  document.getElementById('pt-atbpt').innerHTML=rendered;
 }
 /* -- F2: Calculadora de duración de ATB (IDSA/ESCMID) -- */
 function durCalcBlock(p){
@@ -2708,8 +2702,7 @@ function calcDurATB(){
   // FIX: rango orientativo, sin fecha de finalización automática (la duración se individualiza).
   var inmuno=(window._durInmuno||'competente')==='comprometido';
   var rango = inmuno ? d.inmuno+' días' : (d.min===d.max?d.min+' días':d.min+'-'+d.max+' días');
-  var germTxt=(window._durGerm||'').trim()?(' · Germen: '+esc(window._durGerm.trim())):'';
-  el.innerHTML='Duración orientativa: <b>'+esc(rango)+'</b> (ver contexto)'+germTxt+'<br>'+esc(d.nota);
+  el.replaceChildren(document.createTextNode('Duración orientativa: ')); var range=document.createElement('b'); range.textContent=rango; el.appendChild(range); el.appendChild(document.createTextNode(' (ver contexto)'+((window._durGerm||'').trim()?(' · Germen: '+window._durGerm.trim()):''))); el.appendChild(document.createElement('br')); el.appendChild(document.createTextNode(d.nota));
   el.className='calc-val';
 }
 function atbAdd(){ var p=currentPatient(); p.atb.push({atb:'',dosis:'',frec:'',via:'IV',inicio:todayStr(),fin:''}); save(); renderPtAtb(); }
@@ -2727,10 +2720,10 @@ function renderPtEvol(){
       '<td><textarea rows="2" oninput="evolSet('+i+',\'texto\',this.value)">'+esc(x.texto)+'</textarea></td>'+
       '<td style="width:30px"><button class="tbl-del" aria-label="Eliminar fila" onclick="evolDel('+i+')">✕</button></td></tr>';
   }).join('');
-  document.getElementById('pt-evolucion').innerHTML=
-    '<div class="section-card"><h4>📝 Notas de evolución</h4>'+
+  var rendered='<div class="section-card"><h4>📝 Notas de evolución</h4>'+
       '<table class="mini-tbl"><tbody>'+(rows||'<tr><td style="color:var(--muted)">Sin notas.</td></tr>')+'</tbody></table>'+
       '<div class="btn-row"><button class="btn btn-teal btn-sm" onclick="evolAdd()">+ Nota</button></div></div>';
+  document.getElementById('pt-evolucion').innerHTML=rendered;
 }
 function evolAdd(){ var p=currentPatient(); p.evol.unshift({fecha:todayStr(),texto:''}); save(); renderPtEvol(); }
 function evolSet(i,f,v){ var p=currentPatient(); p.evol[i][f]=v; save(); }
@@ -2746,12 +2739,12 @@ function renderPtPara(){
     var cells=dates.map(function(d,ci){ var key=pr.k+'||'+d; return '<td><input value="'+esc(p.para.vals[key]||'')+'" oninput="paraVal(\''+pr.k+'\','+ci+',this.value)"></td>'; }).join('');
     return '<tr><td class="para-param">'+esc(pr.label)+' <button class="para-coldel" title="Gráfico de evolución" onclick="paraChart(\''+pr.k+'\')">📈</button></td>'+cells+'</tr>';
   }).join('');
-  document.getElementById('pt-para').innerHTML=
-    '<div class="section-card"><h4>🧪 Paraclínica comparativa</h4>'+
+  var rendered='<div class="section-card"><h4>🧪 Paraclínica comparativa</h4>'+
       '<div class="btn-row" style="margin:0 0 8px"><button class="btn btn-teal btn-sm" onclick="paraAddCol()">+ Fecha (hoy)</button> <button class="btn btn-outline btn-sm" onclick="paraMultiOpen()">📋 Carga múltiple</button></div>'+
       '<div class="para-wrap"><table class="para-table"><thead><tr><th class="para-param">Parámetro</th>'+headDates+'</tr></thead><tbody>'+body+'</tbody></table></div>'+
       (dates.length?'':'<p style="font-size:12px;color:var(--muted);margin-top:8px">Agregue una fecha para comenzar a cargar valores.</p>')+
     '</div>';
+  document.getElementById('pt-para').innerHTML=rendered;
 }
 function paraAddCol(){ var p=currentPatient(); var t=todayStr(); if(p.para.dates.indexOf(t)===-1) p.para.dates.push(t); p.para.dates.sort(); save(); renderPtPara(); }
 function paraDate(ci,val){ var p=currentPatient(); var old=p.para.dates[ci]; if(!val) return; // remap vals keys
@@ -2790,7 +2783,9 @@ function paraMultiOpen(){
 }
 function paraMultiAddRow(){
   var tb=document.getElementById('pm-tbody'); if(!tb) return;
-  tb.insertAdjacentHTML('beforeend', paraMultiRowHtml(window._paraMultiN));
+  var r=window._paraMultiN, tr=document.createElement('tr'), dateCell=document.createElement('td'), dateInput=document.createElement('input'); dateInput.type='date'; dateInput.id='pm-fecha-'+r; dateCell.appendChild(dateInput); tr.appendChild(dateCell);
+  PARA_PARAMS.forEach(function(pr){ var cell=document.createElement('td'), input=document.createElement('input'); input.id='pm-'+pr.k+'-'+r; input.style.width='60px'; input.setAttribute('aria-label',pr.label); cell.appendChild(input); tr.appendChild(cell); });
+  tb.appendChild(tr);
   window._paraMultiN++;
 }
 function paraMultiConfirm(){
@@ -2890,11 +2885,11 @@ function renderPtImagenes(){
       '<input type="date" value="'+esc(im.fecha)+'" oninput="imgSet('+i+',\'fecha\',this.value)">'+
       '<input placeholder="Descripción" value="'+esc(im.desc)+'" oninput="imgSet('+i+',\'desc\',this.value)"></div>';
   }).join('');
-  document.getElementById('pt-imagenes').innerHTML=
-    '<div class="section-card"><h4>🖼️ Imágenes (RxTx / TAC / ECO)</h4>'+
+  var rendered='<div class="section-card"><h4>🖼️ Imágenes (RxTx / TAC / ECO)</h4>'+
       '<div role="button" tabindex="0" onkeydown="isKey(event)" class="img-drop" onclick="document.getElementById(\'imgInput\').click()">📤 Clic para subir imagen (se guarda localmente)</div>'+
       '<input type="file" id="imgInput" accept="image/*" class="hidden" onchange="imgUpload(event)">'+
       '<div class="img-grid">'+cards+'</div></div>';
+  document.getElementById('pt-imagenes').innerHTML=rendered;
   // Asignar src validado por JS (evita interpolar data-URI no confiable en innerHTML)
   document.querySelectorAll('#pt-imagenes img[data-img-idx]').forEach(function(el){
     var idx=parseInt(el.getAttribute('data-img-idx'),10);
@@ -2934,10 +2929,10 @@ function renderPtInterconsultas(){
       '<td style="width:110px">'+estSel+'</td>'+
       '<td style="width:30px"><button class="tbl-del" aria-label="Eliminar fila" onclick="icDel('+i+')">✕</button></td></tr>';
   }).join('')||'<tr><td colspan="9" style="color:var(--muted)">Sin interconsultas.</td></tr>';
-  document.getElementById('pt-interconsultas').innerHTML=
-    '<div class="section-card"><h4>📋 Interconsultas</h4>'+
+  var rendered='<div class="section-card"><h4>📋 Interconsultas</h4>'+
       '<div style="overflow-x:auto"><table class="mini-tbl"><thead><tr><th>Fecha</th><th>Médico</th><th>Servicio</th><th>Motivo</th><th>Respuesta</th><th>Conducta</th><th>Seguimiento</th><th>Estado</th><th></th></tr></thead><tbody>'+rows+'</tbody></table></div>'+
       '<div class="btn-row"><button class="btn btn-teal btn-sm" onclick="icAdd()">+ Interconsulta</button></div></div>';
+  document.getElementById('pt-interconsultas').innerHTML=rendered;
 }
 function icAdd(){ var p=currentPatient(); if(!p) return; if(!Array.isArray(p.interconsultas)) p.interconsultas=[]; p.interconsultas.push({fecha:todayStr(),medico:'',servicio:'',motivo:'',respuesta:'',conducta:'',fechaSeg:'',estado:'Pendiente'}); save(); renderPtInterconsultas(); }
 function icSet(i,f,v){ var p=currentPatient(); if(!p||!p.interconsultas[i]) return; p.interconsultas[i][f]=v; save(); if(f==='estado') renderPtInterconsultas(); }
@@ -2962,11 +2957,7 @@ function openEgreso(){
   document.getElementById('eg-obs').value='';
   var _nr=document.getElementById('eg-nota-resumen'); if(_nr) _nr.value='';
   var resist=Object.keys(p.abg||{}).filter(function(k){ return p.abg[k]==='R'; }).join(', ')||'—';
-  document.getElementById('eg-resumen').innerHTML=
-    '<b>'+esc(p.name||'(sin nombre)')+'</b> · '+esc(p.edad||'?')+' años<br>'+
-    'Foco: '+esc(p.foco||'—')+' · Germen: '+esc(p.germen||'—')+'<br>'+
-    'Resistencias: '+esc(resist)+'<br>'+
-    'ATB: '+((p.atb&&p.atb.length)?p.atb.map(function(a){return esc(a.atb);}).join(', '):'—');
+  var summary=document.getElementById('eg-resumen'); summary.replaceChildren(); var name=document.createElement('b'); name.textContent=p.name||'(sin nombre)'; summary.appendChild(name); summary.appendChild(document.createTextNode(' · '+(p.edad||'?')+' años')); summary.appendChild(document.createElement('br')); summary.appendChild(document.createTextNode('Foco: '+(p.foco||'—')+' · Germen: '+(p.germen||'—'))); summary.appendChild(document.createElement('br')); summary.appendChild(document.createTextNode('Resistencias: '+resist)); summary.appendChild(document.createElement('br')); summary.appendChild(document.createTextNode('ATB: '+((p.atb&&p.atb.length)?p.atb.map(function(a){return a.atb;}).join(', '):'—')));
   document.getElementById('modalEgreso').style.display='flex';
 }
 function confirmEgreso(){
@@ -3183,14 +3174,14 @@ function renderMicro(){
     (nLate?'<div class="alert-box danger" style="margin-bottom:8px">⚠️ <b>'+nLate+'</b> cultivo(s) con &gt;5 días sin resultado.</div>':'')+
     '<div style="overflow-x:auto"><table class="data-table"><thead><tr><th>Fecha toma</th><th>Paciente</th><th>Área</th><th>Muestra</th><th>Días</th><th>Acción</th></tr></thead><tbody>'+pendRows+'</tbody></table></div></div>';
 
-  document.getElementById('panel-micro').innerHTML=
-    pendCard+
+  var rendered=pendCard+
     '<div class="stat-card" style="margin-bottom:14px"><h4>🦠 Gérmenes más frecuentes (activos)</h4><div class="stats-bars">'+bars+'</div></div>'+
     '<div class="filters">'+
       '<div class="field-group"><label>Área</label><select onchange="window._microFA=this.value;renderMicro()">'+areas.map(function(a){return '<option'+(fa===a?' selected':'')+'>'+esc(a||'(todas)')+'</option>';}).join('')+'</select></div>'+
       '<div class="field-group"><label>Germen</label><select onchange="window._microFG=this.value;renderMicro()">'+germs.map(function(g){return '<option value="'+esc(g)+'"'+(fg===g?' selected':'')+'>'+esc(g||'(todos)')+'</option>';}).join('')+'</select></div>'+
     '</div>'+
     '<div style="overflow-x:auto"><table class="data-table"><thead><tr><th>Fecha</th><th>Paciente</th><th>Área</th><th>Muestra</th><th>Germen</th><th>Sensible a</th><th>Resistente a</th></tr></thead><tbody>'+body+'</tbody></table></div>';
+  document.getElementById('panel-micro').innerHTML=rendered;
   // corregir opción "(todas)" mapear a ''
   document.querySelectorAll('#panel-micro select')[0].querySelectorAll('option').forEach(function(o){ if(o.textContent==='(todas)') o.value=''; });
 }
@@ -3221,8 +3212,7 @@ function renderVade(){
       '<p><strong>Indicaciones:</strong> '+esc(v.ind)+'</p></div></div>';
   }).join('');
   var durRows=DUR_ATB.map(function(d){ return '<tr><td>'+esc(d.inf)+'</td><td><b>'+esc(d.dur)+'</b></td></tr>'; }).join('');
-  document.getElementById('panel-atb').innerHTML=
-    '<div class="stats-grid" style="margin-bottom:14px">'+
+  var rendered='<div class="stats-grid" style="margin-bottom:14px">'+
       '<div class="stat-card"><h4>🧮 Calculadora ClCr (Cockcroft-Gault)</h4>'+
         '<div class="field-row"><div class="field-group"><label for="cc-age">Edad (años)</label><input type="number" id="cc-age" oninput="calcClCr()"></div>'+
           '<div class="field-group"><label for="cc-w">Peso (kg)</label><input type="number" id="cc-w" oninput="calcClCr()"></div></div>'+
@@ -3234,6 +3224,7 @@ function renderVade(){
         '<table class="mini-tbl"><tbody>'+durRows+'</tbody></table></div>'+
     '</div>'+
     '<div class="stats-section-title">Vademécum antimicrobiano</div>'+cards;
+  document.getElementById('panel-atb').innerHTML=rendered;
 }
 function calcClCr(){
   var age=parseFloat(document.getElementById('cc-age').value), w=parseFloat(document.getElementById('cc-w').value), cr=parseFloat(document.getElementById('cc-cr').value), sex=document.getElementById('cc-sex').value;
@@ -3254,15 +3245,15 @@ function renderAlertas(){
   var sevMap={3:{c:'danger',t:'Alta'},2:{c:'orange',t:'Media'},1:{c:'warn',t:'Baja'}};
   var html=alerts.map(function(al){
     var s=sevMap[al.sev];
-    if(al.brote){var black=al.nivel==='negro';return '<div class="alert-box '+(black?'':'danger')+'" style="margin-top:10px;'+(black?'background:#111827;color:#fff;border:2px solid #000;box-shadow:0 0 0 2px rgba(0,0,0,.18)':'')+'"><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><b>'+esc(al.tipo)+'</b><span class="pill '+(black?'amber':'red')+'">'+esc(al.nivel)+'</span><span style="flex:1"></span><button class="btn btn-outline btn-sm" onclick="reviewBrote(\''+al.broteId+'\')">Revisar</button><button class="btn btn-teal btn-sm" onclick="openConfirmBrote(\''+al.broteId+'\')">Confirmar</button><button class="btn btn-outline btn-sm" onclick="openDiscardBrote(\''+al.broteId+'\')">Descartar</button></div><div style="margin-top:6px;font-size:12px">'+esc(al.accion)+'</div></div>';}
+    if(al.brote){var black=al.nivel==='negro';return '<div class="alert-box '+(black?'':'danger')+'" style="margin-top:10px;'+(black?'background:#111827;color:#fff;border:2px solid #000;box-shadow:0 0 0 2px rgba(0,0,0,.18)':'')+'"><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><b>'+esc(al.tipo)+'</b><span class="pill '+(black?'amber':'red')+'">'+esc(al.nivel)+'</span><span style="flex:1"></span><button class="btn btn-outline btn-sm" data-alert-action="review-brote" data-alert-id="'+esc(al.broteId)+'">Revisar</button><button class="btn btn-teal btn-sm" data-alert-action="confirm-brote" data-alert-id="'+esc(al.broteId)+'">Confirmar</button><button class="btn btn-outline btn-sm" data-alert-action="discard-brote" data-alert-id="'+esc(al.broteId)+'">Descartar</button></div><div style="margin-top:6px;font-size:12px">'+esc(al.accion)+'</div></div>';}
     if(al.auto){
       // Alerta IAAS automática: descripción completa + criterios + 2 acciones
       var critHtml=(al.crit&&al.crit.length)?('<div style="margin-top:4px;font-size:11px;color:var(--muted)"><b>Criterios cumplidos:</b><ul style="margin:2px 0 0 16px;padding:0">'+al.crit.map(function(c){ return '<li>'+esc(c)+'</li>'; }).join('')+'</ul></div>'):'';
       return '<div class="alert-box '+s.c+'" style="margin-top:10px"><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">'+
         '<b>'+esc(al.tipo)+'</b> <span class="pill red">IAAS auto</span> <span class="pill red">'+s.t+'</span>'+
         '<span style="flex:1"></span>'+
-        '<button class="btn btn-teal btn-sm" onclick="confirmIAAS(\''+al.id+'\')">Confirmar IAAS</button>'+
-        '<button class="btn btn-outline btn-sm" onclick="dismissIAAS(\''+al.id+'\')">Descartar</button></div>'+
+        '<button class="btn btn-teal btn-sm" data-alert-action="confirm-iaas" data-alert-id="'+esc(al.id)+'">Confirmar IAAS</button>'+
+        '<button class="btn btn-outline btn-sm" data-alert-action="dismiss-iaas" data-alert-id="'+esc(al.id)+'">Descartar</button></div>'+
         '<div style="margin-top:6px;font-size:12px">👤 '+esc(al.pac)+' · '+esc(al.area)+' · '+esc(al.cama)+(al.fecha?' · '+esc(al.fecha):'')+'</div>'+
         '<div style="margin-top:4px;font-size:12px"><b>Descripción:</b> '+esc(al.accion)+'</div>'+critHtml+'</div>';
     }
@@ -3270,23 +3261,26 @@ function renderAlertas(){
       return '<div class="alert-box '+s.c+'" style="margin-top:10px"><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">'+
         '<b>'+esc(al.tipo)+'</b> <span class="pill orange">Stewardship</span> <span class="pill orange">'+s.t+'</span>'+
         '<span style="flex:1"></span>'+
-        '<button class="btn btn-teal btn-sm" onclick="stewardshipAccept(\''+al.id+'\')">Aceptar sugerencia</button>'+
-        '<button class="btn btn-outline btn-sm" onclick="stewardshipKeep(\''+al.id+'\')">Mantener esquema actual</button></div>'+
+        '<button class="btn btn-teal btn-sm" data-alert-action="stewardship-accept" data-alert-id="'+esc(al.id)+'">Aceptar sugerencia</button>'+
+        '<button class="btn btn-outline btn-sm" data-alert-action="stewardship-keep" data-alert-id="'+esc(al.id)+'">Mantener esquema actual</button></div>'+
         '<div style="margin-top:6px;font-size:12px">👤 '+esc(al.pac)+' · '+esc(al.area)+' · '+esc(al.cama)+(al.fecha?' · '+esc(al.fecha):'')+'</div>'+
         '<div style="margin-top:4px;font-size:12px"><b>Sugerencia:</b> '+esc(al.accion)+'</div></div>';
     }
     return '<div class="alert-box '+s.c+'" style="margin-top:10px"><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">'+
       '<b>'+esc(al.tipo)+'</b> <span class="pill '+(al.sev===3?'red':al.sev===2?'orange':'amber')+'">'+s.t+'</span>'+
-      '<span style="flex:1"></span><button class="btn btn-outline btn-sm" onclick="resolveAlert(\''+al.id+'\')">Resolver</button></div>'+
+      '<span style="flex:1"></span><button class="btn btn-outline btn-sm" data-alert-action="resolve" data-alert-id="'+esc(al.id)+'">Resolver</button></div>'+
       '<div style="margin-top:6px;font-size:12px">👤 '+esc(al.pac)+' · '+esc(al.area)+' · '+esc(al.cama)+(al.fecha?' · '+esc(al.fecha):'')+'</div>'+
       '<div style="margin-top:4px;font-size:12px"><b>Acción:</b> '+esc(al.accion)+'</div></div>';
   }).join('');
   var resolved=getResolved();
-  var resHtml=Object.keys(resolved).length?('<div class="stats-section-title">Alertas resueltas</div>'+Object.keys(resolved).map(function(k){ var r=resolved[k]; return '<div class="alert-box ok" style="margin-top:6px">✔️ <b>'+esc(r.label||k)+'</b> · Resuelta: '+esc(r.fecha)+(r.obs?' · Obs: '+esc(r.obs):'')+' <button class="btn btn-outline btn-sm" style="float:right" onclick="unresolve(\''+k+'\')">Reabrir</button></div>'; }).join('')):'';
-  document.getElementById('panel-alertas').innerHTML=
+  var resHtml=Object.keys(resolved).length?('<div class="stats-section-title">Alertas resueltas</div>'+Object.keys(resolved).map(function(k){ var r=resolved[k]; return '<div class="alert-box ok" style="margin-top:6px">✔️ <b>'+esc(r.label||k)+'</b> · Resuelta: '+esc(r.fecha)+(r.obs?' · Obs: '+esc(r.obs):'')+' <button class="btn btn-outline btn-sm" style="float:right" data-alert-action="unresolve" data-alert-id="'+esc(k)+'">Reabrir</button></div>'; }).join('')):'';
+  var panel=document.getElementById('panel-alertas');
+  var panelHtml=
     '<h3 style="margin-bottom:6px">🚨 Panel de alertas</h3>'+
     '<p style="font-size:12px;color:var(--muted);margin-bottom:8px">Ordenadas por severidad. Reingreso, limpieza terminal, infección cruzada, multirresistencia y clustering de IAAS.</p>'+
     (alerts.length?html:'<div class="alert-box ok" style="margin-top:10px">✅ Sin alertas activas.</div>')+resHtml;
+  panel.innerHTML=panelHtml;
+  panel.querySelectorAll('[data-alert-action]').forEach(function(btn){ btn.addEventListener('click',function(){ var id=this.dataset.alertId,action=this.dataset.alertAction; if(action==='review-brote')reviewBrote(id);else if(action==='confirm-brote')openConfirmBrote(id);else if(action==='discard-brote')openDiscardBrote(id);else if(action==='confirm-iaas')confirmIAAS(id);else if(action==='dismiss-iaas')dismissIAAS(id);else if(action==='stewardship-accept')stewardshipAccept(id);else if(action==='stewardship-keep')stewardshipKeep(id);else if(action==='resolve')resolveAlert(id);else if(action==='unresolve')unresolve(id); }); });
 }
 function unresolve(k){ var r=getResolved(); delete r[k]; setResolved(r); renderAlertas(); updateAlertBadge(); }
 
@@ -3296,7 +3290,7 @@ var BROTE_MEDIDAS=['Aislamiento/cohorte','Búsqueda activa','Cultivos vigilancia
 function getBroteById(id){return getBrotes().filter(function(b){return b.id===id;})[0]||null;}
 function broteCasesHTML(b,checks){return (b.casos||[]).map(function(c,i){return '<label style="display:block;margin:3px 0">'+(checks?'<input type="checkbox" class="bc-case" value="'+esc(c.caseKey)+'" checked> ':'')+esc(c.patientName)+' · '+esc(c.date)+(c.egresado?' · egresado':'')+'</label>';}).join('')||'Sin casos';}
 function reviewBrote(id){window._broteFocus=id;showMain('brotes',document.querySelector('.main-tab[data-tab=brotes]'));setTimeout(function(){var e=document.getElementById('brote-'+id);if(e)e.scrollIntoView({behavior:'smooth',block:'center'});},0);}
-function openConfirmBrote(id){var b=getBroteById(id);if(!b)return;_broteActionId=id;document.getElementById('broteConfirmSummary').innerHTML='<p><b>'+esc(b.agente)+'</b> · '+esc(b.areaName)+' · '+b.casos.length+' casos</p>';document.getElementById('bc-fecha').value=b.fechaInicio||b.fechaPrimerCaso;document.getElementById('bc-prof').value=localStorage.getItem(LS_MEDICO)||'';document.getElementById('bc-obs').value=b.observacionEpidemiologica||'';document.getElementById('bc-casos').innerHTML=broteCasesHTML(b,true);document.getElementById('bc-medidas').innerHTML=BROTE_MEDIDAS.map(function(m){return '<label><input type="checkbox" class="bc-medida" value="'+esc(m)+'"> '+esc(m)+'</label>';}).join('');document.getElementById('bc-otro').value='';document.getElementById('modalBroteConfirm').style.display='flex';}
+function openConfirmBrote(id){var b=getBroteById(id);if(!b)return;_broteActionId=id;var summary=document.getElementById('broteConfirmSummary');summary.replaceChildren();var p=document.createElement('p'),agent=document.createElement('b');agent.textContent=b.agente;p.appendChild(agent);p.appendChild(document.createTextNode(' · '+b.areaName+' · '+b.casos.length+' casos'));summary.appendChild(p);document.getElementById('bc-fecha').value=b.fechaInicio||b.fechaPrimerCaso;document.getElementById('bc-prof').value=localStorage.getItem(LS_MEDICO)||'';document.getElementById('bc-obs').value=b.observacionEpidemiologica||'';var cases=document.getElementById('bc-casos');cases.replaceChildren();(b.casos||[]).forEach(function(c){var label=document.createElement('label');label.style.display='block';label.style.margin='3px 0';var input=document.createElement('input');input.type='checkbox';input.className='bc-case';input.value=c.caseKey;input.checked=true;label.appendChild(input);label.appendChild(document.createTextNode(' '+c.patientName+' · '+c.date+(c.egresado?' · egresado':'')));cases.appendChild(label);});if(!(b.casos||[]).length)cases.textContent='Sin casos';var measures=document.getElementById('bc-medidas');measures.replaceChildren();BROTE_MEDIDAS.forEach(function(m){var label=document.createElement('label'),input=document.createElement('input');input.type='checkbox';input.className='bc-medida';input.value=m;label.appendChild(input);label.appendChild(document.createTextNode(' '+m));measures.appendChild(label);});document.getElementById('bc-otro').value='';document.getElementById('modalBroteConfirm').style.display='flex';}
 function doConfirmBrote(){var a=getBrotes(),b=a.filter(function(x){return x.id===_broteActionId;})[0];if(!b)return;var prof=document.getElementById('bc-prof').value.trim();if(!prof){toast('Ingresá el profesional');return;}var included=Array.from(document.querySelectorAll('.bc-case:checked')).map(function(x){return x.value;});b.estado='confirmado';b.nivel='rojo';b.etiqueta='🔴 Brote confirmado';b.fechaInicio=document.getElementById('bc-fecha').value||b.fechaPrimerCaso;b.profesionalConfirmacion=prof;b.observacionEpidemiologica=document.getElementById('bc-obs').value.trim();b.casosIncluidos=included;b.casosRevisados=(b.casos||[]).map(function(x){return x.caseKey;});b.casosNuevos=[];b.medidas=Array.from(document.querySelectorAll('.bc-medida:checked')).map(function(x){return x.value;});b.medidasOtro=document.getElementById('bc-otro').value.trim();b.confirmadoEn=new Date().toISOString();setBrotes(a);closeModal('modalBroteConfirm');renderBrotes();renderAlertas();updateAlertBadge();toast('Brote confirmado');}
 function openDiscardBrote(id){_broteActionId=id;document.getElementById('bd-motivo').value='';document.getElementById('bd-prof').value=localStorage.getItem(LS_MEDICO)||'';document.getElementById('bd-fecha').value=todayStr();document.getElementById('modalBroteDiscard').style.display='flex';}
 function doDiscardBrote(){var motivo=document.getElementById('bd-motivo').value;if(!motivo){toast('Seleccioná un motivo');return;}var a=getBrotes(),b=a.filter(function(x){return x.id===_broteActionId;})[0];if(!b)return;b.estado='descartado';b.descarte={motivo:motivo,profesional:document.getElementById('bd-prof').value.trim(),fecha:document.getElementById('bd-fecha').value||todayStr()};setBrotes(a);closeModal('modalBroteDiscard');renderBrotes();renderAlertas();updateAlertBadge();toast('Posible brote descartado');}
@@ -3306,10 +3300,13 @@ function acknowledgeNewBroteCases(id){var a=getBrotes(),b=a.filter(function(x){r
 function renderBrotes(){
   var cfg=getBroteConfig(),all=getBrotes(),fEstado=window._brEstado||'',fAg=outbreakAgent(window._brAgente||''),fServ=window._brServicio||'',fFecha=window._brFecha||'';
   var list=all.filter(function(b){return(!fEstado||b.estado===fEstado)&&(!fAg||b.agenteNormalizado.indexOf(fAg)>=0)&&(!fServ||b.areaId===fServ)&&(!fFecha||b.fechaInicio===fFecha);});
-  function card(b){var nuevos=(b.casosNuevos||[]).length,nivel=b.estado==='confirmado'?'rojo':(b.nivel||'amarillo'),label=nivel==='negro'?'⚫ Alerta crítica — agente de alta gravedad':nivel==='rojo'?'🔴 Brote confirmado':'🟡 Posible brote';return '<div class="section-card" id="brote-'+b.id+'" style="margin-bottom:8px;'+(nivel==='negro'?'border:2px solid #000':'')+'"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><b>'+esc(b.agente)+'</b><span class="pill '+(nivel==='negro'?'amber':nivel==='rojo'?'red':'orange')+'">'+esc(label)+'</span><span class="pill '+(b.estado==='pendiente'?'red':b.estado==='confirmado'?'orange':'amber')+'">'+esc(b.estado)+'</span>'+(nuevos?'<span class="pill red">'+nuevos+' caso(s) nuevo(s)</span>':'')+'<span style="flex:1"></span>'+(b.estado==='pendiente'?'<button class="btn btn-teal btn-sm" onclick="openConfirmBrote(\''+b.id+'\')">Confirmar</button><button class="btn btn-outline btn-sm" onclick="openDiscardBrote(\''+b.id+'\')">Descartar</button>':'')+(b.estado==='confirmado'?'<button class="btn btn-outline btn-sm" onclick="acknowledgeNewBroteCases(\''+b.id+'\')">Revisados</button><button class="btn btn-teal btn-sm" onclick="openCloseBrote(\''+b.id+'\')">Cerrar</button>':'')+'</div><div style="font-size:12px;margin-top:6px"><b>Nivel:</b> '+esc(nivel)+' · '+esc(b.areaName)+' · '+b.casos.length+' casos · '+b.fechaPrimerCaso+' → '+b.fechaUltimoCaso+' · detección '+esc(b.origenDeteccion||'prospectiva')+'</div><details style="margin-top:5px"><summary>Ver casos</summary>'+broteCasesHTML(b,false)+'</details></div>';}
+  function card(b){var nuevos=(b.casosNuevos||[]).length,nivel=b.estado==='confirmado'?'rojo':(b.nivel||'amarillo'),label=nivel==='negro'?'⚫ Alerta crítica — agente de alta gravedad':nivel==='rojo'?'🔴 Brote confirmado':'🟡 Posible brote';return '<div class="section-card" id="brote-'+esc(b.id)+'" style="margin-bottom:8px;'+(nivel==='negro'?'border:2px solid #000':'')+'"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><b>'+esc(b.agente)+'</b><span class="pill '+(nivel==='negro'?'amber':nivel==='rojo'?'red':'orange')+'">'+esc(label)+'</span><span class="pill '+(b.estado==='pendiente'?'red':b.estado==='confirmado'?'orange':'amber')+'">'+esc(b.estado)+'</span>'+(nuevos?'<span class="pill red">'+nuevos+' caso(s) nuevo(s)</span>':'')+'<span style="flex:1"></span>'+(b.estado==='pendiente'?'<button class="btn btn-teal btn-sm" data-brote-action="confirm" data-brote-id="'+esc(b.id)+'">Confirmar</button><button class="btn btn-outline btn-sm" data-brote-action="discard" data-brote-id="'+esc(b.id)+'">Descartar</button>':'')+(b.estado==='confirmado'?'<button class="btn btn-outline btn-sm" data-brote-action="acknowledge" data-brote-id="'+esc(b.id)+'">Revisados</button><button class="btn btn-teal btn-sm" data-brote-action="close" data-brote-id="'+esc(b.id)+'">Cerrar</button>':'')+'</div><div style="font-size:12px;margin-top:6px"><b>Nivel:</b> '+esc(nivel)+' · '+esc(b.areaName)+' · '+b.casos.length+' casos · '+esc(b.fechaPrimerCaso)+' → '+esc(b.fechaUltimoCaso)+' · detección '+esc(b.origenDeteccion||'prospectiva')+'</div><details style="margin-top:5px"><summary>Ver casos</summary>'+broteCasesHTML(b,false)+'</details></div>';}
   function section(title,states){var x=list.filter(function(b){return states.indexOf(b.estado)>=0;});return '<div class="stats-section-title">'+title+' ('+x.length+')</div>'+(x.map(card).join('')||'<p style="color:var(--muted)">Sin registros.</p>');}
   var areas=state.areas.map(function(a){return '<option value="'+esc(a.id)+'"'+(fServ===a.id?' selected':'')+'>'+esc(a.name)+'</option>';}).join('');
-  document.getElementById('panel-brotes').innerHTML='<h3>🦠 Brotes epidemiológicos</h3><div class="section-card"><h4>Configuración de detección</h4><div class="filters"><div class="field-group"><label>Ventana (días)</label><input type="number" min="1" value="'+cfg.ventanaDias+'" onchange="setBroteConfig({ventanaDias:+this.value})"></div><div class="field-group"><label>Mínimo casos</label><input type="number" min="2" value="'+cfg.minCasos+'" onchange="setBroteConfig({minCasos:+this.value})"></div><label class="chk-inline"><input type="checkbox" '+(cfg.incluirActivos?'checked':'')+' onchange="setBroteConfig({incluirActivos:this.checked})"> Activos</label><label class="chk-inline"><input type="checkbox" '+(cfg.incluirEgresados?'checked':'')+' onchange="setBroteConfig({incluirEgresados:this.checked})"> Egresados</label><label class="chk-inline"><input type="checkbox" '+(cfg.exigirIAAS?'checked':'')+' onchange="setBroteConfig({exigirIAAS:this.checked})"> Exigir IAAS</label></div></div><div class="filters"><div class="field-group"><label>Estado</label><select onchange="window._brEstado=this.value;renderBrotes()"><option value="">Todos</option>'+['pendiente','confirmado','cerrado','descartado'].map(function(x){return '<option'+(fEstado===x?' selected':'')+'>'+x+'</option>';}).join('')+'</select></div><div class="field-group"><label>Agente</label><input value="'+esc(window._brAgente||'')+'" oninput="window._brAgente=this.value;renderBrotes()"></div><div class="field-group"><label>Servicio</label><select onchange="window._brServicio=this.value;renderBrotes()"><option value="">Todos</option>'+areas+'</select></div><div class="field-group"><label>Fecha inicio</label><input type="date" value="'+esc(fFecha)+'" onchange="window._brFecha=this.value;renderBrotes()"></div></div>'+section('Pendientes',['pendiente'])+section('Activos confirmados',['confirmado'])+section('Historial',['cerrado','descartado']);
+  var panel=document.getElementById('panel-brotes');
+  var panelHtml='<h3>🦠 Brotes epidemiológicos</h3><div class="section-card"><h4>Configuración de detección</h4><div class="filters"><div class="field-group"><label>Ventana (días)</label><input type="number" min="1" value="'+esc(cfg.ventanaDias)+'" onchange="setBroteConfig({ventanaDias:+this.value})"></div><div class="field-group"><label>Mínimo casos</label><input type="number" min="2" value="'+esc(cfg.minCasos)+'" onchange="setBroteConfig({minCasos:+this.value})"></div><label class="chk-inline"><input type="checkbox" '+(cfg.incluirActivos?'checked':'')+' onchange="setBroteConfig({incluirActivos:this.checked})"> Activos</label><label class="chk-inline"><input type="checkbox" '+(cfg.incluirEgresados?'checked':'')+' onchange="setBroteConfig({incluirEgresados:this.checked})"> Egresados</label><label class="chk-inline"><input type="checkbox" '+(cfg.exigirIAAS?'checked':'')+' onchange="setBroteConfig({exigirIAAS:this.checked})"> Exigir IAAS</label></div></div><div class="filters"><div class="field-group"><label>Estado</label><select onchange="window._brEstado=this.value;renderBrotes()"><option value="">Todos</option>'+['pendiente','confirmado','cerrado','descartado'].map(function(x){return '<option'+(fEstado===x?' selected':'')+'>'+x+'</option>';}).join('')+'</select></div><div class="field-group"><label>Agente</label><input value="'+esc(window._brAgente||'')+'" oninput="window._brAgente=this.value;renderBrotes()"></div><div class="field-group"><label>Servicio</label><select onchange="window._brServicio=this.value;renderBrotes()"><option value="">Todos</option>'+areas+'</select></div><div class="field-group"><label>Fecha inicio</label><input type="date" value="'+esc(fFecha)+'" onchange="window._brFecha=this.value;renderBrotes()"></div></div>'+section('Pendientes',['pendiente'])+section('Activos confirmados',['confirmado'])+section('Historial',['cerrado','descartado']);
+  panel.innerHTML=panelHtml;
+  panel.querySelectorAll('[data-brote-action]').forEach(function(btn){ btn.addEventListener('click',function(){ var id=this.dataset.broteId,action=this.dataset.broteAction; if(action==='confirm')openConfirmBrote(id);else if(action==='discard')openDiscardBrote(id);else if(action==='acknowledge')acknowledgeNewBroteCases(id);else if(action==='close')openCloseBrote(id); }); });
 }
 
 /* ============================================================
@@ -3591,8 +3588,7 @@ function renderStats(){
   function presetBtn(k,lbl){ return '<button class="btn btn-sm '+(preset===k?'btn-teal':'btn-outline')+'" onclick="window._statsPreset=\''+k+'\';renderStats()">'+lbl+'</button>'; }
   var areaChecks=state.areas.map(function(a,ai){ var on=areasSel.indexOf(a.name)>=0; return '<label class="chk-inline" style="margin-right:10px"><input type="checkbox" '+(on?'checked':'')+' onchange="toggleStatsArea('+ai+',this.checked)"> '+esc(a.name)+'</label>'; }).join('');
   var todasOn=areasSel.length===0;
-  document.getElementById('panel-stats').innerHTML=
-    '<div class="stat-card" style="margin-bottom:12px"><h4>🗓️ Período</h4>'+
+  var rendered='<div class="stat-card" style="margin-bottom:12px"><h4>🗓️ Período</h4>'+
       '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">'+
         presetBtn('hoy','Hoy')+presetBtn('semana','Esta semana')+presetBtn('mes','Este mes')+presetBtn('3meses','Últimos 3 meses')+presetBtn('todo','Todo')+presetBtn('personalizado','Personalizado')+
       '</div>'+
@@ -3656,6 +3652,7 @@ function renderStats(){
     '<div class="stats-section-title">7 · 🦠 Brotes</div>'+broteHtml+
     '<div class="stats-section-title">8 · 🧭 Reporte Epidemiológico (Comité de Infecciones)</div>'+
     renderEpiSection(bar,nodata);
+  document.getElementById('panel-stats').innerHTML=rendered;
 }
 function computeBroteStats(f){var bs=getBrotes().filter(function(b){return(!f.desde||b.fechaInicio>=f.desde)&&(!f.hasta||b.fechaInicio<=f.hasta);}),conf=bs.filter(function(b){return b.estado==='confirmado'||b.estado==='cerrado';}),countsA={},countsS={},monthly={},dur=[];conf.forEach(function(b){countsA[b.agente]=(countsA[b.agente]||0)+1;countsS[b.areaName]=(countsS[b.areaName]||0)+1;if(b.fechaInicio)monthly[b.fechaInicio.slice(0,7)]=(monthly[b.fechaInicio.slice(0,7)]||0)+1;if(b.fechaFin){var d=daysBetween(b.fechaInicio,b.fechaFin);if(d!==null)dur.push(d);}});function top(m){return Object.keys(m).sort(function(a,b){return m[b]-m[a];})[0]||'';}return{negros:bs.filter(function(b){return b.estado==='pendiente'&&b.nivel==='negro';}).length,amarillos:bs.filter(function(b){return b.estado==='pendiente'&&(b.nivel==='amarillo'||!b.nivel);}).length,confirmados:conf.length,activos:bs.filter(function(b){return b.estado==='confirmado';}).length,cerrados:bs.filter(function(b){return b.estado==='cerrado';}).length,descartados:bs.filter(function(b){return b.estado==='descartado';}).length,casos:conf.reduce(function(n,b){return n+(b.casosIncluidos?b.casosIncluidos.length:(b.casos||[]).length);},0),duracion:dur.length?Math.round(dur.reduce(function(a,b){return a+b;},0)/dur.length):null,agente:top(countsA),servicio:top(countsS),mensual:Object.keys(monthly).sort().map(function(k){return{label:k,n:monthly[k]};})};}
 function brotesBars(arr,bar,nodata,col){if(!arr.length)return nodata();var mx=arr.reduce(function(m,x){return Math.max(m,x.n);},1);return arr.map(function(x){return bar(x.label,x.n,mx,col);}).join('');}
@@ -3907,7 +3904,7 @@ function renderEgWidgets(egres){
   function topArr(obj,n){ return Object.keys(obj).map(function(k){return {k:k,n:obj[k]};}).sort(function(a,b){return b.n-a.n;}).slice(0,n); }
   var isActive=function(type,value){ return _egWidget && _egWidget.type===type && _egWidget.value===value; };
   var itemHtml=function(type,value,label,cnt){
-    return '<div role="button" tabindex="0" onkeydown="isKey(event)" class="ew-item'+(isActive(type,value)?' active':'')+'" onclick="egWidgetSet(\''+type+'\',\''+esc(value).replace(/'/g,"\\'")+'\')" title="'+esc(label)+'"><span class="ew-lbl">'+esc(label)+'</span><span class="ew-cnt">'+cnt+'</span></div>';
+    return '<div role="button" tabindex="0" onkeydown="isKey(event)" class="ew-item'+(isActive(type,value)?' active':'')+'" data-eg-widget-type="'+esc(type)+'" data-eg-widget-value="'+esc(value)+'" title="'+esc(label)+'"><span class="ew-lbl">'+esc(label)+'</span><span class="ew-cnt">'+cnt+'</span></div>';
   };
   // 1. Total egresados
   var wTotal='<div class="eg-widget plain"><h6>📊 Total egresados</h6>'+
@@ -3924,7 +3921,7 @@ function renderEgWidgets(egres){
   // 4. IAAS
   var iaasArr=Object.keys(iaasTipo).map(function(k){return {k:k,n:iaasTipo[k]};}).sort(function(a,b){return b.n-a.n;});
   var wIaas='<div class="eg-widget"><h6>⚠️ IAAS</h6>'+
-    '<div role="button" tabindex="0" onkeydown="isKey(event)" class="ew-item'+(isActive('iaas','')?' active':'')+'" onclick="egWidgetSet(\'iaas\',\'\')"><span class="ew-lbl">Total infecciones IAAS</span><span class="ew-cnt">'+iaasTotal+'</span></div>'+
+    '<div role="button" tabindex="0" onkeydown="isKey(event)" class="ew-item'+(isActive('iaas','')?' active':'')+'" data-eg-widget-type="iaas" data-eg-widget-value=""><span class="ew-lbl">Total infecciones IAAS</span><span class="ew-cnt">'+iaasTotal+'</span></div>'+
     '<div class="ew-list" style="margin-top:6px">'+
     (iaasArr.map(function(x){ return '<div class="ew-item" style="cursor:default"><span class="ew-lbl">'+esc(x.k)+'</span><span class="ew-cnt">'+x.n+'</span></div>'; }).join('')||'<div class="ew-sub">Sin IAAS.</div>')+
     '</div></div>';
@@ -3982,7 +3979,7 @@ function renderEgresados(){
     var realIdx=egres.indexOf(e);
     var isol=(e.aislamiento||(e.infecciones&&maxAislamiento({infecciones:e.infecciones}))||'');
     var isolTxt=isol==='aereo'?'Aéreo':isol==='contacto'?'Contacto':'—';
-    return '<tr onclick="openEgHist('+realIdx+')" style="cursor:pointer">'+
+    return '<tr data-eg-action="open" data-eg-index="'+realIdx+'" style="cursor:pointer">'+
       '<td>'+esc(e.name||'—')+'</td>'+
       '<td>'+esc(e.edad||'—')+'</td>'+
       '<td>'+esc(e.ci||'—')+'</td>'+
@@ -3994,14 +3991,15 @@ function renderEgresados(){
       '<td>'+esc(isolTxt)+'</td>'+
       '<td>'+egEstadoPill(e)+'</td>'+
       '<td style="white-space:nowrap">'+
-        '<button class="btn btn-outline btn-sm" style="padding:2px 6px" title="Editar fecha de alta" onclick="event.stopPropagation();egEditFecha('+realIdx+')">📅</button> '+
-        '<button class="btn btn-outline btn-sm" style="padding:2px 6px" title="Editar historia" onclick="event.stopPropagation();egEditHistoria('+realIdx+')">✏️</button> '+
-        '<button class="btn btn-sm" style="padding:2px 6px;background:#16a34a;color:#fff;border-color:#16a34a" title="Reincorporar al censo" onclick="event.stopPropagation();egReincorporar('+realIdx+')">↩️</button> '+
-        '<button class="tbl-del" aria-label="Eliminar egresado" onclick="event.stopPropagation();delEgresado('+realIdx+')">✕</button>'+
+        '<button class="btn btn-outline btn-sm" style="padding:2px 6px" title="Editar fecha de alta" data-eg-action="edit-date" data-eg-index="'+realIdx+'">📅</button> '+
+        '<button class="btn btn-outline btn-sm" style="padding:2px 6px" title="Editar historia" data-eg-action="edit-history" data-eg-index="'+realIdx+'">✏️</button> '+
+        '<button class="btn btn-sm" style="padding:2px 6px;background:#16a34a;color:#fff;border-color:#16a34a" title="Reincorporar al censo" data-eg-action="restore" data-eg-index="'+realIdx+'">↩️</button> '+
+        '<button class="tbl-del" aria-label="Eliminar egresado" data-eg-action="delete" data-eg-index="'+realIdx+'">✕</button>'+
       '</td></tr>';
   }).join('')||'<tr><td colspan="11" style="color:var(--muted)">Sin egresados.</td></tr>';
   var clearBar=_egWidget?('<div class="eg-clear-bar"><span class="pill teal">'+esc(egWidgetLabel())+'</span> <button class="btn btn-teal btn-sm" onclick="egWidgetClear()">✕ Limpiar filtro</button></div>'):'';
-  document.getElementById('panel-egresados').innerHTML=
+  var panel=document.getElementById('panel-egresados');
+  var panelHtml=
     renderEgWidgets(egres)+
     clearBar+
     '<div class="filters">'+
@@ -4018,6 +4016,9 @@ function renderEgresados(){
     '<div style="overflow-x:auto"><table class="data-table"><thead><tr>'+
       '<th>Nombre</th><th>Edad</th><th>CI</th><th>Fecha egreso</th><th>Sector</th><th>Cama</th><th>Diagnóstico</th><th>Germen</th><th>Aislamiento</th><th>Estado egreso</th><th></th>'+
       '</tr></thead><tbody>'+body+'</tbody></table></div>';
+  panel.innerHTML=panelHtml;
+  panel.querySelectorAll('[data-eg-widget-type]').forEach(function(item){ item.addEventListener('click',function(){ egWidgetSet(this.dataset.egWidgetType,this.dataset.egWidgetValue); }); });
+  panel.querySelectorAll('[data-eg-action]').forEach(function(item){ item.addEventListener('click',function(event){ var action=this.dataset.egAction,idx=parseInt(this.dataset.egIndex,10); if(action!=='open')event.stopPropagation(); if(action==='open')openEgHist(idx);else if(action==='edit-date')egEditFecha(idx);else if(action==='edit-history')egEditHistoria(idx);else if(action==='restore')egReincorporar(idx);else if(action==='delete')delEgresado(idx); }); });
 }
 function delEgresado(i){ if(!confirm('¿Eliminar registro de egresado?')) return; var arr=getEgresados(); arr.splice(i,1); setEgresados(arr); renderEgresados(); }
 
@@ -4055,8 +4056,7 @@ function openEgHist(idx){
     if(rows) paraHtml='<div style="overflow-x:auto"><table class="data-table"><thead><tr><th>Parámetro</th><th>'+e.para.dates.map(esc).join('</th><th>')+'</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
   }
   var comorb=COMORB.filter(function(c){return e.comorb&&e.comorb[c.k];}).map(function(c){return c.label;}).join(', ')||'—';
-  document.getElementById('egHistBody').innerHTML=
-    '<div class="section-card"><h4>Datos</h4>'+
+  var rendered='<div class="section-card"><h4>Datos</h4>'+
       '<div>Nombre: <b>'+esc(e.name||'—')+'</b> · CI: '+esc(e.ci||'—')+' · Edad: '+esc(e.edad||'—')+' · Sexo: '+esc(e.sexo||'—')+'</div>'+
       '<div>Sector: '+esc(e.areaName||'—')+' · Cama: C'+esc(e.bed||'—')+' · Cobertura: '+esc(e.cobertura||'—')+'</div>'+
       '<div>Ingreso: '+esc(e.ingreso||'—')+' · Egreso: '+esc(e.fechaEgreso||'—')+' · Días internación: '+esc(e.diasInternacion!=null?e.diasInternacion:'—')+'</div>'+
@@ -4071,6 +4071,7 @@ function openEgHist(idx){
     '<div class="section-card"><h4>Antibióticos</h4>'+atbHtml+'</div>'+
     '<div class="section-card"><h4>Evolución</h4>'+evolHtml+'</div>'+
     '<div class="section-card"><h4>Paraclínica</h4>'+paraHtml+'</div>';
+  document.getElementById('egHistBody').innerHTML=rendered;
   document.getElementById('modalEgHist').style.display='flex';
 }
 function egHistPDF(){
