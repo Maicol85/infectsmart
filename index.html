@@ -312,6 +312,21 @@ label{font-size:12px;color:var(--muted);display:block;margin-bottom:3px}
 #panelReferencias .fiche-head .caret{color:#5b6270}
 #panelReferencias .fiche.open .fiche-head{background:#eef2f5;color:#1a1d27;border-bottom:1px solid #d8dee9}
 #panelReferencias .fiche-body,#panelReferencias .fiche-body b{color:#1a1d27}
+#ppeAssistant{background:#f3f4f6;border-left:4px solid var(--teal);border-radius:8px;padding:16px}
+#ppeAssistant .ppe-subtitle{color:#4b5563;font-size:13px;margin-bottom:14px}
+#ppeAssistant .ppe-question{font-size:15px;font-weight:700;color:#1f2937;margin-bottom:10px}
+#ppeAssistant .ppe-options{display:grid;gap:8px}
+#ppeAssistant .ppe-option{background:#fff;border:1px solid #cbd5e1;border-radius:7px;color:#1f2937;cursor:pointer;font-size:13px;font-weight:600;line-height:1.4;padding:11px 14px;text-align:left;width:100%}
+#ppeAssistant .ppe-option:hover{background:#e8f3f5;border-color:var(--teal)}
+#ppeAssistant .ppe-result{border:1px solid;border-radius:8px;line-height:1.55;padding:14px}
+#ppeAssistant .ppe-result.ok{background:#ecfdf5;border-color:#15803d;color:#14532d}
+#ppeAssistant .ppe-result.danger{background:#fef2f2;border-color:#b91c1c;color:#7f1d1d}
+#ppeAssistant .ppe-result.warn{background:#fff7ed;border-color:#c2410c;color:#7c2d12}
+#ppeAssistant .ppe-result h4{font-size:16px;margin-bottom:8px}
+#ppeAssistant .ppe-result h5{color:inherit;margin-top:12px}
+#ppeAssistant .ppe-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+#ppeAssistant .ppe-detail{background:#fff;border:1px solid #cbd5e1;border-radius:8px;margin-top:12px;padding:12px}
+@media(max-width:480px){#ppeAssistant{padding:12px}#ppeAssistant .ppe-actions .btn{width:100%}}
 .fiche.open .caret{transform:rotate(90deg)}
 .fiche-body{display:none;padding:14px;font-size:13px;line-height:1.65;color:var(--text)}
 .fiche.open .fiche-body{display:block}
@@ -4796,9 +4811,148 @@ function refSections(){
       '<h5>Seguimiento</h5><ul><li>4-6 semanas: VIH · ARN VHC · función renal.</li><li>12 semanas: VIH · VHC · enzimas hepáticas.</li><li>24 semanas: VIH · VHC · Anti-VHC.</li></ul>'),
     refFiche('🏥','Notificación y derivación — Uruguay','',
       '<ul><li>Notificar al jefe inmediato para activar el protocolo institucional.</li><li>Notificar al BSE (Banco de Seguros del Estado).</li><li>Derivar al trabajador antes de las 6 horas al BSE o prestador habilitado en el interior.</li><li>Consulta con infectólogo entre 72-96 h.</li><li>Registrar en Salud Ocupacional institucional (Ley 16074/88, Decreto 128/014).</li></ul>'+
-      '<h5>Referencia oficial</h5><p>MSP Uruguay. Guía Nacional de Profilaxis Post Exposición Ocupacional y No Ocupacional. 2022. Elaborada con SICU, Fac. Medicina Udelar y Banco de Seguros del Estado.</p>')
+      '<h5>Referencia oficial</h5><p>MSP Uruguay. Guía Nacional de Profilaxis Post Exposición Ocupacional y No Ocupacional. 2022. Elaborada con SICU, Fac. Medicina Udelar y Banco de Seguros del Estado.</p>'),
+    refFiche('🤖','Asistente de conducta PPE','MSP Uruguay 2022',ppeAssistantMarkup())
   ]}
   ];
+}
+
+var ppeState={step:'exposure',exposure:'',elapsed:'',source:''};
+
+function ppeAssistantMarkup(){
+  return '<div id="ppeAssistant">'+
+    '<p class="ppe-subtitle">Respondé las preguntas para recibir la conducta recomendada según MSP Uruguay 2022.</p>'+
+    '<div id="ppeAssistantStep" aria-live="polite">'+ppeExposureStep()+'</div>'+
+  '</div>';
+}
+
+function ppeExposureStep(){
+  return '<div class="ppe-question">¿Qué tipo de exposición ocurrió?</div><div class="ppe-options">'+
+    '<button type="button" class="ppe-option" onclick="ppeChooseExposure(\'needle\')">A) Punción o corte con sangre visible</button>'+
+    '<button type="button" class="ppe-option" onclick="ppeChooseExposure(\'mucosa\')">B) Exposición de mucosas (salpicadura en ojos, boca, nariz)</button>'+
+    '<button type="button" class="ppe-option" onclick="ppeChooseExposure(\'skin\')">C) Contacto con piel intacta</button>'+
+    '<button type="button" class="ppe-option" onclick="ppeChooseExposure(\'sexual\')">D) Exposición sexual</button>'+
+  '</div>';
+}
+
+function ppeSetStep(html){
+  var el=document.getElementById('ppeAssistantStep');
+  if(el) el.innerHTML=html;
+}
+
+function ppeRestart(){
+  ppeState={step:'exposure',exposure:'',elapsed:'',source:''};
+  ppeSetStep(ppeExposureStep());
+}
+
+function ppeActions(extra){
+  return '<div class="ppe-actions">'+(extra||'')+'<button type="button" class="btn btn-outline btn-sm" onclick="ppeRestart()">Reiniciar</button></div><div id="ppeAssistantDetail"></div>';
+}
+
+function ppeChooseExposure(value){
+  var labels={needle:'Punción o corte con sangre visible',mucosa:'Exposición de mucosas',skin:'Contacto con piel intacta',sexual:'Exposición sexual'};
+  ppeState.exposure=labels[value]||'';
+  if(value==='skin'){
+    ppeSetStep('<div class="ppe-result ok"><h4>✅ Sin indicación de PPE</h4><p>Piel íntegra no representa riesgo de transmisión. Lavado con agua y jabón. No requiere seguimiento.</p></div>'+ppeActions(''));
+    return;
+  }
+  ppeState.step='elapsed';
+  ppeSetStep('<div class="ppe-question">¿Cuánto tiempo pasó desde la exposición?</div><div class="ppe-options">'+
+    '<button type="button" class="ppe-option" onclick="ppeChooseElapsed(\'lt2\')">A) Menos de 2 horas (ideal)</button>'+
+    '<button type="button" class="ppe-option" onclick="ppeChooseElapsed(\'2to72\')">B) Entre 2 y 72 horas</button>'+
+    '<button type="button" class="ppe-option" onclick="ppeChooseElapsed(\'gt72\')">C) Más de 72 horas</button></div>');
+}
+
+function ppeChooseElapsed(value){
+  var labels={lt2:'Menos de 2 horas (ideal)','2to72':'Entre 2 y 72 horas',gt72:'Más de 72 horas'};
+  ppeState.elapsed=labels[value]||'';
+  if(value==='gt72'){
+    ppeSetStep('<div class="ppe-result danger"><h4>❌ PPE VIH no recomendada</h4><p>Pasaron más de 72 horas — la profilaxis post exposición para VIH pierde eficacia. Realizar igualmente paraclínica basal y seguimiento serológico. Derivar a infectólogo para evaluación.</p></div>'+ppeActions(''));
+    return;
+  }
+  ppeState.step='source';
+  ppeSetStep('<div class="ppe-question">¿Cuál es el estado del paciente fuente?</div><div class="ppe-options">'+
+    '<button type="button" class="ppe-option" onclick="ppeChooseSource(\'undetectable\')">A) VIH+ conocido, en TARV con CV indetectable (documentada &lt;6 meses)</button>'+
+    '<button type="button" class="ppe-option" onclick="ppeChooseSource(\'detectable\')">B) VIH+ conocido, CV detectable o desconocida</button>'+
+    '<button type="button" class="ppe-option" onclick="ppeChooseSource(\'risk\')">C) VIH desconocido, con factores de riesgo (HSH, UDI, trabajo sexual, privado de libertad, país con prevalencia &gt;1%)</button>'+
+    '<button type="button" class="ppe-option" onclick="ppeChooseSource(\'unknown\')">D) VIH desconocido, sin factores de riesgo</button>'+
+    '<button type="button" class="ppe-option" onclick="ppeChooseSource(\'negative\')">E) VIH negativo documentado reciente</button></div>');
+}
+
+function ppeChooseSource(value){
+  var labels={undetectable:'VIH+ en TARV con CV indetectable documentada <6 meses',detectable:'VIH+ con CV detectable o desconocida',risk:'VIH desconocido con factores de riesgo',unknown:'VIH desconocido sin factores de riesgo',negative:'VIH negativo documentado reciente'};
+  ppeState.source=labels[value]||'';
+  if(value==='negative'){
+    ppeSetStep('<div class="ppe-result ok"><h4>✅ Sin indicación de PPE para VIH</h4><p>Fuente VIH negativa conocida. Evaluar igual profilaxis VHB y VHC según exposición.</p></div>'+ppeActions('<button type="button" class="btn btn-outline btn-sm" onclick="ppeShowDetail(\'vhbvhc\')">Ver conducta VHB/VHC</button>'));
+    return;
+  }
+  if(value==='undetectable'){
+    ppeState.step='lesion';
+    ppeSetStep('<div class="ppe-question">¿Cuál fue el tipo de lesión?</div><div class="ppe-options">'+
+      '<button type="button" class="ppe-option" onclick="ppeChooseLesion(\'deep\')">A) Punción profunda con aguja hueca en vena</button>'+
+      '<button type="button" class="ppe-option" onclick="ppeChooseLesion(\'superficial\')">B) Punción superficial o aguja sólida</button>'+
+      '<button type="button" class="ppe-option" onclick="ppeChooseLesion(\'mucosa\')">C) Exposición de mucosas</button></div>');
+    return;
+  }
+  ppeShowRecommended();
+}
+
+function ppeChooseLesion(value){
+  if(value==='deep'){
+    ppeSetStep('<div class="ppe-result warn"><h4>⚠ Considerar PPE — evaluar caso a caso</h4><p>Aunque la fuente tiene CV indetectable, la lesión es de alto riesgo. Consultar infectólogo urgente.</p></div>'+ppeActions(''));
+    return;
+  }
+  ppeSetStep('<div class="ppe-result ok"><h4>✅ PPE generalmente no recomendada</h4><p>Fuente con CV indetectable en TARV estable. Riesgo prácticamente nulo. Realizar paraclínica basal y seguimiento. Ante duda: consultar infectólogo.</p></div>'+ppeActions('<button type="button" class="btn btn-outline btn-sm" onclick="ppeShowDetail(\'followup\')">Ver paraclínica y seguimiento</button>'));
+}
+
+function ppeShowRecommended(){
+  ppeSetStep('<div class="ppe-result danger"><h4>🔴 PPE VIH RECOMENDADA</h4>'+ppeRecommendedHtml()+'</div>'+ppeActions(
+    '<button type="button" class="btn btn-teal btn-sm" onclick="ppePrintConduct()">📄 Imprimir esta conducta</button>'+
+    '<button type="button" class="btn btn-outline btn-sm" onclick="ppeShowDetail(\'alternatives\')">Ver esquemas alternativos</button>'));
+}
+
+function ppeRecommendedHtml(){
+  return '<h5>⚡ Acción inmediata</h5><ol><li>Lavar la zona con agua y jabón.</li><li>Notificar al jefe.</li><li>Llamar al BSE / Infectólogo de guardia.</li><li>Iniciar PPE antes de 72 h (ideal &lt;2 h).</li></ol>'+
+    '<h5>💊 Esquema preferido (MSP Uruguay 2022)</h5><p><b>TDF/FTC 300/200 mg</b> — 1 comp/día<br>+ <b>Dolutegravir 50 mg</b> — 1 comp/día<br>Duración: <b>28 días — NO interrumpir</b></p>'+
+    '<h5>🔬 Paraclínica basal hoy</h5><p>VIH (4ª gen) · VHB · VHC<br>Hemograma · Función renal · Hepatograma<br>Muestra de sangre de la fuente (si accesible)</p>'+
+    '<h5>📅 Seguimiento</h5><p>72-96 h: Control con infectólogo / BSE<br>4-6 sem: VIH · ARN VHC · función renal<br>12 sem: VIH · VHC<br>24 sem: VIH · Anti-VHC</p>'+
+    '<h5>⚠ También evaluar</h5><p>Profilaxis VHB según estado vacunal<br>Profilaxis ITS si exposición sexual</p>';
+}
+
+function ppeShowDetail(kind){
+  var el=document.getElementById('ppeAssistantDetail'); if(!el) return;
+  if(kind==='alternatives'){
+    el.innerHTML='<div class="ppe-detail"><h5>Esquemas alternativos</h5><p><b>Alternativas si TDF/FTC + DTG no está disponible o está contraindicado:</b></p><ul><li>ClCr 30-60 mL/min: TAF/FTC 25/200 mg + Dolutegravir 50 mg.</li><li>Sin FTC disponible: TDF 300 mg + 3TC 150 mg c/12 h + DTG 50 mg/día.</li><li>Sin Dolutegravir: TDF/FTC + Raltegravir 400 mg c/12 h.</li></ul><p><b>Contraindicados:</b> ❌ Abacavir · Nevirapina · Efavirenz.</p><p>Verificar interacciones: <a href="https://www.hiv-druginteractions.org/" target="_blank" rel="noopener">hiv-druginteractions.org</a>.</p></div>';
+  }else if(kind==='vhbvhc'){
+    el.innerHTML='<div class="ppe-detail"><h5>Conducta VHB/VHC</h5><p><b>VHB:</b> definir conducta según vacunación y Anti-HBs; si corresponde, administrar IGHB y vacuna en sitios diferentes.</p><p><b>VHC:</b> no existe profilaxis farmacológica eficaz. Realizar seguimiento con ARN VHC y enzimas hepáticas.</p></div>';
+  }else if(kind==='followup'){
+    el.innerHTML='<div class="ppe-detail"><h5>Paraclínica y seguimiento</h5><p><b>Basal:</b> VIH 4ª generación, AgHBs, Anti-HBs, Anti-HBc, Anti-VHC, hemograma, función renal y hepatograma.</p><p><b>Seguimiento:</b> 4-6 semanas, 12 semanas y 24 semanas según el protocolo MSP Uruguay 2022.</p></div>';
+  }
+}
+
+function ppePrintConduct(){
+  var JsPDF=getJsPDF();
+  if(!JsPDF){ toast('No se pudo cargar el generador de PDF'); return; }
+  var doc=new JsPDF(); var y=18, L=16, maxW=178; var now=new Date();
+  function line(text,bold,size,gap){
+    if(y>278){ doc.addPage(); y=18; }
+    doc.setFont(undefined,bold?'bold':'normal'); doc.setFontSize(size||10);
+    var lines=doc.splitTextToSize(text,maxW); doc.text(lines,L,y); y+=lines.length*((size||10)*0.48)+(gap===undefined?2:gap);
+  }
+  line('CONDUCTA PPE — '+now.toLocaleString('es-UY'),true,15,5);
+  line('Tipo de exposición: '+(ppeState.exposure||'No registrado'),false,10,1);
+  line('Tiempo transcurrido: '+(ppeState.elapsed||'No registrado'),false,10,1);
+  line('Estado fuente: '+(ppeState.source||'No registrado'),false,10,5);
+  line('CONDUCTA RECOMENDADA',true,12,3);
+  line('PPE VIH recomendada. Acción inmediata: lavar la zona con agua y jabón; notificar al jefe; llamar al BSE o Infectólogo de guardia; iniciar PPE antes de 72 horas, idealmente antes de 2 horas.',false,10,3);
+  line('Esquema: TDF/FTC 300/200 mg, 1 comprimido por día + Dolutegravir 50 mg, 1 comprimido por día, durante 28 días. No interrumpir.',true,10,3);
+  line('Paraclínica basal: VIH de 4ª generación, VHB, VHC, hemograma, función renal, hepatograma y muestra de sangre de la fuente si es accesible.',false,10,3);
+  line('Seguimiento: 4-6 semanas (VIH, ARN VHC, función renal); 12 semanas (VIH, VHC); 24 semanas (VIH, Anti-VHC).',false,10,3);
+  line('Próxima consulta: BSE / Infectólogo en 72-96 h.',true,10,5);
+  line('Referencia: MSP Uruguay. Guía Nacional PPE 2022.',false,9,1);
+  line('Generado por InfectSmart · CeiboMed · '+now.toLocaleString('es-UY'),false,9,1);
+  doc.save('conducta_ppe_infectsmart.pdf');
+  toast('Conducta PPE generada');
 }
 
 function renderReferencias(){
