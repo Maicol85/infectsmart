@@ -480,6 +480,8 @@ footer{text-align:center;padding:16px;color:var(--muted);font-size:11px;border-t
       <h3 id="ptTitle">Paciente</h3>
       <span id="ptLoc" style="font-size:12px;color:var(--muted)"></span>
       <div class="spacer" style="flex:1"></div>
+      <span id="egEditControls"></span>
+      <button id="btnEgreso" class="btn btn-sm" style="background:#ea580c;color:#fff;border-color:#ea580c" onclick="openEgreso()">🚪 Dar egreso</button>
       <button class="btn btn-outline btn-sm" onclick="backToGlobal()">← Volver a pacientes</button>
     </div>
     <div id="ptEmpty" class="section-card" style="text-align:center;color:var(--muted)">Seleccione una cama en <b>Áreas / Camas</b> para ver o cargar un paciente.</div>
@@ -526,6 +528,7 @@ footer{text-align:center;padding:16px;color:var(--muted);font-size:11px;border-t
       <div class="field-group"><label for="eg-motivo">Motivo</label><select id="eg-motivo"><option>Alta</option><option>Traslado</option><option>Fallecimiento</option></select></div>
     </div>
     <div class="field-group" style="margin-top:8px"><label for="eg-obs">Observaciones</label><textarea id="eg-obs" rows="2"></textarea></div>
+    <div class="field-group" style="margin-top:8px"><label for="eg-nota-resumen">Nota de resumen de internación (opcional)</label><textarea id="eg-nota-resumen" rows="2" placeholder="Ej: KPNM resistente — vigilancia 12 meses / Alta definitiva sin seguimiento infectológico"></textarea></div>
     <div id="eg-resumen" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px;margin-top:10px;font-size:12px;line-height:1.6"></div>
     <div class="modal-actions">
       <button class="btn btn-outline btn-sm" onclick="closeModal('modalEgreso')">Cancelar</button>
@@ -1983,7 +1986,8 @@ function updateAlertBadge(){
 /* ============================================================
    PANEL PACIENTE
    ============================================================ */
-function currentPatient(){ if(state.activeBed===null) return null; return state.areas[state.activeArea].beds[state.activeBed]; }
+var _egEdit=null; /* {idx, patient} — edición de historia de un egresado (CAMBIO D) */
+function currentPatient(){ if(_egEdit) return _egEdit.patient; if(state.activeBed===null) return null; return state.areas[state.activeArea].beds[state.activeBed]; }
 
 /* ---- Vista global de pacientes (todos los sectores agrupados por área) ---- */
 /* Colores de franja por nombre de área (según convención clínica). */
@@ -2052,6 +2056,7 @@ function openPatientDetail(ai,bi){
   renderPtDetail();
 }
 function backToGlobal(){
+  _egEdit=null;
   _ptDetailOpen=false;
   renderPatientPanel();
 }
@@ -2059,9 +2064,18 @@ function renderPtDetail(){
   var p=currentPatient();
   if(!p){ document.getElementById('ptEmpty').classList.remove('hidden'); document.getElementById('ptBody').classList.add('hidden'); return; }
   document.getElementById('ptEmpty').classList.add('hidden'); document.getElementById('ptBody').classList.remove('hidden');
-  var a=state.areas[state.activeArea];
   document.getElementById('ptTitle').textContent=p.name||'(paciente sin nombre)';
-  document.getElementById('ptLoc').textContent=iconSafe(a.icon)+' '+a.name+' · Cama '+(state.activeBed+1);
+  var _egc=document.getElementById('egEditControls'), _be=document.getElementById('btnEgreso');
+  if(_egEdit){
+    document.getElementById('ptLoc').textContent='📤 Egresado — edición de historia';
+    if(_egc) _egc.innerHTML='<span class="pill" style="background:#fde68a;color:#92400e">Editando historia de egresado</span> <button class="btn btn-sm" style="background:#16a34a;color:#fff;border-color:#16a34a" onclick="egEditGuardar()">💾 Guardar en archivo</button> <button class="btn btn-outline btn-sm" onclick="egEditCancelar()">Cancelar</button>';
+    if(_be) _be.style.display='none';
+  } else {
+    var a=state.areas[state.activeArea];
+    document.getElementById('ptLoc').textContent=iconSafe(a.icon)+' '+a.name+' · Cama '+(state.activeBed+1);
+    if(_egc) _egc.innerHTML='';
+    if(_be) _be.style.display='';
+  }
   renderPtDatos(); renderPtInfeccion(); renderPtAtb(); renderPtEvol(); renderPtPara(); renderPtImagenes(); renderPtInterconsultas();
 }
 function showPt(tab,btn){
@@ -2608,6 +2622,7 @@ function openEgreso(){
   var p=currentPatient(); if(!p){ toast('No hay paciente'); return; }
   document.getElementById('eg-fecha').value=todayStr();
   document.getElementById('eg-obs').value='';
+  var _nr=document.getElementById('eg-nota-resumen'); if(_nr) _nr.value='';
   var resist=Object.keys(p.abg||{}).filter(function(k){ return p.abg[k]==='R'; }).join(', ')||'—';
   document.getElementById('eg-resumen').innerHTML=
     '<b>'+esc(p.name||'(sin nombre)')+'</b> · '+esc(p.edad||'?')+' años<br>'+
@@ -2621,13 +2636,17 @@ function confirmEgreso(){
   var fecha=document.getElementById('eg-fecha').value||todayStr();
   var motivo=document.getElementById('eg-motivo').value;
   var obs=document.getElementById('eg-obs').value;
+  var notaResumen=(document.getElementById('eg-nota-resumen')||{}).value||'';
+  // CAMBIO A — confirmación explícita antes de ejecutar el egreso
+  if(!confirm('¿Confirmar egreso de '+(p.name||'paciente')+' el '+fecha+'?')) return;
   var a=state.areas[state.activeArea]; var bi=state.activeBed;
   var resist=Object.keys(p.abg||{}).filter(function(k){ return p.abg[k]==='R'; }).join(', ');
   var eg={
     id:p.id, name:p.name, ci:p.ci, edad:p.edad, sexo:p.sexo, cobertura:p.cobertura,
     areaId:a.id, areaName:a.name, bed:bi+1,
-    ingreso:p.ingreso, fechaEgreso:fecha, motivo:motivo, obs:obs,
+    ingreso:p.ingreso, fechaEgreso:fecha, motivo:motivo, obs:obs, notaResumen:notaResumen,
     dx:p.dx, foco:p.foco, germen:p.germen, resistencias:resist,
+    aislamiento:(p.aislamiento||maxAislamiento(p)||''), comorbObj:Object.assign({},p.comorb||{}),
     charlson:calcCharlson(p), comorb:Object.assign({},p.comorb),
     atbList:(p.atb||[]).map(function(x){return x.atb;}).filter(Boolean).join(', '),
     diasAtb:(p.atb||[]).reduce(function(s,x){ var d=(x.inicio&&x.fin)?daysBetween(x.inicio,x.fin):(x.inicio?daysSince(x.inicio):0); return s+(parseInt(d,10)||0); },0),
@@ -2651,6 +2670,124 @@ function confirmEgreso(){
   showMain('areas',document.querySelector('.main-tab[data-tab=areas]'));
   toast('Paciente egresado — cama pendiente de limpieza terminal');
 }
+
+/* ============================================================
+   BLOQUE 7 — Egresados: editar fecha/historia + reincorporar
+   ============================================================ */
+function currentUser(){ return (typeof state!=='undefined' && state && state.medico) ? state.medico : 'usuario'; }
+
+/* Reconstruye un paciente editable desde un registro de egresado (CAMBIO D/E) — sin perder datos */
+function egToPatient(e){
+  return {
+    id:e.id, name:e.name||'', ci:e.ci||'', edad:e.edad||'', sexo:e.sexo||'', cobertura:e.cobertura||'',
+    dx:e.dx||'', foco:e.foco||'', germen:e.germen||'', muestra:'', fechaCultivo:'',
+    ingreso:e.ingreso||'', aislamiento:e.aislamiento||'',
+    comorb:Object.assign({}, e.comorbObj||e.comorb||{}),
+    infecciones:(e.infecciones||[]).map(function(inf){ return Object.assign({}, inf, {abg:Object.assign({},inf.abg||{}), cim:Object.assign({},inf.cim||{})}); }),
+    atb:(e.atb||[]).map(function(x){ return Object.assign({},x); }),
+    evol:(e.evol||[]).map(function(x){ return Object.assign({},x); }),
+    para:{ dates:(e.para&&e.para.dates)?e.para.dates.slice():[], vals:Object.assign({},(e.para&&e.para.vals)||{}) },
+    escal:[]
+  };
+}
+/* Vuelca los cambios clínicos del paciente editado de vuelta al registro de egresado (CAMBIO D) */
+function egMergeClinico(e, p){
+  e.name=p.name; e.ci=p.ci; e.edad=p.edad; e.sexo=p.sexo; e.cobertura=p.cobertura;
+  e.dx=p.dx; e.foco=p.foco; e.germen=p.germen; e.aislamiento=p.aislamiento||maxAislamiento(p)||'';
+  e.mdr=isMDR(p.germen);
+  e.resistencias=Object.keys(p.abg||{}).filter(function(k){ return p.abg[k]==='R'; }).join(', ');
+  e.comorbObj=Object.assign({}, p.comorb||{});
+  e.infecciones=patInfections(p).map(function(inf){ return Object.assign({},inf,{abg:Object.assign({},inf.abg||{}),cim:Object.assign({},inf.cim||{})}); });
+  e.atb=(p.atb||[]).map(function(x){ return Object.assign({},x); });
+  e.atbList=(p.atb||[]).map(function(x){ return x.atb; }).filter(Boolean).join(', ');
+  e.evol=(p.evol||[]).map(function(x){ return Object.assign({},x); });
+  e.evolucion=(p.evol||[]).map(function(ev){ return ev.fecha+': '+ev.texto; }).join(' | ');
+  e.para={ dates:(p.para&&p.para.dates)?p.para.dates.slice():[], vals:Object.assign({},(p.para&&p.para.vals)||{}) };
+}
+
+/* CAMBIO C — editar fecha de alta */
+function egEditFecha(idx){
+  var arr=getEgresados(); var e=arr[idx]; if(!e) return;
+  var nueva=prompt('Nueva fecha de alta (AAAA-MM-DD) para '+(e.name||'egresado')+':', e.fechaEgreso||todayStr());
+  if(nueva===null) return;
+  nueva=(nueva||'').trim();
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(nueva)){ alert('Formato inválido. Usar AAAA-MM-DD.'); return; }
+  if(!confirm('¿Cambiar la fecha de alta de '+(e.name||'egresado')+' a '+nueva+'?')) return;
+  e.fechaEgreso=nueva; e.diasInternacion=daysBetween(e.ingreso,nueva);
+  e.fechaEditadaEn=new Date().toISOString(); e.fechaEditadaPor=currentUser();
+  setEgresados(arr); renderEgresados(); toast('Fecha de alta actualizada');
+}
+
+/* CAMBIO D — editar historia del egresado (ficha completa en modo edición) */
+function egEditHistoria(idx){
+  var arr=getEgresados(); var e=arr[idx]; if(!e) return;
+  _egEdit={ idx:idx, patient:egToPatient(e) };
+  document.querySelectorAll('.main-tab').forEach(function(b){ b.classList.remove('active'); });
+  var tb=document.querySelector('.main-tab[data-tab=pacientes]'); if(tb) tb.classList.add('active');
+  document.querySelectorAll('.panel').forEach(function(p){ p.classList.remove('active'); });
+  document.getElementById('panel-pacientes').classList.add('active');
+  _ptDetailOpen=true;
+  document.getElementById('ptGlobal').classList.add('hidden');
+  document.getElementById('ptDetail').classList.remove('hidden');
+  renderPtDetail();
+  toast('Editando historia del egresado — «Guardar en archivo» para conservar');
+}
+function egEditGuardar(){
+  if(!_egEdit) return;
+  var arr=getEgresados(); var e=arr[_egEdit.idx];
+  if(!e){ _egEdit=null; return; }
+  egMergeClinico(e, _egEdit.patient);
+  e.modificadoEn=new Date().toISOString(); e.modificadoPor=currentUser();
+  setEgresados(arr);
+  _egEdit=null; _ptDetailOpen=false;
+  toast('Historia actualizada — el PDF se regenera con estos datos al exportar');
+  showMain('egresados', document.querySelector('.main-tab[data-tab=egresados]'));
+}
+function egEditCancelar(){
+  _egEdit=null; _ptDetailOpen=false;
+  showMain('egresados', document.querySelector('.main-tab[data-tab=egresados]'));
+}
+
+/* CAMBIO E — reincorporar al censo sin perder datos */
+function egReincorporar(idx){
+  var arr=getEgresados(); var e=arr[idx]; if(!e) return;
+  if(!confirm('¿Reincorporar a '+(e.name||'paciente')+'?\nVolverá al censo activo con todos sus datos.')) return;
+  var ai=-1; for(var i=0;i<state.areas.length;i++){ if(state.areas[i].id===e.areaId){ ai=i; break; } }
+  var bi=(e.bed?e.bed-1:0);
+  if(ai>=0 && (state.areas[ai].beds[bi]===null || state.areas[ai].beds[bi]===undefined)){
+    _egDoReincorporar(idx, ai, bi);
+  } else {
+    _egPickBed(idx);
+  }
+}
+function _egDoReincorporar(idx, ai, bi){
+  var arr=getEgresados(); var e=arr[idx]; if(!e) return;
+  var p=egToPatient(e);
+  p.reincorporadoEn=new Date().toISOString(); p.reincorporadoPor=currentUser();
+  if(!p.evol) p.evol=[];
+  p.evol.push({ fecha:todayStr(), texto:'Reincorporación al censo (egreso previo '+(e.fechaEgreso||'?')+'). Datos restaurados.' });
+  state.areas[ai].beds[bi]=p;
+  if(state.areas[ai].pending) state.areas[ai].pending[bi]=null;
+  arr.splice(idx,1); setEgresados(arr);
+  save(); runAlertsEngine();
+  toast('Reincorporado a '+state.areas[ai].name+' · Cama '+(bi+1));
+  showMain('pacientes', document.querySelector('.main-tab[data-tab=pacientes]'));
+  openPatientDetail(ai,bi);
+}
+function _egPickBed(idx){
+  var opts=[];
+  state.areas.forEach(function(a,ai){ (a.beds||[]).forEach(function(b,bi){ if(b===null||b===undefined) opts.push({ai:ai,bi:bi,label:a.name+' · Cama '+(bi+1)}); }); });
+  if(!opts.length){ alert('No hay camas libres para reincorporar. Liberá una cama primero.'); return; }
+  var html='<div class="modal-box"><h3>↩️ Reincorporar — elegir cama</h3>'+
+    '<p style="font-size:13px;color:var(--muted)">La cama original no está disponible. Elegí una cama libre:</p>'+
+    '<div style="display:flex;flex-direction:column;gap:6px;max-height:300px;overflow:auto;margin:10px 0">'+
+    opts.map(function(o){ return '<button class="btn btn-outline btn-sm" style="text-align:left" onclick="_egPickBedGo('+idx+','+o.ai+','+o.bi+')">'+esc(o.label)+'</button>'; }).join('')+
+    '</div><div class="modal-actions"><button class="btn btn-outline btn-sm" onclick="closeModal(\'modalPickBed\')">Cancelar</button></div></div>';
+  var m=document.getElementById('modalPickBed');
+  if(!m){ m=document.createElement('div'); m.id='modalPickBed'; m.className='modal'; m.setAttribute('role','dialog'); document.body.appendChild(m); }
+  m.innerHTML=html; m.style.display='flex';
+}
+function _egPickBedGo(idx,ai,bi){ closeModal('modalPickBed'); _egDoReincorporar(idx,ai,bi); }
 
 /* ============================================================
    MICROBIOLOGÍA
@@ -3488,7 +3625,12 @@ function renderEgresados(){
       '<td class="'+(e.mdr?'mdr':'')+'">'+esc(e.germen||'—')+(e.mdr?' <span class="pill red">MDR</span>':'')+'</td>'+
       '<td>'+esc(isolTxt)+'</td>'+
       '<td>'+egEstadoPill(e)+'</td>'+
-      '<td><button class="tbl-del" aria-label="Eliminar egresado" onclick="event.stopPropagation();delEgresado('+realIdx+')">✕</button></td></tr>';
+      '<td style="white-space:nowrap">'+
+        '<button class="btn btn-outline btn-sm" style="padding:2px 6px" title="Editar fecha de alta" onclick="event.stopPropagation();egEditFecha('+realIdx+')">📅</button> '+
+        '<button class="btn btn-outline btn-sm" style="padding:2px 6px" title="Editar historia" onclick="event.stopPropagation();egEditHistoria('+realIdx+')">✏️</button> '+
+        '<button class="btn btn-sm" style="padding:2px 6px;background:#16a34a;color:#fff;border-color:#16a34a" title="Reincorporar al censo" onclick="event.stopPropagation();egReincorporar('+realIdx+')">↩️</button> '+
+        '<button class="tbl-del" aria-label="Eliminar egresado" onclick="event.stopPropagation();delEgresado('+realIdx+')">✕</button>'+
+      '</td></tr>';
   }).join('')||'<tr><td colspan="11" style="color:var(--muted)">Sin egresados.</td></tr>';
   var clearBar=_egWidget?('<div class="eg-clear-bar"><span class="pill teal">'+esc(egWidgetLabel())+'</span> <button class="btn btn-teal btn-sm" onclick="egWidgetClear()">✕ Limpiar filtro</button></div>'):'';
   document.getElementById('panel-egresados').innerHTML=
@@ -3550,6 +3692,9 @@ function openEgHist(idx){
       '<div>Nombre: <b>'+esc(e.name||'—')+'</b> · CI: '+esc(e.ci||'—')+' · Edad: '+esc(e.edad||'—')+' · Sexo: '+esc(e.sexo||'—')+'</div>'+
       '<div>Sector: '+esc(e.areaName||'—')+' · Cama: C'+esc(e.bed||'—')+' · Cobertura: '+esc(e.cobertura||'—')+'</div>'+
       '<div>Ingreso: '+esc(e.ingreso||'—')+' · Egreso: '+esc(e.fechaEgreso||'—')+' · Días internación: '+esc(e.diasInternacion!=null?e.diasInternacion:'—')+'</div>'+
+      (e.notaResumen?'<div style="margin-top:6px;padding:8px;background:var(--surface2);border-radius:6px"><b>📝 Nota de resumen:</b> '+esc(e.notaResumen)+'</div>':'')+
+      (e.modificadoEn?'<div style="font-size:11px;color:var(--muted);margin-top:4px">✏️ Historia editada por '+esc(e.modificadoPor||'usuario')+' el '+esc(e.modificadoEn.slice(0,16).replace("T"," "))+'</div>':'')+
+      (e.fechaEditadaEn?'<div style="font-size:11px;color:var(--muted)">📅 Fecha de alta editada por '+esc(e.fechaEditadaPor||'usuario')+' el '+esc(e.fechaEditadaEn.slice(0,16).replace("T"," "))+'</div>':'')+
       '<div>Diagnóstico: '+esc(e.dx||'—')+'</div>'+
       '<div>Comorbilidades: '+esc(comorb)+' · Charlson: '+esc(e.charlson!=null?e.charlson:'—')+'</div>'+
       '<div>Estado egreso: '+egEstadoPill(e)+' · Motivo: '+esc(e.motivo||'—')+'</div>'+
