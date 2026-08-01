@@ -495,6 +495,7 @@ footer{text-align:center;padding:16px;color:var(--muted);font-size:11px;border-t
     <button class="main-tab" data-tab="micro" onclick="showMain('micro',this)">🧫 Microbiología</button>
     <button class="main-tab" data-tab="atb" onclick="showMain('atb',this)">💊 ATB Vademécum</button>
     <button class="main-tab" data-tab="alertas" onclick="showMain('alertas',this)">🚨 Alertas <span id="alertCount"></span></button>
+    <button class="main-tab" data-tab="brotes" onclick="showMain('brotes',this)">🦠 Brotes <span id="broteCount"></span></button>
     <button class="main-tab" data-tab="stats" onclick="showMain('stats',this)">📊 Estadísticas</button>
     <button class="main-tab" data-tab="egresados" onclick="showMain('egresados',this)">📤 Egresados</button>
     <button class="main-tab" data-tab="referencias" onclick="showMain('referencias',this)">📚 Referencias</button>
@@ -547,6 +548,7 @@ footer{text-align:center;padding:16px;color:var(--muted);font-size:11px;border-t
   <div id="panel-micro" class="panel"></div>
   <div id="panel-atb" class="panel"></div>
   <div id="panel-alertas" class="panel" aria-live="polite"></div>
+  <div id="panel-brotes" class="panel"></div>
   <div id="panel-stats" class="panel"></div>
   <div id="panel-egresados" class="panel"></div>
   <div id="panelReferencias" class="panel"></div>
@@ -667,6 +669,7 @@ footer{text-align:center;padding:16px;color:var(--muted);font-size:11px;border-t
       <p style="margin-top:8px"><b>Gestión de áreas y camas:</b> 7 áreas independientes (Domiciliaria, Emergencia, Internación, Policlínica, Cuidados moderados, CTI, Ambulatorio), cada una con número de camas configurable. Las camas muestran: color de aislamiento (naranja=contacto/gotas, rojo=aéreo/estricto), 🦠 aislamiento activo, ⚠️ pendiente limpieza terminal, badges de multirresistente e inmunocomprometido.</p>
       <p style="margin-top:8px"><b>Ficha del paciente:</b> Datos clínicos, múltiples infecciones simultáneas con antibiograma, ATB activos con calculadora de duración, evolución con fechas, paraclínica comparativa por fechas, imágenes e interconsultas.</p>
       <p style="margin-top:8px"><b>Alertas automáticas:</b> Reingreso con germen previo, limpieza terminal pendiente, infección cruzada (mismo germen en cama igual/adyacente en 30 días), germen multirresistente, clustering IAAS, detección automática NAV/bacteriemia CVC/ITU sonda.</p>
+      <p style="margin-top:8px"><b>Posible brote:</b> es una señal epidemiológica automática para revisión profesional; no constituye un diagnóstico confirmado.</p>
       <p style="margin-top:8px"><b>Stewardship:</b> Alertas de desescalamiento antimicrobiano según antibiograma. Calculadora de duración ATB por tipo de infección y germen.</p>
       <p style="margin-top:8px"><b>Estadísticas y epidemiología:</b> Gérmenes más frecuentes, mapa de resistencias, análisis IAAS, análisis por población (ASSE/Mutualista/Particular), reporte epidemiológico exportable para Comité de Infecciones.</p>
       <p style="margin-top:8px"><b>Egresados:</b> Tabla completa con filtros, export Excel para investigación clínica con comorbilidades, Score de Charlson, datos respiratorios e infecciosos.</p>
@@ -675,6 +678,14 @@ footer{text-align:center;padding:16px;color:var(--muted);font-size:11px;border-t
     <div class="modal-actions"><button class="btn btn-outline btn-sm" onclick="closeModal('modalHelp')">Cerrar</button></div>
   </div>
 </div>
+
+<div id="modalBroteConfirm" class="modal" style="display:none" role="dialog" aria-modal="true"><div class="modal-box" style="max-width:720px"><h3>🔴 Confirmar brote</h3><div id="broteConfirmSummary"></div>
+  <div class="field-row"><div class="field-group"><label>Fecha de inicio</label><input type="date" id="bc-fecha"></div><div class="field-group"><label>Profesional</label><input type="text" id="bc-prof"></div></div>
+  <div class="field-group"><label>Observación epidemiológica</label><textarea id="bc-obs" rows="2"></textarea></div><div class="field-group"><label>Casos incluidos</label><div id="bc-casos" class="section-card" style="max-height:150px;overflow:auto"></div></div>
+  <div class="field-group"><label>Medidas</label><div id="bc-medidas" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:5px"></div></div><div class="field-group"><label>Otro / detalle libre</label><textarea id="bc-otro" rows="2"></textarea></div>
+  <div class="modal-actions"><button class="btn btn-outline btn-sm" onclick="closeModal('modalBroteConfirm')">Cancelar</button><button class="btn btn-teal btn-sm" onclick="doConfirmBrote()">Confirmar brote</button></div></div></div>
+<div id="modalBroteDiscard" class="modal" style="display:none" role="dialog" aria-modal="true"><div class="modal-box"><h3>Descartar posible brote</h3><div class="field-group"><label>Motivo obligatorio</label><select id="bd-motivo"><option value="">Seleccionar…</option><option>Duplicación de registros</option><option>Sin nexo epidemiológico</option><option>Contaminación microbiológica</option><option>Casos comunitarios</option><option>Error de carga</option><option>Otro</option></select></div><div class="field-row"><div class="field-group"><label>Profesional</label><input id="bd-prof"></div><div class="field-group"><label>Fecha</label><input type="date" id="bd-fecha"></div></div><div class="modal-actions"><button class="btn btn-outline btn-sm" onclick="closeModal('modalBroteDiscard')">Cancelar</button><button class="btn btn-red btn-sm" onclick="doDiscardBrote()">Descartar</button></div></div></div>
+<div id="modalBroteClose" class="modal" style="display:none" role="dialog" aria-modal="true"><div class="modal-box"><h3>Cerrar brote</h3><div class="field-group"><label>Fecha fin</label><input type="date" id="bcl-fecha"></div><div class="field-group"><label>Resolución</label><textarea id="bcl-resolucion" rows="3"></textarea></div><div class="field-group"><label>Estado final</label><select id="bcl-estado"><option>Controlado</option><option>Finalizado</option><option>Sin casos nuevos</option><option>Otro</option></select></div><div class="modal-actions"><button class="btn btn-outline btn-sm" onclick="closeModal('modalBroteClose')">Cancelar</button><button class="btn btn-teal btn-sm" onclick="doCloseBrote()">Cerrar brote</button></div></div></div>
 
 <div id="modalImg" class="modal" style="display:none" role="dialog" aria-modal="true" onclick="closeModal('modalImg')">
   <div style="max-width:92vw;max-height:90vh"><img id="modalImgSrc" loading="lazy" alt="Imagen ampliada" style="max-width:92vw;max-height:90vh;border-radius:8px"></div>
@@ -702,6 +713,8 @@ var LS_PDFCOLOR='infectsmart_pdfcolor';
 var LS_PREFIX='infectsmart_c_';         // por centro: infectsmart_c_<id>  -> { areas }
 var LS_EGRESADOS='infectsmart_egresados_'; // por centro
 var LS_INFORMES='infectsmart_informes_';   // por centro (PDF snapshots meta)
+var LS_BROTES='infectsmart_brotes_';
+var LS_BROTE_CONFIG='infectsmart_brote_config_';
 
 var CENTRO_COLORS=['#00a487','#2563eb','#c2410c','#7c3aed','#b9770e','#0891b2','#be185d','#15803d'];
 var CENTROS=[
@@ -1131,7 +1144,7 @@ function selectCentro(id){
   var b=document.getElementById('centroBadge'); if(b&&c){ b.textContent=c.name; b.style.color=c.color; }
   updateMedicoBadge();
   showMain('areas',document.querySelector('.main-tab[data-tab=areas]'));
-  runAlertsEngine();
+  afterClinicalDataChange('retrospectiva');
   renderAll();
 }
 
@@ -1234,6 +1247,12 @@ function save(){
 }
 function getEgresados(){ return safeISLoad(egresadosKey(), []); }
 function setEgresados(arr){ lsSet(egresadosKey(),JSON.stringify(arr)); }
+function brotesKey(){ return LS_BROTES+state.centro; }
+function broteConfigKey(){ return LS_BROTE_CONFIG+state.centro; }
+function getBrotes(){ if(!state.centro) return []; var v=safeISLoad(brotesKey(), []); return Array.isArray(v)?v:[]; }
+function setBrotes(arr){ if(state.centro) lsSet(brotesKey(),JSON.stringify(arr||[])); }
+function getBroteConfig(){ var d={ventanaDias:14,minCasos:2,incluirActivos:true,incluirEgresados:true,exigirIAAS:false}; var v=state.centro?safeISLoad(broteConfigKey(),null):null; return v&&typeof v==='object'?Object.assign(d,v):d; }
+function setBroteConfig(v){ if(!state.centro)return; lsSet(broteConfigKey(),JSON.stringify(Object.assign(getBroteConfig(),v||{}))); afterClinicalDataChange(); renderBrotes(); }
 
 /* Todos los pacientes activos del centro (con área/cama) */
 function allActive(){
@@ -1241,6 +1260,39 @@ function allActive(){
   state.areas.forEach(function(a,ai){ a.beds.forEach(function(p,bi){ if(p) out.push({p:p,area:a,ai:ai,bi:bi}); }); });
   return out;
 }
+
+/* Brotes epidemiológicos: detección independiente de infección cruzada e IAAS. */
+function outbreakAgent(g){ return (g||'').toLowerCase().trim().replace(/\s+/g,' '); }
+function validISODate(d){ if(!/^\d{4}-\d{2}-\d{2}$/.test(d||''))return false; var x=new Date(d+'T00:00:00'); return !isNaN(x.getTime())&&x.toISOString().slice(0,10)===d; }
+function negativeCulture(inf){ var g=outbreakAgent(inf.germen),e=outbreakAgent(inf.estado); return !g||g==='negativo'||g==='sin desarrollo'||g==='no desarrollo'||e==='negativo'; }
+function collectMicrobiologyEvents(){
+  var cfg=getBroteConfig(),raw=[];
+  function add(p,areaId,areaName,bed,egresado){ patInfections(p).forEach(function(inf){
+    if(negativeCulture(inf)||!validISODate(inf.fechaCultivo)||(cfg.exigirIAAS&&!esIAAS(inf.origen)))return;
+    var agent=outbreakAgent(inf.germen),adm=p.ingreso||'sin-ingreso';
+    raw.push({caseKey:String(p.id||p.ci||p.name)+'|'+agent+'|'+adm,patientId:p.id||'',patientName:p.name||'(sin nombre)',admission:adm,agent:agent,agentLabel:(inf.germen||'').trim(),date:inf.fechaCultivo,areaId:areaId||'',areaName:areaName||'—',bed:bed||'',egresado:!!egresado});
+  }); }
+  if(cfg.incluirActivos)allActive().forEach(function(r){add(r.p,r.area.id,r.area.name,r.bi+1,false);});
+  if(cfg.incluirEgresados)getEgresados().forEach(function(e){add(e,e.areaId,e.areaName,e.bed,true);});
+  var dedup={};raw.sort(function(a,b){return a.date.localeCompare(b.date);}).forEach(function(e){if(!dedup[e.caseKey])dedup[e.caseKey]=e;});return Object.keys(dedup).map(function(k){return dedup[k];});
+}
+function detectOutbreakCandidates(events,config){
+  config=config||getBroteConfig();var groups={},out=[],win=Math.max(1,parseInt(config.ventanaDias,10)||14),min=Math.max(2,parseInt(config.minCasos,10)||2);
+  events.forEach(function(e){var k=e.areaId+'|'+e.agent;(groups[k]=groups[k]||[]).push(e);});
+  Object.keys(groups).forEach(function(k){var a=groups[k].sort(function(x,y){return x.date.localeCompare(y.date);}),windows=[];
+    for(var i=0;i<a.length;i++){var cs=a.filter(function(e){var d=daysBetween(a[i].date,e.date);return d!==null&&d>=0&&d<=win;});if(cs.length>=min)windows.push({start:cs[0].date,end:cs[cs.length-1].date,cases:cs});}
+    var merged=[];windows.forEach(function(w){var last=merged[merged.length-1];if(last&&w.start<=last.end){w.cases.forEach(function(c){if(!last.cases.some(function(x){return x.caseKey===c.caseKey;}))last.cases.push(c);});last.cases.sort(function(x,y){return x.date.localeCompare(y.date);});last.end=last.cases[last.cases.length-1].date;}else merged.push({start:w.start,end:w.end,cases:w.cases.slice()});});
+    merged.forEach(function(w){var e=w.cases[0];out.push({signature:e.areaId+'|'+e.agent+'|'+w.start,areaId:e.areaId,areaName:e.areaName,agent:e.agent,agentLabel:e.agentLabel,fechaPrimerCaso:w.start,fechaUltimoCaso:w.end,cases:w.cases});});
+  });return out;
+}
+function syncOutbreakCandidates(origen){
+  if(!state.centro)return[];var now=new Date().toISOString(),brotes=getBrotes(),candidates=detectOutbreakCandidates(collectMicrobiologyEvents(),getBroteConfig());
+  candidates.forEach(function(c){var b=brotes.filter(function(x){return x.signature===c.signature;})[0];if(!b){brotes.push({id:'br'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),signature:c.signature,estado:'pendiente',areaId:c.areaId,areaName:c.areaName,agenteNormalizado:c.agent,agente:c.agentLabel,fechaPrimerCaso:c.fechaPrimerCaso,fechaUltimoCaso:c.fechaUltimoCaso,fechaInicio:c.fechaPrimerCaso,casos:c.cases,origenDeteccion:origen||'prospectiva',creadoEn:now,actualizadoEn:now});return;}b.casos=c.cases;b.fechaUltimoCaso=c.fechaUltimoCaso;b.actualizadoEn=now;if(b.estado==='confirmado'){var reviewed=b.casosRevisados||[];b.casosNuevos=c.cases.filter(function(x){return reviewed.indexOf(x.caseKey)<0;}).map(function(x){return x.caseKey;});}});
+  setBrotes(brotes);return brotes;
+}
+function afterClinicalDataChange(origen){save();runAlertsEngine();syncOutbreakCandidates(origen);updateAlertBadge();}
+function pendingBrotesCount(){return getBrotes().filter(function(b){return b.estado==='pendiente'||(b.estado==='confirmado'&&(b.casosNuevos||[]).length);}).length;}
+function updateBroteBadge(){var n=pendingBrotesCount(),el=document.getElementById('broteCount');if(el)el.innerHTML=n?'<span class="pill red" style="margin-left:4px">'+n+'</span>':'';}
 
 /* ============================================================
    Navegación principal
@@ -1256,12 +1308,13 @@ function showMain(tab,btn){
   else if(tab==='micro') renderMicro();
   else if(tab==='atb') renderVade();
   else if(tab==='alertas') renderAlertas();
+  else if(tab==='brotes') renderBrotes();
   else if(tab==='stats') renderStats();
   else if(tab==='egresados') renderEgresados();
   else if(tab==='referencias') renderReferencias();
   else if(tab==='ayuda') renderAyuda();
 }
-function renderAll(){ renderAreas(); updateAlertBadge(); }
+function renderAll(){ renderAreas(); updateAlertBadge(); updateBroteBadge(); }
 
 /* ============================================================
    ÁREAS / CAMAS
@@ -1793,6 +1846,7 @@ function detectSepsisAlerts(active){
 function buildAlerts(){
   runAlertsEngine();
   var alerts=[];
+  getBrotes().forEach(function(b){if(b.estado==='pendiente'||(b.estado==='confirmado'&&(b.casosNuevos||[]).length))alerts.push({sev:3,tipo:'Posible brote',brote:true,broteId:b.id,pac:(b.casos||[]).length+' casos',cama:'',area:b.areaName,fecha:b.fechaPrimerCaso,accion:b.agente+' · '+b.areaName+' · '+(b.casos||[]).length+' casos · '+b.fechaPrimerCaso+' → '+b.fechaUltimoCaso,id:'brote_'+b.id});});
   var active=allActive();
   active.forEach(function(rec){
     var p=rec.p, a=rec.area, camaTxt='Cama '+(rec.bi+1);
@@ -2115,6 +2169,7 @@ function updateAlertBadge(){
   var n=buildAlerts().length;
   var el=document.getElementById('alertCount');
   if(el) el.innerHTML=n?'<span class="pill red" style="margin-left:4px">'+n+'</span>':'';
+  updateBroteBadge();
 }
 
 /* ============================================================
@@ -2218,7 +2273,7 @@ function showPt(tab,btn){
   document.querySelectorAll('#panel-pacientes .inner-panel').forEach(function(p){ p.classList.remove('active'); });
   document.getElementById('pt-'+tab).classList.add('active');
 }
-function pset(field,val){ var p=currentPatient(); if(!p) return; p[field]=val; save(); if(field==='germen'||field==='ci'||field==='name'||field==='aislamiento'){ runAlertsEngine(); } }
+function pset(field,val){ var p=currentPatient(); if(!p) return; p[field]=val; if(field==='germen'||field==='fechaCultivo') afterClinicalDataChange(); else { save(); if(field==='ci'||field==='aislamiento') runAlertsEngine(); } }
 
 /* -- DATOS -- */
 function calcCharlson(p){
@@ -2337,9 +2392,8 @@ function confirmTransferencia(){
   p.bed=biD+1; p.lastTransfer=new Date().toISOString();
   aD.beds[biD]=p; aO.beds[biO]=null; aO.pending[biO]={fecha:fechaDia,responsable:''};
   state.activeArea=aiD; state.activeBed=biD;
-  save();
+  afterClinicalDataChange();
   closeModal('modalTransfer');
-  if(typeof runAlertsEngine==='function') runAlertsEngine();
   if(typeof renderBeds==='function') renderBeds();
   renderPatientPanel();
   toast('Paciente transferido a '+aD.name+' · Cama '+(biD+1));
@@ -2367,8 +2421,7 @@ function infSet(idx,field,val){
   if(!p.infecciones[idx]) return;
   p.infecciones[idx][field]=val;
   mirrorPrimaryInfection(p);
-  save();
-  runAlertsEngine();
+  if(field==='germen'||field==='fechaCultivo'||field==='estado') afterClinicalDataChange(); else save();
 }
 function infSetAislamiento(idx,val){ infSet(idx,'aislamiento',val); renderPtInfeccion(); renderBeds(); }
 /* Setter para campos de ORIGEN — persiste vía infSet y re-renderiza el bloque para mostrar/ocultar sub-campos */
@@ -2403,7 +2456,7 @@ function infAdd(){
   var p=currentPatient(); if(!p) return;
   migrateInfecciones(p);
   p.infecciones.push({foco:'',germen:'',muestra:'',fechaCultivo:'',abg:{},aislamiento:'',estado:'',origen:'',procedimiento:'',especialidad:'',operador:'',fechaProc:'',dispositivo:'',fechaDispositivo:''});
-  mirrorPrimaryInfection(p); save(); renderPtInfeccion(); renderBeds();
+  mirrorPrimaryInfection(p); afterClinicalDataChange(); renderPtInfeccion(); renderBeds();
 }
 function infDel(idx){
   var p=currentPatient(); if(!p) return;
@@ -2414,7 +2467,7 @@ function infDel(idx){
   } else {
     p.infecciones.splice(idx,1);
   }
-  mirrorPrimaryInfection(p); save(); runAlertsEngine(); renderPtInfeccion(); renderBeds();
+  mirrorPrimaryInfection(p); afterClinicalDataChange(); renderPtInfeccion(); renderBeds();
 }
 /* Bloque "ORIGEN DE LA INFECCIÓN" con sub-campos condicionales por origen */
 function origenBlock(inf,idx){
@@ -2922,10 +2975,9 @@ function confirmEgreso(){
   // liberar cama + pendiente limpieza terminal
   a.beds[bi]=null;
   a.pending[bi]={fecha:fecha,responsable:''};
-  save();
+  afterClinicalDataChange();
   closeModal('modalEgreso');
   state.activeBed=null; _ptDetailOpen=false;
-  runAlertsEngine();
   showMain('areas',document.querySelector('.main-tab[data-tab=areas]'));
   toast('Paciente egresado — cama pendiente de limpieza terminal');
 }
@@ -3028,7 +3080,7 @@ function _egDoReincorporar(idx, ai, bi){
   state.areas[ai].beds[bi]=p;
   if(state.areas[ai].pending) state.areas[ai].pending[bi]=null;
   arr.splice(idx,1); setEgresados(arr);
-  save(); runAlertsEngine();
+  afterClinicalDataChange();
   toast('Reincorporado a '+state.areas[ai].name+' · Cama '+(bi+1));
   showMain('pacientes', document.querySelector('.main-tab[data-tab=pacientes]'));
   openPatientDetail(ai,bi);
@@ -3126,7 +3178,7 @@ function cultivoResultado(ai,bi,idx){
   if(g){ inf.germen=g; inf.estado='Resultado'; }
   else { inf.estado='Resultado'; } // negativo: estado resuelto, sin germen
   mirrorPrimaryInfection(p);
-  save(); runAlertsEngine(); renderMicro(); updateAlertBadge();
+  afterClinicalDataChange(); renderMicro();
   toast(g?'Resultado cargado: '+g:'Cultivo marcado sin desarrollo');
 }
 
@@ -3175,6 +3227,7 @@ function renderAlertas(){
   var sevMap={3:{c:'danger',t:'Alta'},2:{c:'orange',t:'Media'},1:{c:'warn',t:'Baja'}};
   var html=alerts.map(function(al){
     var s=sevMap[al.sev];
+    if(al.brote){return '<div class="alert-box danger" style="margin-top:10px"><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><b>🔴 Posible brote</b><span class="pill red">Alta</span><span style="flex:1"></span><button class="btn btn-outline btn-sm" onclick="reviewBrote(\''+al.broteId+'\')">Revisar</button><button class="btn btn-teal btn-sm" onclick="openConfirmBrote(\''+al.broteId+'\')">Confirmar</button><button class="btn btn-outline btn-sm" onclick="openDiscardBrote(\''+al.broteId+'\')">Descartar</button></div><div style="margin-top:6px;font-size:12px">'+esc(al.accion)+'</div></div>';}
     if(al.auto){
       // Alerta IAAS automática: descripción completa + criterios + 2 acciones
       var critHtml=(al.crit&&al.crit.length)?('<div style="margin-top:4px;font-size:11px;color:var(--muted)"><b>Criterios cumplidos:</b><ul style="margin:2px 0 0 16px;padding:0">'+al.crit.map(function(c){ return '<li>'+esc(c)+'</li>'; }).join('')+'</ul></div>'):'';
@@ -3209,6 +3262,28 @@ function renderAlertas(){
     (alerts.length?html:'<div class="alert-box ok" style="margin-top:10px">✅ Sin alertas activas.</div>')+resHtml;
 }
 function unresolve(k){ var r=getResolved(); delete r[k]; setResolved(r); renderAlertas(); updateAlertBadge(); }
+
+/* Gestión persistente de brotes */
+var _broteActionId=null;
+var BROTE_MEDIDAS=['Aislamiento/cohorte','Búsqueda activa','Cultivos vigilancia','Higiene manos','Auditoría limpieza','Revisión procedimientos','Restricción ingresos','Notificación comité','Notificación sanitaria','Otro'];
+function getBroteById(id){return getBrotes().filter(function(b){return b.id===id;})[0]||null;}
+function broteCasesHTML(b,checks){return (b.casos||[]).map(function(c,i){return '<label style="display:block;margin:3px 0">'+(checks?'<input type="checkbox" class="bc-case" value="'+esc(c.caseKey)+'" checked> ':'')+esc(c.patientName)+' · '+esc(c.date)+(c.egresado?' · egresado':'')+'</label>';}).join('')||'Sin casos';}
+function reviewBrote(id){window._broteFocus=id;showMain('brotes',document.querySelector('.main-tab[data-tab=brotes]'));setTimeout(function(){var e=document.getElementById('brote-'+id);if(e)e.scrollIntoView({behavior:'smooth',block:'center'});},0);}
+function openConfirmBrote(id){var b=getBroteById(id);if(!b)return;_broteActionId=id;document.getElementById('broteConfirmSummary').innerHTML='<p><b>'+esc(b.agente)+'</b> · '+esc(b.areaName)+' · '+b.casos.length+' casos</p>';document.getElementById('bc-fecha').value=b.fechaInicio||b.fechaPrimerCaso;document.getElementById('bc-prof').value=localStorage.getItem(LS_MEDICO)||'';document.getElementById('bc-obs').value=b.observacionEpidemiologica||'';document.getElementById('bc-casos').innerHTML=broteCasesHTML(b,true);document.getElementById('bc-medidas').innerHTML=BROTE_MEDIDAS.map(function(m){return '<label><input type="checkbox" class="bc-medida" value="'+esc(m)+'"> '+esc(m)+'</label>';}).join('');document.getElementById('bc-otro').value='';document.getElementById('modalBroteConfirm').style.display='flex';}
+function doConfirmBrote(){var a=getBrotes(),b=a.filter(function(x){return x.id===_broteActionId;})[0];if(!b)return;var prof=document.getElementById('bc-prof').value.trim();if(!prof){toast('Ingresá el profesional');return;}var included=Array.from(document.querySelectorAll('.bc-case:checked')).map(function(x){return x.value;});b.estado='confirmado';b.fechaInicio=document.getElementById('bc-fecha').value||b.fechaPrimerCaso;b.profesionalConfirmacion=prof;b.observacionEpidemiologica=document.getElementById('bc-obs').value.trim();b.casosIncluidos=included;b.casosRevisados=(b.casos||[]).map(function(x){return x.caseKey;});b.casosNuevos=[];b.medidas=Array.from(document.querySelectorAll('.bc-medida:checked')).map(function(x){return x.value;});b.medidasOtro=document.getElementById('bc-otro').value.trim();b.confirmadoEn=new Date().toISOString();setBrotes(a);closeModal('modalBroteConfirm');renderBrotes();renderAlertas();updateAlertBadge();toast('Brote confirmado');}
+function openDiscardBrote(id){_broteActionId=id;document.getElementById('bd-motivo').value='';document.getElementById('bd-prof').value=localStorage.getItem(LS_MEDICO)||'';document.getElementById('bd-fecha').value=todayStr();document.getElementById('modalBroteDiscard').style.display='flex';}
+function doDiscardBrote(){var motivo=document.getElementById('bd-motivo').value;if(!motivo){toast('Seleccioná un motivo');return;}var a=getBrotes(),b=a.filter(function(x){return x.id===_broteActionId;})[0];if(!b)return;b.estado='descartado';b.descarte={motivo:motivo,profesional:document.getElementById('bd-prof').value.trim(),fecha:document.getElementById('bd-fecha').value||todayStr()};setBrotes(a);closeModal('modalBroteDiscard');renderBrotes();renderAlertas();updateAlertBadge();toast('Posible brote descartado');}
+function openCloseBrote(id){_broteActionId=id;document.getElementById('bcl-fecha').value=todayStr();document.getElementById('bcl-resolucion').value='';document.getElementById('modalBroteClose').style.display='flex';}
+function doCloseBrote(){var a=getBrotes(),b=a.filter(function(x){return x.id===_broteActionId;})[0];if(!b)return;b.estado='cerrado';b.fechaFin=document.getElementById('bcl-fecha').value||todayStr();b.resolucion=document.getElementById('bcl-resolucion').value.trim();b.estadoFinal=document.getElementById('bcl-estado').value;b.cerradoEn=new Date().toISOString();setBrotes(a);closeModal('modalBroteClose');renderBrotes();updateAlertBadge();toast('Brote cerrado');}
+function acknowledgeNewBroteCases(id){var a=getBrotes(),b=a.filter(function(x){return x.id===id;})[0];if(!b)return;b.casosRevisados=(b.casos||[]).map(function(x){return x.caseKey;});b.casosNuevos=[];setBrotes(a);renderBrotes();renderAlertas();updateAlertBadge();}
+function renderBrotes(){
+  var cfg=getBroteConfig(),all=getBrotes(),fEstado=window._brEstado||'',fAg=outbreakAgent(window._brAgente||''),fServ=window._brServicio||'',fFecha=window._brFecha||'';
+  var list=all.filter(function(b){return(!fEstado||b.estado===fEstado)&&(!fAg||b.agenteNormalizado.indexOf(fAg)>=0)&&(!fServ||b.areaId===fServ)&&(!fFecha||b.fechaInicio===fFecha);});
+  function card(b){var nuevos=(b.casosNuevos||[]).length;return '<div class="section-card" id="brote-'+b.id+'" style="margin-bottom:8px"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><b>'+esc(b.agente)+'</b><span class="pill '+(b.estado==='pendiente'?'red':b.estado==='confirmado'?'orange':'amber')+'">'+esc(b.estado)+'</span>'+(nuevos?'<span class="pill red">'+nuevos+' caso(s) nuevo(s)</span>':'')+'<span style="flex:1"></span>'+(b.estado==='pendiente'?'<button class="btn btn-teal btn-sm" onclick="openConfirmBrote(\''+b.id+'\')">Confirmar</button><button class="btn btn-outline btn-sm" onclick="openDiscardBrote(\''+b.id+'\')">Descartar</button>':'')+(b.estado==='confirmado'?'<button class="btn btn-outline btn-sm" onclick="acknowledgeNewBroteCases(\''+b.id+'\')">Revisados</button><button class="btn btn-teal btn-sm" onclick="openCloseBrote(\''+b.id+'\')">Cerrar</button>':'')+'</div><div style="font-size:12px;margin-top:6px">'+esc(b.areaName)+' · '+b.casos.length+' casos · '+b.fechaPrimerCaso+' → '+b.fechaUltimoCaso+' · detección '+esc(b.origenDeteccion||'prospectiva')+'</div><details style="margin-top:5px"><summary>Ver casos</summary>'+broteCasesHTML(b,false)+'</details></div>';}
+  function section(title,states){var x=list.filter(function(b){return states.indexOf(b.estado)>=0;});return '<div class="stats-section-title">'+title+' ('+x.length+')</div>'+(x.map(card).join('')||'<p style="color:var(--muted)">Sin registros.</p>');}
+  var areas=state.areas.map(function(a){return '<option value="'+esc(a.id)+'"'+(fServ===a.id?' selected':'')+'>'+esc(a.name)+'</option>';}).join('');
+  document.getElementById('panel-brotes').innerHTML='<h3>🦠 Brotes epidemiológicos</h3><div class="section-card"><h4>Configuración de detección</h4><div class="filters"><div class="field-group"><label>Ventana (días)</label><input type="number" min="1" value="'+cfg.ventanaDias+'" onchange="setBroteConfig({ventanaDias:+this.value})"></div><div class="field-group"><label>Mínimo casos</label><input type="number" min="2" value="'+cfg.minCasos+'" onchange="setBroteConfig({minCasos:+this.value})"></div><label class="chk-inline"><input type="checkbox" '+(cfg.incluirActivos?'checked':'')+' onchange="setBroteConfig({incluirActivos:this.checked})"> Activos</label><label class="chk-inline"><input type="checkbox" '+(cfg.incluirEgresados?'checked':'')+' onchange="setBroteConfig({incluirEgresados:this.checked})"> Egresados</label><label class="chk-inline"><input type="checkbox" '+(cfg.exigirIAAS?'checked':'')+' onchange="setBroteConfig({exigirIAAS:this.checked})"> Exigir IAAS</label></div></div><div class="filters"><div class="field-group"><label>Estado</label><select onchange="window._brEstado=this.value;renderBrotes()"><option value="">Todos</option>'+['pendiente','confirmado','cerrado','descartado'].map(function(x){return '<option'+(fEstado===x?' selected':'')+'>'+x+'</option>';}).join('')+'</select></div><div class="field-group"><label>Agente</label><input value="'+esc(window._brAgente||'')+'" oninput="window._brAgente=this.value;renderBrotes()"></div><div class="field-group"><label>Servicio</label><select onchange="window._brServicio=this.value;renderBrotes()"><option value="">Todos</option>'+areas+'</select></div><div class="field-group"><label>Fecha inicio</label><input type="date" value="'+esc(fFecha)+'" onchange="window._brFecha=this.value;renderBrotes()"></div></div>'+section('Pendientes',['pendiente'])+section('Activos confirmados',['confirmado'])+section('Historial',['cerrado','descartado']);
+}
 
 /* ============================================================
    ESTADÍSTICAS
@@ -3480,6 +3555,9 @@ function renderStats(){
 
   // IAAS
   var iaasHtml=renderIaasSection(S,f,card,bar,bars,nodata);
+  var broteStats=computeBroteStats(f);
+  var broteMonth=brotesBars(broteStats.mensual,bar,nodata,'var(--red)');
+  var broteHtml='<div class="stats-grid">'+card('✅ Confirmados','<div class="stats-big">'+broteStats.confirmados+'</div><p style="font-size:11px;color:var(--muted)">Activos: '+broteStats.activos+' · Cerrados: '+broteStats.cerrados+'</p>')+card('👥 Casos asociados','<div class="stats-big">'+broteStats.casos+'</div><p style="font-size:11px;color:var(--muted)">Duración promedio: '+(broteStats.duracion===null?'—':broteStats.duracion+'d')+'</p>')+card('🦠 Agente más frecuente','<div class="stats-big" style="font-size:18px">'+esc(broteStats.agente||'—')+'</div>')+card('🏥 Servicio más frecuente','<div class="stats-big" style="font-size:18px">'+esc(broteStats.servicio||'—')+'</div>')+card('📈 Distribución mensual',broteMonth)+card('⚖️ Descartados vs confirmados',bar('Descartados',broteStats.descartados,Math.max(1,broteStats.descartados,broteStats.confirmados),'var(--amber)')+bar('Confirmados',broteStats.confirmados,Math.max(1,broteStats.descartados,broteStats.confirmados),'var(--teal)'))+'</div>';
 
   var areasSel=statsAreas();
   var preset=statsPreset();
@@ -3548,9 +3626,12 @@ function renderStats(){
     pobComparHtml+
     '<div class="stats-section-title">6 · 📋 IAAS (Infecciones Asociadas a la Atención Sanitaria)</div>'+
     iaasHtml+
-    '<div class="stats-section-title">7 · 🧭 Reporte Epidemiológico (Comité de Infecciones)</div>'+
+    '<div class="stats-section-title">7 · 🦠 Brotes</div>'+broteHtml+
+    '<div class="stats-section-title">8 · 🧭 Reporte Epidemiológico (Comité de Infecciones)</div>'+
     renderEpiSection(bar,nodata);
 }
+function computeBroteStats(f){var bs=getBrotes().filter(function(b){return(!f.desde||b.fechaInicio>=f.desde)&&(!f.hasta||b.fechaInicio<=f.hasta);}),conf=bs.filter(function(b){return b.estado==='confirmado'||b.estado==='cerrado';}),countsA={},countsS={},monthly={},dur=[];conf.forEach(function(b){countsA[b.agente]=(countsA[b.agente]||0)+1;countsS[b.areaName]=(countsS[b.areaName]||0)+1;if(b.fechaInicio)monthly[b.fechaInicio.slice(0,7)]=(monthly[b.fechaInicio.slice(0,7)]||0)+1;if(b.fechaFin){var d=daysBetween(b.fechaInicio,b.fechaFin);if(d!==null)dur.push(d);}});function top(m){return Object.keys(m).sort(function(a,b){return m[b]-m[a];})[0]||'';}return{confirmados:conf.length,activos:bs.filter(function(b){return b.estado==='confirmado';}).length,cerrados:bs.filter(function(b){return b.estado==='cerrado';}).length,descartados:bs.filter(function(b){return b.estado==='descartado';}).length,casos:conf.reduce(function(n,b){return n+(b.casosIncluidos?b.casosIncluidos.length:(b.casos||[]).length);},0),duracion:dur.length?Math.round(dur.reduce(function(a,b){return a+b;},0)/dur.length):null,agente:top(countsA),servicio:top(countsS),mensual:Object.keys(monthly).sort().map(function(k){return{label:k,n:monthly[k]};})};}
+function brotesBars(arr,bar,nodata,col){if(!arr.length)return nodata();var mx=arr.reduce(function(m,x){return Math.max(m,x.n);},1);return arr.map(function(x){return bar(x.label,x.n,mx,col);}).join('');}
 /* ============================================================
    F7 — REPORTE EPIDEMIOLÓGICO (semanal / mensual + comparativo)
    ============================================================ */
@@ -5119,7 +5200,7 @@ function renderAyuda(){
       '<span style="font-size:12px;color:var(--muted)">v1.0 · 2026</span></div>'+
     '<div class="ref-search" style="margin-top:10px"><input type="text" id="ayudaSearch" placeholder="🔎 Buscar en el manual…" oninput="ayudaFilter()"></div>'+
     '<div class="btn-row"><button class="btn btn-teal btn-sm" onclick="manualPDF()">📄 Descargar manual PDF</button></div>'+
-  '</div>';
+  '</div><div class="alert-box warn" style="margin-bottom:12px"><b>Posible brote</b> es una señal epidemiológica automática para revisión profesional; no constituye un diagnóstico confirmado.</div>';
   MANUAL_SECS.forEach(function(sec,i){
     html+='<div class="ref-section" id="aysec-'+i+'">'+
       '<div role="button" tabindex="0" onkeydown="isKey(event)" class="ref-section-title" onclick="ayudaSecToggle('+i+')">'+esc(sec.t)+'<span class="sec-caret">▶</span></div>'+
