@@ -291,6 +291,15 @@ label{font-size:12px;color:var(--muted);display:block;margin-bottom:3px}
 .fiche-head .fic{font-size:16px}
 .fiche-head .caret{margin-left:auto;color:var(--muted);transition:transform .2s;font-size:12px}
 .fiche.open .fiche-head{background:var(--teal-dim);color:var(--teal);border-bottom:1px solid var(--border)}
+/* BLOQUE 2 — acordeón de categorías de referencias */
+.ref-section{margin-bottom:8px}
+.ref-section-title{cursor:pointer;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:11px 14px;margin:0;box-shadow:var(--shadow);user-select:none;transition:background .15s}
+.ref-section-title:hover{background:var(--teal-dim2)}
+.ref-section-title .sec-caret{margin-left:auto;color:var(--muted);transition:transform .2s;font-size:12px}
+.ref-section.open .ref-section-title{color:var(--teal);border-color:var(--teal)}
+.ref-section.open .ref-section-title .sec-caret{transform:rotate(90deg)}
+.ref-section-body{display:none;padding:8px 0 2px}
+.ref-section.open .ref-section-body{display:block}
 .fiche.open .caret{transform:rotate(90deg)}
 .fiche-body{display:none;padding:14px;font-size:13px;line-height:1.65;color:var(--text)}
 .fiche.open .fiche-body{display:block}
@@ -4736,13 +4745,17 @@ function renderReferencias(){
   var secs=refSections();
   var html='<div class="ref-search"><input type="text" id="refSearch" placeholder="🔎 Buscar en referencias (germen, ATB, muestra, aislamiento…)" oninput="refFilter()"></div>';
   secs.forEach(function(sec,si){
-    html+='<div class="ref-section-title" data-refsec="'+si+'">'+sec.icon+' '+esc(sec.title)+'</div>';
+    var fiches='';
     sec.fiches.forEach(function(f,fi){
-      html+='<div class="fiche" id="fiche-'+si+'-'+fi+'">'+
+      fiches+='<div class="fiche" id="fiche-'+si+'-'+fi+'">'+
         '<div role="button" tabindex="0" onkeydown="isKey(event)" class="fiche-head" onclick="refToggle(\''+si+'-'+fi+'\')"><span class="fic">'+f.icon+'</span><span>'+esc(f.title)+'</span>'+refTag(f.tag)+'<span class="caret">▶</span></div>'+
         '<div class="fiche-body">'+f.body+'</div>'+
       '</div>';
     });
+    html+='<div class="ref-section" id="refsec-'+si+'" data-refsec="'+si+'">'+
+      '<div role="button" tabindex="0" onkeydown="isKey(event)" class="ref-section-title" onclick="refSecToggle('+si+')">'+sec.icon+' '+esc(sec.title)+'<span class="sec-caret">▶</span></div>'+
+      '<div class="ref-section-body">'+fiches+'</div>'+
+    '</div>';
   });
   html+='<div class="ref-none" id="refNone" style="display:none">Sin resultados para la búsqueda.</div>';
   document.getElementById('panelReferencias').innerHTML=html;
@@ -4752,6 +4765,14 @@ function renderReferencias(){
 
 function refToggle(id){ var el=document.getElementById('fiche-'+id); if(el) el.classList.toggle('open'); }
 
+/* BLOQUE 2 — acordeón de categoría: solo una abierta a la vez */
+function refSecToggle(si){
+  var el=document.getElementById('refsec-'+si); if(!el) return;
+  var wasOpen=el.classList.contains('open');
+  document.querySelectorAll('#panelReferencias .ref-section').forEach(function(s){ s.classList.remove('open'); });
+  if(!wasOpen) el.classList.add('open');
+}
+
 function refFilter(){
   var q=(document.getElementById('refSearch').value||'').toLowerCase().trim();
   var any=false;
@@ -4759,14 +4780,16 @@ function refFilter(){
     var txt=f.textContent.toLowerCase();
     var match=(q==='')||txt.indexOf(q)!==-1;
     f.style.display=match?'':'none';
-    if(match) any=true;
-    if(q!=='' && match) f.classList.add('open'); else if(q==='') f.classList.remove('open');
+    if(q!=='' && match){ f.classList.add('open'); any=true; }
+    else if(q===''){ f.classList.remove('open'); }
   });
-  // ocultar títulos de secciones sin fiches visibles
-  document.querySelectorAll('#panelReferencias .ref-section-title').forEach(function(t){
-    var n=t.nextElementSibling, visible=false;
-    while(n && n.classList.contains('fiche')){ if(n.style.display!=='none'){ visible=true; break; } n=n.nextElementSibling; }
-    t.style.display=(q!=='' && !visible)?'none':'';
+  // secciones: al buscar, abrir las que tengan coincidencias y ocultar las vacías; al limpiar, colapsar todas
+  document.querySelectorAll('#panelReferencias .ref-section').forEach(function(sec){
+    if(q===''){ sec.style.display=''; sec.classList.remove('open'); return; }
+    var visible=false;
+    sec.querySelectorAll('.fiche').forEach(function(f){ if(f.style.display!=='none') visible=true; });
+    sec.style.display=visible?'':'none';
+    sec.classList.toggle('open', visible);
   });
   var none=document.getElementById('refNone'); if(none) none.style.display=(!any && q!=='')?'block':'none';
 }
