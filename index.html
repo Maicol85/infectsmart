@@ -395,7 +395,7 @@ footer{text-align:center;padding:16px;color:var(--muted);font-size:11px;border-t
     <div style="display:flex;justify-content:flex-end;margin-top:18px">
       <button class="btn btn-teal btn-sm" onclick="doLogin()">Ingresar</button>
     </div>
-    <div class="login-logo" style="margin:16px 0 0"><div class="em">EasyMed</div></div>
+    <div class="login-logo" style="margin:16px 0 0"><div class="em">CeiboMed</div></div>
   </div>
 </div>
 
@@ -418,7 +418,7 @@ footer{text-align:center;padding:16px;color:var(--muted);font-size:11px;border-t
 
 <!-- ===================== CENTRO ===================== -->
 <div id="centroScreen">
-  <div class="brand"><div class="b1">EasyMed</div><div class="b2">InfectSmart — Infectología</div></div>
+  <div class="brand"><div class="b1">CeiboMed</div><div class="b2">InfectSmart — Infectología</div></div>
   <h2>Seleccionar Centro</h2>
   <p>¿Desde qué institución está accediendo?</p>
   <div style="margin:0 auto 16px;max-width:340px;width:100%;text-align:left">
@@ -514,7 +514,7 @@ footer{text-align:center;padding:16px;color:var(--muted);font-size:11px;border-t
   <footer>© 2026 Dr. M. D. S. y col. · InfectSmart · Todos los derechos reservados · Uso clínico exclusivo</footer>
 </div>
 
-<div id="easymed-corner">EasyMed</div>
+<div id="easymed-corner">CeiboMed</div>
 <div id="toast" role="status" aria-live="polite" style="position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--teal);color:#fff;padding:8px 18px;border-radius:20px;font-size:12px;font-weight:600;z-index:2000;display:none;box-shadow:0 4px 14px rgba(0,0,0,.3)"></div>
 
 <!-- ===================== MODALES ===================== -->
@@ -706,11 +706,11 @@ var COMORB=[
 ];
 
 /* Focos infecciosos */
-var FOCOS=['Pulmonar','Urinario','Abdominal','Piel y partes blandas','SNC','Bacteriemia','Otro'];
+var FOCOS=['Pulmonar','Urinario','Abdominal','Piel y partes blandas','Herida operatoria','SNC','Bacteriemia','Otro'];
 /* Muestras */
 var MUESTRAS=['Hemocultivo','Urocultivo','Aspirado traqueal','LBA','LCR','Herida','Punción abdominal','Catéter','Otro'];
 /* ATB para antibiograma */
-var ABG_ATBS=['Ampicilina','Amox-clav','Piperacilina-tazobactam','Cefazolina','Ceftriaxona','Cefepime','Ceftazidima','Meropenem','Ertapenem','Ciprofloxacina','Levofloxacina','Gentamicina','Amikacina','TMP-SMX','Vancomicina','Linezolid','Daptomicina','Colistina','Tigeciclina'];
+var ABG_ATBS=['Ampicilina','Amox-clav','Piperacilina-tazobactam','Cefazolina','Cefuroxime','Ceftriaxona','Cefepime','Ceftazidima','Meropenem','Ertapenem','Ciprofloxacina','Levofloxacina','Gentamicina','Amikacina','TMP-SMX','Nitrofurantoína','Vancomicina','Linezolid','Daptomicina','Colistina','Tigeciclina'];
 /* ===== IAAS (Infecciones Asociadas a la Atención Sanitaria) ===== */
 var ORIGEN_INF=['Comunitaria','Nosocomial (>48hs internación)','Asociada a procedimiento','Postoperatoria','Asociada a dispositivo','Relacionada a atención ambulatoria'];
 var PROCEDIMIENTOS=['Cirugía','Endoscopía','Cateterismo','Colocación CVC','Sondaje vesical','ARM','Drenaje','Otro'];
@@ -2233,6 +2233,16 @@ function infAbg(idx,atb,v){
   save();
   renderPtInfeccion();
 }
+/* BLOQUE 4B — CIM editable (texto libre). Guarda sin re-render para no perder el foco del input. */
+function infCim(idx,atb,val){
+  var p=currentPatient(); if(!p) return;
+  migrateInfecciones(p);
+  var inf=p.infecciones[idx]; if(!inf) return;
+  if(!inf.cim) inf.cim={};
+  if(val==='') delete inf.cim[atb]; else inf.cim[atb]=val;
+  mirrorPrimaryInfection(p);
+  save();
+}
 function infAdd(){
   var p=currentPatient(); if(!p) return;
   migrateInfecciones(p);
@@ -2306,9 +2316,10 @@ function renderPtInfeccion(){
     var mdrHtml=m?('<div class="alert-box danger">🟠 <b>Germen multirresistente ('+m.name+').</b> Protocolo sugerido: '+esc(m.protocolo)+'</div>'):'';
     var abgRows=ABG_ATBS.map(function(atb){
       var cur=(inf.abg&&inf.abg[atb])||'';
+      var cim=(inf.cim&&inf.cim[atb])||'';
       return '<tr><td class="atb-name">'+esc(atb)+'</td><td>'+
         ['S','I','R'].map(function(v){ return '<button class="sir-btn '+v+(cur===v?' active':'')+'" onclick="infAbg('+idx+',\''+atb.replace(/'/g,'')+'\',\''+v+'\')">'+v+'</button>'; }).join('')+
-        '</td></tr>';
+        '</td><td><input type="text" value="'+esc(cim)+'" oninput="infCim('+idx+',\''+atb.replace(/'/g,'')+'\',this.value)" placeholder="—" title="Concentración Inhibitoria Mínima (mg/L) — dato del informe del laboratorio" style="width:78px;padding:2px 6px;font-size:12px;text-align:center"></td></tr>';
     }).join('');
     return '<div class="section-card">'+
       '<h4 style="justify-content:space-between"><span>🦠 Infección #'+(idx+1)+'</span>'+
@@ -2323,7 +2334,7 @@ function renderPtInfeccion(){
         '<div class="field-group"><label>Estado</label><div class="calc-val'+(m?' danger':'')+'">'+(m?'MDR: '+m.name:(inf.germen?'Germen registrado':'—'))+'</div></div>'+
       '</div>'+mdrHtml+
       '<h4 style="margin-top:12px">🧫 Antibiograma (S / I / R)</h4>'+
-      '<table class="abg-table"><thead><tr><th style="text-align:left">Antibiótico</th><th>Sensibilidad</th></tr></thead><tbody>'+abgRows+'</tbody></table>'+
+      '<table class="abg-table"><thead><tr><th style="text-align:left">Antibiótico</th><th>Sensibilidad</th><th title="Concentración Inhibitoria Mínima (mg/L) — dato del informe del laboratorio">CIM</th></tr></thead><tbody>'+abgRows+'</tbody></table>'+
       '<p style="font-size:11px;color:var(--muted);margin-top:8px">S = Sensible · I = Susceptible, exposición aumentada (optimizar dosis/vía según EUCAST) · R = Resistente</p>'+
       '<p style="font-size:11px;color:var(--amber);margin-top:4px;background:var(--amber-dim);border-radius:6px;padding:6px 8px">ℹ️ La categoría <b>I</b> indica que el antibiótico puede ser eficaz con dosis aumentadas o vía IV. <b>No equivale a resistencia parcial.</b> EUCAST Clinical Breakpoints v16.1 (2026)</p>'+
       origenBlock(inf,idx)+
