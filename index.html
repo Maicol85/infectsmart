@@ -4812,7 +4812,9 @@ function refSections(){
     refFiche('🏥','Notificación y derivación — Uruguay','',
       '<ul><li>Notificar al jefe inmediato para activar el protocolo institucional.</li><li>Notificar al BSE (Banco de Seguros del Estado).</li><li>Derivar al trabajador antes de las 6 horas al BSE o prestador habilitado en el interior.</li><li>Consulta con infectólogo entre 72-96 h.</li><li>Registrar en Salud Ocupacional institucional (Ley 16074/88, Decreto 128/014).</li></ul>'+
       '<h5>Referencia oficial</h5><p>MSP Uruguay. Guía Nacional de Profilaxis Post Exposición Ocupacional y No Ocupacional. 2022. Elaborada con SICU, Fac. Medicina Udelar y Banco de Seguros del Estado.</p>'),
-    refFiche('🤖','Asistente de conducta PPE','MSP Uruguay 2022',ppeAssistantMarkup())
+    refFiche('🤖','Asistente de conducta PPE','MSP Uruguay 2022',ppeAssistantMarkup()),
+    refFiche('📄','PDF PPE completo','médico + paciente',
+      '<p>Genera un formulario completo de dos páginas: hoja de registro para el médico y hoja informativa para el paciente.</p><button type="button" class="btn btn-teal btn-sm" onclick="generarPDFPPE()">📄 Generar PDF PPE completo</button>')
   ]}
   ];
 }
@@ -4931,28 +4933,134 @@ function ppeShowDetail(kind){
 }
 
 function ppePrintConduct(){
+  generarPDFPPE({
+    exposicion:ppeState.exposure,
+    tiempo:ppeState.elapsed,
+    fuente:ppeState.source,
+    conducta:'PPE VIH recomendada',
+    esquema:'TDF/FTC 300/200 mg + Dolutegravir 50 mg por 28 días'
+  });
+}
+
+function generarPDFPPE(datosAsistente){
   var JsPDF=getJsPDF();
   if(!JsPDF){ toast('No se pudo cargar el generador de PDF'); return; }
-  var doc=new JsPDF(); var y=18, L=16, maxW=178; var now=new Date();
-  function line(text,bold,size,gap){
-    if(y>278){ doc.addPage(); y=18; }
-    doc.setFont(undefined,bold?'bold':'normal'); doc.setFontSize(size||10);
-    var lines=doc.splitTextToSize(text,maxW); doc.text(lines,L,y); y+=lines.length*((size||10)*0.48)+(gap===undefined?2:gap);
+  var doc=new JsPDF({unit:'mm',format:'a4'}); var now=new Date(); var data=datosAsistente||{};
+  var navy=[15,23,42], blue=[29,78,216], teal=[0,128,110], gray=[75,85,99], light=[244,246,250], red=[185,28,28];
+  var bodySize=7.2, leading=3.25;
+  function color(c){ doc.setTextColor(c[0],c[1],c[2]); }
+  function section(x,y,w,title,items,accent){
+    var titleLines=doc.splitTextToSize(title,w-6); var h=7+titleLines.length*3.5;
+    items.forEach(function(item){ h+=doc.splitTextToSize(typeof item==='string'?item:item.text,w-6).length*leading; });
+    h+=3;
+    doc.setFillColor(light[0],light[1],light[2]); doc.setDrawColor(210,216,226); doc.roundedRect(x,y,w,h,2,2,'FD');
+    doc.setFillColor((accent||teal)[0],(accent||teal)[1],(accent||teal)[2]); doc.rect(x,y,w,6,'F');
+    doc.setFont(undefined,'bold'); doc.setFontSize(8); doc.setTextColor(255,255,255); doc.text(titleLines,x+3,y+4.2);
+    var cy=y+9+Math.max(0,titleLines.length-1)*3.5;
+    items.forEach(function(item){
+      var obj=typeof item==='string'?{text:item}:item; var ls=doc.splitTextToSize(obj.text,w-6);
+      doc.setFont(undefined,obj.bold?'bold':'normal'); doc.setFontSize(obj.size||bodySize); color(obj.color||navy); doc.text(ls,x+3,cy); cy+=ls.length*leading;
+    });
+    return y+h+2;
   }
-  line('CONDUCTA PPE — '+now.toLocaleString('es-UY'),true,15,5);
-  line('Tipo de exposición: '+(ppeState.exposure||'No registrado'),false,10,1);
-  line('Tiempo transcurrido: '+(ppeState.elapsed||'No registrado'),false,10,1);
-  line('Estado fuente: '+(ppeState.source||'No registrado'),false,10,5);
-  line('CONDUCTA RECOMENDADA',true,12,3);
-  line('PPE VIH recomendada. Acción inmediata: lavar la zona con agua y jabón; notificar al jefe; llamar al BSE o Infectólogo de guardia; iniciar PPE antes de 72 horas, idealmente antes de 2 horas.',false,10,3);
-  line('Esquema: TDF/FTC 300/200 mg, 1 comprimido por día + Dolutegravir 50 mg, 1 comprimido por día, durante 28 días. No interrumpir.',true,10,3);
-  line('Paraclínica basal: VIH de 4ª generación, VHB, VHC, hemograma, función renal, hepatograma y muestra de sangre de la fuente si es accesible.',false,10,3);
-  line('Seguimiento: 4-6 semanas (VIH, ARN VHC, función renal); 12 semanas (VIH, VHC); 24 semanas (VIH, Anti-VHC).',false,10,3);
-  line('Próxima consulta: BSE / Infectólogo en 72-96 h.',true,10,5);
-  line('Referencia: MSP Uruguay. Guía Nacional PPE 2022.',false,9,1);
-  line('Generado por InfectSmart · CeiboMed · '+now.toLocaleString('es-UY'),false,9,1);
-  doc.save('conducta_ppe_infectsmart.pdf');
-  toast('Conducta PPE generada');
+  function header(title,subtitle){
+    doc.setFillColor(navy[0],navy[1],navy[2]); doc.rect(0,0,210,27,'F');
+    doc.setFont(undefined,'bold'); doc.setFontSize(11); doc.setTextColor(255,255,255); doc.text('CeiboMed · InfectSmart',10,8,{align:'left'});
+    doc.setFontSize(14); doc.text(doc.splitTextToSize(title,190),10,15,{align:'left'});
+    doc.setFont(undefined,'normal'); doc.setFontSize(7.5); doc.text(subtitle,10,24,{align:'left'});
+  }
+  function footer(page,notice){
+    doc.setDrawColor(210,216,226); doc.line(10,280,200,280);
+    doc.setFont(undefined,'normal'); doc.setFontSize(6.6); color(gray);
+    doc.text('Referencia: MSP Uruguay. Guía Nacional de Profilaxis Post Exposición 2022.',10,284,{align:'left'});
+    doc.text('Generado por InfectSmart · CeiboMed · '+now.toLocaleString('es-UY'),10,287,{align:'left'});
+    if(notice){ doc.setFont(undefined,'bold'); color(red); doc.text(notice,200,284,{align:'right'}); }
+    doc.setFont(undefined,'bold'); color(navy); doc.text('Página '+page+' de 2',200,287,{align:'right'});
+  }
+  function followupTable(y){
+    var x=10, widths=[27,24,20,20,20,48,31], heads=['Fecha','Semana','VIH','VHC','VHB','Función renal','Firma'];
+    doc.setFontSize(6.5); doc.setFont(undefined,'bold'); doc.setFillColor(230,234,241); doc.rect(x,y,190,6,'F');
+    var cx=x; heads.forEach(function(h,i){ doc.setDrawColor(190,198,210); doc.rect(cx,y,widths[i],6); color(navy); doc.text(h,cx+1.5,y+4); cx+=widths[i]; });
+    ['4-6 sem','12 sem','24 sem'].forEach(function(week,r){ cx=x; widths.forEach(function(w,i){ doc.rect(cx,y+6+r*6,w,6); if(i===0) doc.text('___/___/___',cx+1.5,y+10+r*6); if(i===1) doc.text(week,cx+1.5,y+10+r*6); cx+=w; }); });
+    return y+25;
+  }
+
+  header('REGISTRO DE ACCIDENTE CON EXPOSICIÓN A FLUIDOS BIOLÓGICOS','Hoja para el médico · Fecha y hora de consulta: '+now.toLocaleString('es-UY'));
+  var prefilled=!!datosAsistente;
+  var py=section(10,30,190,'DATOS DEL ASISTENTE',[
+    {text:'Tipo de exposición: '+(data.exposicion||'____________________________'),color:prefilled?blue:gray,bold:prefilled},
+    {text:'Tiempo transcurrido: '+(data.tiempo||'____________________________'),color:prefilled?blue:gray,bold:prefilled},
+    {text:'Estado de la fuente: '+(data.fuente||'____________________________'),color:prefilled?blue:gray,bold:prefilled},
+    {text:'Conducta / esquema: '+([data.conducta,data.esquema].filter(Boolean).join(' · ')||'____________________________'),color:prefilled?blue:gray,bold:prefilled}
+  ],blue);
+  var leftY=py, rightY=py;
+  leftY=section(10,leftY,92,'1. DATOS DEL ACCIDENTADO',[
+    'Nombre: ______________________________','Cargo/función: ________________________','Sector: _______________________________',
+    'Vacunación VHB: [ ] Completa  [ ] Incompleta','[ ] No vacunado  [ ] Desconocida','Anti-HBs: [ ] >=10  [ ] <10  [ ] Desconocido'
+  ]);
+  leftY=section(10,leftY,92,'2. DATOS DEL ACCIDENTE',[
+    '[ ] Punción percutánea profunda','[ ] Punción percutánea superficial','[ ] Corte con bisturí  [ ] Exposición de mucosas','[ ] Exposición sexual  [ ] Otro: ____________',
+    'Fluido: [ ] Sangre  [ ] LCR  [ ] Amniótico','[ ] Pleural  [ ] Peritoneal  [ ] Semen','[ ] Secreciones vaginales  [ ] Desconocido','Tiempo transcurrido: ______ horas','Fecha y hora del accidente: ______________'
+  ]);
+  leftY=section(10,leftY,92,'3. DATOS DEL PACIENTE FUENTE',[
+    '[ ] VIH+ - CV: [ ] Indetectable [ ] Detectable','[ ] CV desconocida - TARV: [ ] Sí [ ] No','[ ] VIH desconocido - Riesgo: [ ] Sí [ ] No','[ ] VIH negativo documentado','[ ] Fuente inaccesible/desconocida','VHB: [ ] AgHBs+ [ ] AgHBs- [ ] Desconocido','VHC: [ ] Anti-VHC+ [ ] Anti-VHC- [ ] Desconocido'
+  ]);
+  leftY=section(10,leftY,92,'4. PARACLÍNICA BASAL (HOY)',[
+    '[ ] VIH 4ª generación (Ag/Ac)','[ ] AgHBs + Anti-HBs + Anti-HBc','[ ] Anti-VHC  [ ] Hemograma','[ ] Urea/Creatinina (ClCr: ____ mL/min)','[ ] Hepatograma','[ ] RPR/VDRL (si exposición sexual)','[ ] Sangre de la fuente enviada al BSE'
+  ]);
+  rightY=section(108,rightY,92,'5. CONDUCTA Y TRATAMIENTO',[
+    'PPE VIH: [ ] Sí  [ ] No  [ ] A evaluar','Si Sí - esquema indicado:','[ ] TDF/FTC 300/200 + DTG 50 mg, 1/día','    PREFERIDO - MSP Uruguay 2022','[ ] TAF/FTC 25/200 + DTG 50 mg','    Si ClCr 30-60 mL/min','[ ] TDF/FTC + Raltegravir 400 mg c/12 h','[ ] Otro: ______________________________','Duración: 28 días','Inicio: __________  Fin estimado: __________','PPE VHB:','[ ] No requiere (vacunado respondedor)','[ ] IGHB ____ UI + Vacuna VHB (dosis 1)','[ ] Solo vacuna VHB  [ ] No indicada','Si exposición sexual - ATB profilácticos:','[ ] Ceftriaxona 500 mg IM dosis única','[ ] Azitromicina 1 g VO dosis única','[ ] Metronidazol 2 g VO dosis única'
+  ]);
+  rightY=section(108,rightY,92,'7. EFECTOS ADVERSOS A VIGILAR',[
+    '- Náuseas, vómitos, diarrea','- Cefalea, mareos, insomnio (Dolutegravir)','- Ictericia o dolor abdominal','- Mialgias intensas (miopatía - INSTI)','- Fiebre + rash (hipersensibilidad)','- Función renal (Tenofovir)','NO suspender sin consultar al médico.'
+  ],red);
+  rightY=section(108,rightY,92,'FIRMA Y SELLO',[
+    'Médico que indicó PPE: __________________','Firma: ______________  Fecha: ____________','Institución: _____________________________'
+  ]);
+  var planY=Math.max(leftY,rightY);
+  doc.setFillColor(teal[0],teal[1],teal[2]); doc.rect(10,planY,190,6,'F'); doc.setFont(undefined,'bold'); doc.setFontSize(8); doc.setTextColor(255,255,255); doc.text('6. PLAN DE SEGUIMIENTO',13,planY+4.2);
+  doc.setFont(undefined,'normal'); doc.setFontSize(bodySize); color(navy);
+  doc.text('Próxima consulta (72-96 h): ___/___/___   Médico responsable: ______________________________',13,planY+10);
+  var tableEnd=followupTable(planY+13);
+  doc.setFontSize(6.8); color(navy); doc.text('[ ] Jefe de servicio - Hora: ____    [ ] BSE notificado - Hora: ____    [ ] Salud Ocupacional - Hora: ____',13,tableEnd+3);
+  footer(1,'Documento clínico - completar y firmar');
+
+  doc.addPage();
+  header('INFORMACIÓN PARA EL PACIENTE · PROFILAXIS POST EXPOSICIÓN (PPE)','Hoja para el paciente · Fecha: '+now.toLocaleString('es-UY')+' · Institución: ____________________');
+  var pLeft=30, pRight=30;
+  pLeft=section(10,pLeft,92,'A. ¿QUÉ ES LA PPE?',[
+    'La PPE son medicamentos antirretrovirales que se toman por 28 días para reducir el riesgo de infección por VIH después de una exposición.',
+    {text:'La PPE NO garantiza protección total.',bold:true,color:red},
+    {text:'Debe iniciarse lo antes posible, máximo 72 horas después.',bold:true},
+    {text:'Es fundamental completar los 28 días aunque te sientas bien.',bold:true}
+  ],blue);
+  pLeft=section(10,pLeft,92,'B. TU MEDICACIÓN',[
+    {text:'Medicamento: '+(data.esquema||'____________________________'),color:prefilled?blue:navy,bold:prefilled},
+    'Dosis: ____ comprimido(s) por día','Horario: ______________________________','Inicio: ______________  Finalización: __________','Total de comprimidos: ____',
+    {text:'IMPORTANTE',bold:true,color:blue},'- Tomá el medicamento todos los días a la misma hora.','- No suspendas sin consultar, aunque tengas efectos secundarios.','- Si olvidás una dosis, tomala cuanto antes y continuá normalmente.','- No tomes con antiácidos o multivitaminas: pueden reducir la absorción.'
+  ]);
+  pLeft=section(10,pLeft,92,'C. POSIBLES EFECTOS SECUNDARIOS',[
+    'Leves (no requieren suspender):','- Náuseas o malestar: tomalos con comida.','- Dolor de cabeza o cansancio: suelen mejorar.','- Diarrea: tomá abundante líquido.',
+    {text:'CONSULTAR URGENTE SI APARECE:',bold:true,color:red},'- Fiebre con rash.','- Ictericia (piel u ojos amarillos).','- Dolor muscular intenso.','- Orinar menos o con espuma.','- Vómitos que no ceden.','En caso de duda llamá a: __________________'
+  ],red);
+  pLeft=section(10,pLeft,92,'D. CONDUCTA SEXUAL DURANTE LA PPE',[
+    'Durante los 28 días y hasta el control final a los 6 meses:','- USAR PRESERVATIVO en relaciones vaginales, anales y orales.','- INFORMAR a tu pareja para que pueda controlarse.','- NO donar sangre, órganos ni tejidos.','- NO compartir jeringas, agujas ni artículos de higiene personal.','- Embarazo o lactancia: consultá urgente.','La PPE no protege contra otras ITS; el preservativo sigue siendo fundamental.'
+  ]);
+  pRight=section(108,pRight,92,'E. TUS CONTROLES',[
+    '1ª consulta (72-96 h): ___/___/___ Hora: ____','Lugar: _______________________________','Para: tolerancia y resultados de laboratorio.','2ª consulta (4-6 semanas): ___/___/___','Para: VIH, hepatitis y función renal.','3ª consulta (3 meses): ___/___/___','Para: análisis de control.','4ª consulta (6 meses): ___/___/___','Para: análisis final y alta del seguimiento.','Si no podés concurrir, avisá para reprogramar. El seguimiento importa aunque te sientas bien.'
+  ],blue);
+  pRight=section(108,pRight,92,'F. RIESGOS REALES',[
+    'El riesgo de VIH por punción accidental de una fuente positiva es bajo pero real:','- Punción: 0.3% (3 en 1000).','- Mucosas: 0.09% (1 en 1111).','La PPE reduce el riesgo si se toma correctamente durante 28 días.','Otros riesgos por punción:','- Hepatitis B: hasta 31% (sin vacuna).','- Hepatitis C: 0.2-1.8%.'
+  ]);
+  pRight=section(108,pRight,92,'G. SEÑALES DE ALARMA',[
+    'Síndrome retroviral agudo - consultar inmediatamente:','- Fiebre + ganglios inflamados + rash.','- Fatiga intensa + dolores musculares.','- Dolor de garganta + úlceras en boca.','Pueden aparecer entre 2 y 6 semanas post exposición.','Si los presentás: CONSULTAR URGENTE.'
+  ],red);
+  pRight=section(108,pRight,92,'H. CONTACTOS',[
+    'Médico tratante: ________________________','Teléfono: ______________________________','Infectólogo de referencia: ________________','Teléfono guardia: ________________________','BSE (emergencia): _______________________','Montevideo: Emergencia Hospital BSE.','Interior: prestador habilitado BSE.'
+  ]);
+  footer(2,'Orientativo: no reemplaza la indicación médica');
+  doc.save('PPE_completo_InfectSmart.pdf');
+  toast('PDF PPE completo generado');
 }
 
 function renderReferencias(){
