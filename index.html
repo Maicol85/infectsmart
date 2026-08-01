@@ -4766,6 +4766,37 @@ function refSections(){
       refFiche('📝','10. Documentación en InfectSmart','','<p>Durante el brote, registrar en InfectSmart:</p><ul><li>Todos los casos con fecha, sector y cama.</li><li>Gérmenes aislados con mecanismo de resistencia.</li><li>Aislamientos implementados por paciente.</li><li>IAAS confirmadas según definición adoptada.</li><li>Intervenciones PROA relacionadas.</li><li>Alertas MDR generadas.</li></ul>'),
       refFiche('📚','11. Referencias normativas','','<ul><li>Decreto 274/010 — MSP Uruguay.</li><li>SINAVE — Sistema Nacional de Vigilancia Epidemiológica, MSP Uruguay.</li><li>OPS/OMS — Gestión de brotes infecciosos 2022.</li><li>CDC — Principles of Epidemiology in Public Health Practice, 3ª ed.</li><li>SHEA/IDSA — Compendium of Strategies to Prevent Healthcare-Associated Infections.</li></ul>'),
       refFiche('📋','Descargar checklist de brote (PDF)','','<p>Genera un PDF con los checklists de los puntos 6, 7, 8 y 9 con casillas para marcar durante el brote.</p><button class="btn btn-teal btn-sm" onclick="brotesChecklistPDF()">📋 Descargar checklist de brote (PDF)</button>')
+  ]},
+  {icon:'💉',title:'PROFILAXIS POST EXPOSICIÓN (PPE)',fiches:[
+    refFiche('⚡','Acción inmediata','',
+      '<ul><li>Estimular suavemente el sangrado en el lugar de la punción.</li><li>Lavar con agua y jabón — <b>NO usar antisépticos</b>.</li><li>Mucosas: lavar abundantemente con agua o solución salina normal.</li><li>Cubrir con apósito impermeable.</li><li>Notificar al jefe inmediatamente.</li><li>Activar BSE antes de las 6 horas del accidente.</li><li>Llevar muestra de sangre de la fuente (1 tubo EDTA + 1 tubo seco) al BSE.</li></ul>'),
+    refFiche('🔴','Evaluación de riesgo VIH','',
+      '<h5>Alto riesgo — PPE recomendada</h5><ul><li>Punción profunda con sangre visible.</li><li>Aguja hueca recién usada en vaso sanguíneo.</li><li>Exposición de mucosas a fluido de alto riesgo.</li><li>Fuente VIH+ con CV desconocida o detectable.</li><li>Fuente desconocida con factores de riesgo.</li><li>Abuso sexual.</li></ul>'+
+      '<h5>Bajo riesgo — evaluación individual</h5><ul><li>Punción superficial sin sangre visible.</li><li>Aguja sólida o de sutura.</li><li>Fuente VIH+ con CV indetectable &gt;6 meses en TARV estable.</li></ul>'+
+      '<h5>Sin indicación</h5><ul><li>Piel íntegra.</li><li>Aguja abandonada en comunidad.</li><li>Fluidos no infecciosos (orina, saliva sin sangre).</li><li>Fuente VIH negativa conocida.</li></ul>'),
+    refFiche('💊','Esquemas PPE VIH — Adultos','',
+      '<h5>Esquema preferido</h5><ul><li><b>TDF/FTC 300/200 mg</b> — 1 comprimido/día + <b>dolutegravir 50 mg</b> — 1 comprimido/día.</li><li>Duración: <b>28 días (NO interrumpir)</b>.</li><li>Iniciar antes de 72 h (ideal en las primeras 2 h).</li></ul>'+
+      '<h5>Alternativas</h5><ul><li>Si ClCr 30-60 mL/min: TAF/FTC 25/200 mg/día.</li><li>Si no hay FTC: TDF 300 mg + 3TC 150 mg c/12 h.</li></ul>'+
+      '<h5>Contraindicados en PPE</h5><ul><li>Abacavir (hipersensibilidad).</li><li>Nevirapina (hepatotoxicidad).</li><li>Efavirenz (toxicidad neurológica).</li></ul>'+
+      '<p>Evaluar interacciones en: <a href="https://www.hiv-druginteractions.org/" target="_blank" rel="noopener">hiv-druginteractions.org</a> (Universidad Liverpool).</p>'),
+    refFiche('🩸','Fluidos y riesgo de transmisión','',
+      '<h5>Alto riesgo</h5><p>Sangre · LCR · Líquido amniótico · Pleural · Peritoneal · Pericárdico · Sinovial · Semen · Secreciones vaginales · Leche materna.</p>'+
+      '<h5>Bajo riesgo (sin sangre visible)</h5><p>Saliva · Heces · Orina · Vómito · Esputo.</p>'+
+      '<h5>Riesgo de transmisión por punción (fuente +)</h5><ul><li>VHB: 1:3 (HBe+) / 1:17 (HBe-).</li><li>VHC: 1:30 (0.2–1.8%).</li><li>VIH: 1:300 (0.23%).</li></ul>'),
+    refFiche('💉','PPE Hepatitis B (VHB)','',
+      '<h5>Vacunado respondedor (Anti-HBs ≥10 UI/L)</h5><p>→ No requiere profilaxis.</p>'+
+      '<h5>No vacunado / no respondedor (Anti-HBs &lt;10)</h5><ul><li>IGHB 500 UI IM + vacuna VHB.</li><li>Vacuna dentro de las 24 h de la exposición.</li><li>IGHB idealmente dentro de 48 h (máx. 7 días).</li><li>Aplicar en sitios diferentes.</li></ul>'+
+      '<h5>Vacunado con respuesta desconocida</h5><ul><li>1 dosis de vacuna + chequear Anti-HBs.</li><li>Si &lt;10 UI: completar serie de 3 dosis.</li></ul>'),
+    refFiche('⚠','PPE Hepatitis C (VHC)','',
+      '<p><b>No existe profilaxis farmacológica eficaz para VHC.</b></p>'+
+      '<h5>Seguimiento</h5><ul><li>Semana 4-6: ARN VHC + enzimas hepáticas.</li><li>Semana 12: ARN VHC + enzimas hepáticas.</li><li>Semana 24: Anti-VHC + enzimas hepáticas.</li></ul>'+
+      '<p>Si se detecta infección aguda: derivar inmediatamente a infectólogo para tratamiento (alta eficacia con tratamiento en fase aguda).</p>'),
+    refFiche('🔬','Paraclínica basal y seguimiento','',
+      '<h5>Basal (al momento de la exposición)</h5><ul><li>VIH: prueba 4ª generación (Ag/Ac).</li><li>VHB: AgHBs + Anti-HBs + Anti-HBc.</li><li>VHC: Anti-VHC.</li><li>Hemograma · Urea/creatinina · Hepatograma.</li><li>Si exposición sexual: RPR/VDRL.</li></ul>'+
+      '<h5>Seguimiento</h5><ul><li>4-6 semanas: VIH · ARN VHC · función renal.</li><li>12 semanas: VIH · VHC · enzimas hepáticas.</li><li>24 semanas: VIH · VHC · Anti-VHC.</li></ul>'),
+    refFiche('🏥','Notificación y derivación — Uruguay','',
+      '<ul><li>Notificar al jefe inmediato para activar el protocolo institucional.</li><li>Notificar al BSE (Banco de Seguros del Estado).</li><li>Derivar al trabajador antes de las 6 horas al BSE o prestador habilitado en el interior.</li><li>Consulta con infectólogo entre 72-96 h.</li><li>Registrar en Salud Ocupacional institucional (Ley 16074/88, Decreto 128/014).</li></ul>'+
+      '<h5>Referencia oficial</h5><p>MSP Uruguay. Guía Nacional de Profilaxis Post Exposición Ocupacional y No Ocupacional. 2022. Elaborada con SICU, Fac. Medicina Udelar y Banco de Seguros del Estado.</p>')
   ]}
   ];
 }
