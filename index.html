@@ -118,6 +118,7 @@ label{font-size:12px;color:var(--muted);display:block;margin-bottom:3px}
 .bed-card:hover{border-color:var(--teal);transform:translateY(-1px)}
 .bed-card.aisl-contacto{border-left:5px solid var(--orange)}
 .bed-card.aisl-aereo{border-left:5px solid var(--red)}
+.bed-card.mdr-previo{outline:2px dashed var(--red);outline-offset:-2px}
 .bed-card.pending{background:var(--amber-dim)}
 .bed-card .bed-num{font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px}
 .bed-card .bed-name{font-size:13px;font-weight:600;color:var(--text);margin:2px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -725,12 +726,17 @@ function origenRequiereProc(o){ return o==='Postoperatoria' || o==='Asociada a p
 var IAAS_UMBRAL_KEY='infectsmart_iaas_umbral';
 function getIaasUmbral(){ var v=parseFloat(localStorage.getItem(IAAS_UMBRAL_KEY)); return (isNaN(v)||v<0)?5:v; }
 function setIaasUmbral(v){ v=parseFloat(v); if(isNaN(v)||v<0) v=5; localStorage.setItem(IAAS_UMBRAL_KEY,String(v)); }
+/* BLOQUE 5 — Período de vigilancia MDR configurable (meses, default 12) */
+var MDR_SURV_KEY='infectsmart_mdr_surv_months';
+function getMdrSurvMonths(){ var v=parseInt(localStorage.getItem(MDR_SURV_KEY),10); return (isNaN(v)||v<1)?12:v; }
+function setMdrSurvMonths(v){ v=parseInt(v,10); if(isNaN(v)||v<1) v=12; localStorage.setItem(MDR_SURV_KEY,String(v)); }
 /* Parámetros de paraclínica */
+/* ref = valor de referencia orientativo (línea punteada en el gráfico de evolución) */
 var PARA_PARAMS=[
-  {k:'pcr',label:'PCR (mg/L)'},{k:'pct',label:'PCT (ng/mL)'},{k:'gb',label:'GB (x10³)'},
-  {k:'hb',label:'Hb (g/dL)'},{k:'pqt',label:'Plaquetas'},{k:'creat',label:'Creatinina'},
-  {k:'urea',label:'Urea'},{k:'tgo',label:'TGO'},{k:'tgp',label:'TGP'},
-  {k:'bili',label:'Bilirrubina'},{k:'glu',label:'Glucemia'}
+  {k:'pcr',label:'PCR (mg/L)',ref:5},{k:'pct',label:'PCT (ng/mL)',ref:0.5},{k:'gb',label:'GB (x10³)',ref:11},
+  {k:'hb',label:'Hb (g/dL)',ref:12},{k:'pqt',label:'Plaquetas',ref:150},{k:'creat',label:'Creatinina',ref:1.2},
+  {k:'urea',label:'Urea',ref:50},{k:'tgo',label:'TGO',ref:40},{k:'tgp',label:'TGP',ref:40},
+  {k:'bili',label:'Bilirrubina',ref:1.2},{k:'glu',label:'Glucemia',ref:110}
 ];
 var ETIQUETAS=['ASSE','Mutualista','Particular','Externo','Investigación'];
 
@@ -1281,6 +1287,8 @@ function renderBeds(){
       // infección cruzada
       if(hasCrossAlert(p)) badges+='<span class="bed-badge" style="color:var(--red)" title="Infección cruzada">🔴</span>';
       if(p.lastTransfer && (Date.now()-new Date(p.lastTransfer).getTime())<864e5) badges+='<span class="bed-badge" title="Transferido en las últimas 24 h">🔄</span>';
+      // BLOQUE 5 — indicador de riesgo MDR previo (antecedente dentro del período de vigilancia)
+      if(findMdrAntecedent(p)){ cls+=' mdr-previo'; badges+='<span class="bed-badge" style="color:var(--red)" title="Antecedente MDR en internación previa — evaluar precauciones de contacto y cultivos de vigilancia">🛡️</span>'; }
       eyeBtn='<button class="bed-eye" title="Vista rápida" onclick="event.stopPropagation();openQuickPanel('+state.activeArea+','+bi+')">👁️</button>';
     } else {
       cls+=' empty';
@@ -1315,6 +1323,7 @@ function _buildBedCard(ai,bi){
     badges=bedBadges(p);
     if(hasCrossAlert(p)) badges+='<span class="bed-badge" style="color:var(--red)" title="Infección cruzada">🔴</span>';
     if(p.lastTransfer && (Date.now()-new Date(p.lastTransfer).getTime())<864e5) badges+='<span class="bed-badge" title="Transferido en las últimas 24 h">🔄</span>';
+    if(findMdrAntecedent(p)){ cls+=' mdr-previo'; badges+='<span class="bed-badge" style="color:var(--red)" title="Antecedente MDR en internación previa — evaluar precauciones de contacto y cultivos de vigilancia">🛡️</span>'; }
     eyeBtn='<button class="bed-eye" title="Vista rápida" onclick="event.stopPropagation();openQuickPanel('+ai+','+bi+')">👁️</button>';
   } else {
     cls+=' empty';
@@ -1530,6 +1539,92 @@ function findPreviousAdmission(p){
   hits.sort(function(a,b){ return (b.fechaEgreso||'').localeCompare(a.fechaEgreso||''); });
   var g=hits.find(function(h){ return h.germen; });
   return g||hits[0];
+}
+
+/* ============================================================
+   BLOQUE 5+6 — Internaciones previas y antecedente MDR persistente
+   ============================================================ */
+/* Todas las internaciones previas del paciente (match por CI/documento; si no hay CI, por nombre). */
+function findAllPreviousAdmissions(p){
+  if(!p) return [];
+  var egres=getEgresados();
+  var ci=(p.ci||'').trim().toLowerCase(), nm=(p.name||'').trim().toLowerCase();
+  if(!ci && !nm) return [];
+  var hits=egres.filter(function(e){
+    if(e.id && p.id && e.id===p.id) return false; // no incluir un eventual registro del mismo id
+    var eci=(e.ci||'').trim().toLowerCase(), enm=(e.name||'').trim().toLowerCase();
+    return (ci && eci) ? (ci===eci) : (nm && enm && nm===enm);
+  });
+  hits.sort(function(a,b){ return (b.fechaEgreso||'').localeCompare(a.fechaEgreso||''); });
+  return hits;
+}
+/* Gérmenes MDR de un registro de egresado (germen primario + todas las infecciones). */
+function egresadoMdrGerms(e){
+  if(!e) return [];
+  var gs=[];
+  if(e.germen && isMDR(e.germen)) gs.push(e.germen);
+  (e.infecciones||[]).forEach(function(inf){ if(inf && inf.germen && isMDR(inf.germen) && gs.indexOf(inf.germen)<0) gs.push(inf.germen); });
+  return gs;
+}
+/* Antecedente MDR dentro del período de vigilancia configurable. Devuelve {germen,fecha,dias} o null. */
+function findMdrAntecedent(p){
+  var months=getMdrSurvMonths();
+  var cutoff=(function(){ var d=new Date(); d.setMonth(d.getMonth()-months); return d.toISOString().slice(0,10); })();
+  var hits=findAllPreviousAdmissions(p); // ya ordenadas por fechaEgreso desc
+  for(var i=0;i<hits.length;i++){
+    var e=hits[i]; var gs=egresadoMdrGerms(e);
+    if(!gs.length) continue;
+    if((e.fechaEgreso||'') >= cutoff){
+      return { germen:gs.join(', '), fecha:e.fechaEgreso||'', dias:daysBetween(e.fechaEgreso,todayStr()) };
+    }
+  }
+  return null;
+}
+/* Panel colapsable de solo lectura con las internaciones previas (BLOQUE 6). */
+var IAAS_TIPO_LBL={nav:'NAV',cvc:'Bacteriemia CVC',itu:'ITU sonda',isq:'ISQ'};
+function _mdrSensPill(atb,val){
+  var col=(val==='R')?'var(--red)':((val==='I')?'var(--amber)':'var(--teal)');
+  return '<span style="display:inline-block;margin:1px 3px 1px 0;padding:1px 5px;border-radius:4px;background:'+col+';color:#fff;font-size:10px">'+esc(atb)+': '+esc(val)+'</span>';
+}
+function renderPrevAdmissionsPanel(list){
+  if(!list || !list.length) return '';
+  var rows=list.map(function(e){
+    var infs=(e.infecciones && e.infecciones.length)?e.infecciones:[{germen:e.germen,muestra:e.foco,fechaCultivo:'',abg:{},origen:''}];
+    var germHtml=infs.filter(function(inf){ return inf && inf.germen; }).map(function(inf){
+      var mdr=isMDR(inf.germen);
+      var abgKeys=Object.keys(inf.abg||{});
+      var pills=abgKeys.length?abgKeys.map(function(k){ return _mdrSensPill(k,inf.abg[k]); }).join(''):'<span style="color:var(--muted);font-size:11px">sin antibiograma</span>';
+      return '<div style="margin:4px 0">🦠 <b'+(mdr?' style="color:var(--red)"':'')+'>'+esc(inf.germen)+'</b>'+(mdr?' <span style="color:var(--red);font-weight:700">[MDR]</span>':'')+
+        (inf.muestra?' <span style="color:var(--muted);font-size:11px">('+esc(inf.muestra)+(inf.fechaCultivo?' · '+esc(inf.fechaCultivo):'')+')</span>':'')+
+        '<div style="margin-top:2px">'+pills+'</div></div>';
+    }).join('') || '<span style="color:var(--muted);font-size:11px">Sin gérmenes aislados</span>';
+    var atbHtml;
+    if(e.atb && e.atb.length){
+      atbHtml=e.atb.filter(function(x){ return x && x.atb; }).map(function(x){
+        var d=(x.dias!=null&&x.dias!=='')?x.dias:((x.inicio&&x.fin)?daysBetween(x.inicio,x.fin):(x.inicio?daysSince(x.inicio):''));
+        return esc(x.atb)+((d!==''&&d!=null)?' ('+d+'d)':'');
+      }).join(', ')||'—';
+    } else {
+      atbHtml=esc(e.atbList||'—')+(e.diasAtb?' <span style="color:var(--muted);font-size:11px">('+e.diasAtb+'d totales)</span>':'');
+    }
+    var mdrGs=egresadoMdrGerms(e);
+    var mdrLine=mdrGs.length?'<div class="alert-box danger" style="margin:6px 0;padding:6px 8px">🔴 <b>MDR:</b> '+esc(mdrGs.join(', '))+' · Egreso '+esc(e.fechaEgreso||'—')+'</div>':'';
+    var iaasArr=(e.iaasConfirmada||[]);
+    var iaasLine=iaasArr.length?'<div style="margin:4px 0"><b>IAAS confirmadas:</b> '+esc(iaasArr.map(function(t){ return IAAS_TIPO_LBL[t]||t; }).join(', '))+'</div>':'';
+    return '<div style="border:1px solid var(--border);border-radius:8px;padding:10px;margin:8px 0;background:var(--surface)">'+
+      '<div style="font-weight:600;margin-bottom:4px">📅 '+esc(e.ingreso||'—')+' → '+esc(e.fechaEgreso||'—')+((e.diasInternacion!=null)?' <span style="color:var(--muted);font-weight:400">('+e.diasInternacion+'d)</span>':'')+(e.areaName?' · '+esc(e.areaName):'')+'</div>'+
+      mdrLine+
+      '<div style="margin:4px 0"><b>Diagnóstico:</b> '+esc(e.dx||'—')+'</div>'+
+      '<div style="margin:4px 0"><b>Gérmenes / sensibilidad:</b><div>'+germHtml+'</div></div>'+
+      '<div style="margin:4px 0"><b>Antimicrobianos:</b> '+atbHtml+'</div>'+
+      iaasLine+
+      (e.notaResumen?'<div style="margin:4px 0"><b>Nota resumen:</b> '+esc(e.notaResumen)+'</div>':'')+
+      '<div style="font-size:11px;color:var(--muted);margin-top:4px">Egreso: '+esc(e.motivo||e.resultado||'—')+'</div>'+
+    '</div>';
+  }).join('');
+  return '<details class="section-card" style="border-left:4px solid var(--blue)"><summary style="cursor:pointer;font-weight:600;font-size:14px;list-style:revert">📋 Internaciones previas ('+list.length+' registrada'+(list.length===1?'':'s')+')</summary>'+
+    '<p style="font-size:11px;color:var(--muted);margin:6px 0">Solo lectura · historia de internaciones previas del paciente (mismo CI/documento). No editable desde aquí.</p>'+
+    rows+'</details>';
 }
 
 /* ============================================================
@@ -2107,12 +2202,20 @@ function renderPtDatos(){
   if(prev && prev.germen){
     reHtml='<div class="alert-box danger">🔴 <b>Reingreso detectado.</b> Ingreso previo ('+esc(prev.fechaEgreso||'')+') con germen: <b>'+esc(prev.germen)+'</b>'+(prev.resistencias?' · Resistencias: '+esc(prev.resistencias):'')+'.</div>';
   }
+  // BLOQUE 5 — alerta MDR persistente al reingreso (dentro del período de vigilancia configurable)
+  var mdrAnt=findMdrAntecedent(p);
+  var mdrHtml='';
+  if(mdrAnt){
+    mdrHtml='<div class="alert-box danger" style="border-left:5px solid var(--red)">⚠ <b>Antecedente MDR.</b> Antecedente de <b>'+esc(mdrAnt.germen)+'</b> MDR en internación previa ('+esc(mdrAnt.fecha||'—')+'). Evaluar precauciones de contacto y cultivos de vigilancia.</div>';
+  }
+  // BLOQUE 6 — panel colapsable de internaciones previas (solo lectura)
+  var prevPanel=renderPrevAdmissionsPanel(findAllPreviousAdmissions(p));
   var comorbHtml=COMORB.map(function(c){
     return '<label class="comorb-chk"><input type="checkbox" '+((p.comorb&&p.comorb[c.k])?'checked':'')+' onchange="toggleComorb(\''+c.k+'\',this.checked)"> '+esc(c.label)+'</label>';
   }).join('');
   var covOpts='<option value="">-</option>'+ETIQUETAS.map(function(e){ return '<option'+(p.cobertura===e?' selected':'')+'>'+esc(e)+'</option>'; }).join('');
   var el=document.getElementById('pt-datos');
-  el.innerHTML=reHtml+
+  el.innerHTML=prevPanel+mdrHtml+reHtml+
     '<div class="section-card"><h4>👤 Datos del paciente</h4>'+
     '<div class="field-row three">'+
       fg('Nombre','name','text',p.name)+fg('CI / Documento','ci','text',p.ci)+fg('Edad','edad','number',p.edad)+
@@ -2518,15 +2621,15 @@ function evolDel(i){ var p=currentPatient(); p.evol.splice(i,1); save(); renderP
 function renderPtPara(){
   var p=currentPatient(); if(!p) return; if(!p.para) p.para={dates:[],vals:{}};
   var dates=p.para.dates.slice();
-  var headDates=dates.map(function(d,ci){ return '<th><input type="date" value="'+esc(d)+'" onchange="paraDate('+ci+',this.value)"><br><button class="para-coldel" onclick="paraDelCol('+ci+')">✕ col</button></th>'; }).join('');
+  var headDates=dates.map(function(d,ci){ var edited=(p.para.editStamps&&p.para.editStamps[d]); return '<th><input type="date" value="'+esc(d)+'" onchange="paraDate('+ci+',this.value)"><br><button class="para-coldel" title="Editar día (fecha + valores)" onclick="paraEditDia('+ci+')">✏️</button> <button class="para-coldel" onclick="paraDelCol('+ci+')">✕</button>'+(edited?'<div style="font-size:9px;color:var(--muted)" title="Editado '+esc(edited)+'">✎ editado</div>':'')+'</th>'; }).join('');
   var body=PARA_PARAMS.map(function(pr){
     // fila solo si tiene algún dato O siempre mostramos con inputs
     var cells=dates.map(function(d,ci){ var key=pr.k+'||'+d; return '<td><input value="'+esc(p.para.vals[key]||'')+'" oninput="paraVal(\''+pr.k+'\','+ci+',this.value)"></td>'; }).join('');
-    return '<tr><td class="para-param">'+esc(pr.label)+'</td>'+cells+'</tr>';
+    return '<tr><td class="para-param">'+esc(pr.label)+' <button class="para-coldel" title="Gráfico de evolución" onclick="paraChart(\''+pr.k+'\')">📈</button></td>'+cells+'</tr>';
   }).join('');
   document.getElementById('pt-para').innerHTML=
     '<div class="section-card"><h4>🧪 Paraclínica comparativa</h4>'+
-      '<div class="btn-row" style="margin:0 0 8px"><button class="btn btn-teal btn-sm" onclick="paraAddCol()">+ Fecha (hoy)</button></div>'+
+      '<div class="btn-row" style="margin:0 0 8px"><button class="btn btn-teal btn-sm" onclick="paraAddCol()">+ Fecha (hoy)</button> <button class="btn btn-outline btn-sm" onclick="paraMultiOpen()">📋 Carga múltiple</button></div>'+
       '<div class="para-wrap"><table class="para-table"><thead><tr><th class="para-param">Parámetro</th>'+headDates+'</tr></thead><tbody>'+body+'</tbody></table></div>'+
       (dates.length?'':'<p style="font-size:12px;color:var(--muted);margin-top:8px">Agregue una fecha para comenzar a cargar valores.</p>')+
     '</div>';
@@ -2538,6 +2641,122 @@ function paraDate(ci,val){ var p=currentPatient(); var old=p.para.dates[ci]; if(
 }
 function paraDelCol(ci){ var p=currentPatient(); var d=p.para.dates[ci]; PARA_PARAMS.forEach(function(pr){ delete p.para.vals[pr.k+'||'+d]; }); p.para.dates.splice(ci,1); save(); renderPtPara(); }
 function paraVal(k,ci,val){ var p=currentPatient(); var d=p.para.dates[ci]; p.para.vals[k+'||'+d]=val; save(); }
+
+/* ============================================================
+   BLOQUE 8 — Paraclínica: carga múltiple, edición de día, gráficos
+   ============================================================ */
+function _paraModal(html){
+  var m=document.getElementById('modalPara');
+  if(!m){ m=document.createElement('div'); m.id='modalPara'; m.className='modal'; m.setAttribute('role','dialog'); m.setAttribute('aria-modal','true'); document.body.appendChild(m); }
+  m.innerHTML=html; m.style.display='flex';
+}
+
+/* CAMBIO A — carga múltiple retrospectiva */
+function paraMultiRowHtml(r){
+  return '<tr><td><input type="date" id="pm-fecha-'+r+'"></td>'+
+    PARA_PARAMS.map(function(pr){ return '<td><input id="pm-'+pr.k+'-'+r+'" style="width:60px" aria-label="'+esc(pr.label)+'"></td>'; }).join('')+'</tr>';
+}
+function paraMultiOpen(){
+  var p=currentPatient(); if(!p) return; if(!p.para) p.para={dates:[],vals:{}};
+  window._paraMultiN=3;
+  var head='<tr><th>Fecha</th>'+PARA_PARAMS.map(function(pr){ return '<th style="font-size:10px">'+esc(pr.label)+'</th>'; }).join('')+'</tr>';
+  var rows=''; for(var r=0;r<3;r++) rows+=paraMultiRowHtml(r);
+  var html='<div class="modal-box" style="max-width:940px"><h3>📋 Carga múltiple de paraclínica</h3>'+
+    '<p style="font-size:12px;color:var(--muted)">Ingresá varias fechas (pueden ser pasadas / retrospectivas). Al confirmar se guardan todas juntas y se ordenan por fecha.</p>'+
+    '<div style="overflow-x:auto"><table class="para-table"><thead>'+head+'</thead><tbody id="pm-tbody">'+rows+'</tbody></table></div>'+
+    '<div class="btn-row" style="margin-top:8px"><button class="btn btn-outline btn-sm" onclick="paraMultiAddRow()">+ Fila</button></div>'+
+    '<div class="modal-actions"><button class="btn btn-outline btn-sm" onclick="closeModal(\'modalPara\')">Cancelar</button>'+
+    '<button class="btn btn-teal btn-sm" onclick="paraMultiConfirm()">✅ Guardar todo</button></div></div>';
+  _paraModal(html);
+}
+function paraMultiAddRow(){
+  var tb=document.getElementById('pm-tbody'); if(!tb) return;
+  tb.insertAdjacentHTML('beforeend', paraMultiRowHtml(window._paraMultiN));
+  window._paraMultiN++;
+}
+function paraMultiConfirm(){
+  var p=currentPatient(); if(!p) return; if(!p.para) p.para={dates:[],vals:{}};
+  var added=0;
+  for(var r=0;r<window._paraMultiN;r++){
+    var fe=document.getElementById('pm-fecha-'+r); if(!fe) continue;
+    var d=(fe.value||'').trim(); if(!d) continue;
+    if(p.para.dates.indexOf(d)===-1) p.para.dates.push(d);
+    PARA_PARAMS.forEach(function(pr){ var el=document.getElementById('pm-'+pr.k+'-'+r); if(!el) return; var v=(el.value||'').trim(); if(v!=='') p.para.vals[pr.k+'||'+d]=v; });
+    added++;
+  }
+  if(!added){ alert('Ingresá al menos una fecha.'); return; }
+  p.para.dates.sort();
+  save(); closeModal('modalPara'); renderPtPara();
+  toast(added+' día(s) de paraclínica cargados');
+}
+
+/* CAMBIO B — editar un día (fecha + valores) con confirmación y timestamp */
+function paraEditDia(ci){
+  var p=currentPatient(); if(!p||!p.para) return; var d=p.para.dates[ci]; if(!d) return;
+  window._paraEditOldDate=d;
+  var rows='<tr><td style="font-weight:600">Fecha</td><td><input type="date" id="ped-fecha" value="'+esc(d)+'"></td></tr>'+
+    PARA_PARAMS.map(function(pr){ return '<tr><td>'+esc(pr.label)+'</td><td><input id="ped-'+pr.k+'" value="'+esc(p.para.vals[pr.k+'||'+d]||'')+'"></td></tr>'; }).join('');
+  var html='<div class="modal-box"><h3>✏️ Editar día — '+esc(d)+'</h3>'+
+    '<div style="max-height:340px;overflow:auto"><table class="para-table"><tbody>'+rows+'</tbody></table></div>'+
+    '<div class="modal-actions"><button class="btn btn-outline btn-sm" onclick="closeModal(\'modalPara\')">Cancelar</button>'+
+    '<button class="btn btn-teal btn-sm" onclick="paraEditDiaConfirm()">✅ Guardar cambios</button></div></div>';
+  _paraModal(html);
+}
+function paraEditDiaConfirm(){
+  var p=currentPatient(); if(!p) return;
+  var old=window._paraEditOldDate;
+  var nd=(document.getElementById('ped-fecha').value||'').trim();
+  if(!nd){ alert('Fecha inválida.'); return; }
+  if(!confirm('¿Guardar cambios del día '+old+(nd!==old?' → '+nd:'')+'?')) return;
+  var ci=p.para.dates.indexOf(old);
+  if(nd!==old){
+    PARA_PARAMS.forEach(function(pr){ var ok=pr.k+'||'+old; if(p.para.vals[ok]!==undefined){ p.para.vals[pr.k+'||'+nd]=p.para.vals[ok]; delete p.para.vals[ok]; } });
+    if(ci>=0) p.para.dates[ci]=nd;
+    if(p.para.editStamps&&p.para.editStamps[old]){ p.para.editStamps[nd]=p.para.editStamps[old]; delete p.para.editStamps[old]; }
+  }
+  PARA_PARAMS.forEach(function(pr){ var el=document.getElementById('ped-'+pr.k); if(!el) return; var v=(el.value||'').trim(); if(v==='') delete p.para.vals[pr.k+'||'+nd]; else p.para.vals[pr.k+'||'+nd]=v; });
+  if(!p.para.editStamps) p.para.editStamps={};
+  p.para.editStamps[nd]=new Date().toISOString().slice(0,16).replace('T',' ');
+  p.para.dates.sort();
+  save(); closeModal('modalPara'); renderPtPara();
+  toast('Día actualizado');
+}
+
+/* CAMBIO C — gráfico de evolución de una variable (SVG puro) */
+function paraChart(k){
+  var p=currentPatient(); if(!p||!p.para) return;
+  var pr=null; for(var i=0;i<PARA_PARAMS.length;i++){ if(PARA_PARAMS[i].k===k){ pr=PARA_PARAMS[i]; break; } }
+  if(!pr) return;
+  var ds=p.para.dates.slice().sort();
+  var pts=[]; ds.forEach(function(d){ var raw=p.para.vals[k+'||'+d]; var v=parseFloat(String(raw==null?'':raw).replace(',','.')); if(!isNaN(v)) pts.push({d:d,v:v}); });
+  var body;
+  if(!pts.length){ body='<p style="color:var(--muted)">No hay valores numéricos cargados para '+esc(pr.label)+'.</p>'; }
+  else {
+    var W=560,H=280,ml=48,mr=18,mt=20,mb=50;
+    var vals=pts.map(function(x){return x.v;}); if(pr.ref!=null) vals=vals.concat([pr.ref]);
+    var mn=Math.min.apply(null,vals), mx=Math.max.apply(null,vals);
+    if(mn===mx){ mn=mn-1; mx=mx+1; }
+    var pad=(mx-mn)*0.1; mn-=pad; mx+=pad;
+    var innerW=W-ml-mr, innerH=H-mt-mb;
+    function X(i){ return ml + (pts.length===1 ? innerW/2 : i*innerW/(pts.length-1)); }
+    function Y(v){ return mt + innerH*(1-(v-mn)/(mx-mn)); }
+    var line=pts.map(function(x,i){ return (i?'L':'M')+X(i).toFixed(1)+' '+Y(x.v).toFixed(1); }).join(' ');
+    var dots=pts.map(function(x,i){ return '<circle cx="'+X(i).toFixed(1)+'" cy="'+Y(x.v).toFixed(1)+'" r="3.5" fill="#2dd4bf"><title>'+esc(x.d)+': '+x.v+'</title></circle>'; }).join('');
+    var refEls='';
+    if(pr.ref!=null && pr.ref>=mn && pr.ref<=mx){ var ry=Y(pr.ref).toFixed(1); refEls='<line x1="'+ml+'" y1="'+ry+'" x2="'+(W-mr)+'" y2="'+ry+'" stroke="#f59e0b" stroke-width="1" stroke-dasharray="5 4"/><text x="'+(W-mr)+'" y="'+(parseFloat(ry)-3)+'" text-anchor="end" font-size="10" fill="#f59e0b">ref '+pr.ref+'</text>'; }
+    var xlabels=pts.map(function(x,i){ return '<text x="'+X(i).toFixed(1)+'" y="'+(H-mb+16)+'" text-anchor="middle" font-size="9" fill="#94a3b8">'+esc(x.d.slice(5))+'</text>'; }).join('');
+    var svg='<svg viewBox="0 0 '+W+' '+H+'" width="100%" style="max-width:'+W+'px;background:var(--surface2);border-radius:8px">'+
+      '<line x1="'+ml+'" y1="'+mt+'" x2="'+ml+'" y2="'+(H-mb)+'" stroke="#334155"/>'+
+      '<line x1="'+ml+'" y1="'+(H-mb)+'" x2="'+(W-mr)+'" y2="'+(H-mb)+'" stroke="#334155"/>'+
+      '<text x="'+(ml-6)+'" y="'+(mt+4)+'" text-anchor="end" font-size="9" fill="#94a3b8">'+mx.toFixed(1)+'</text>'+
+      '<text x="'+(ml-6)+'" y="'+(H-mb)+'" text-anchor="end" font-size="9" fill="#94a3b8">'+mn.toFixed(1)+'</text>'+
+      refEls+'<path d="'+line+'" fill="none" stroke="#2dd4bf" stroke-width="2"/>'+dots+xlabels+'</svg>';
+    body='<div style="overflow-x:auto">'+svg+'</div><p style="font-size:11px;color:var(--muted);margin-top:6px">Línea punteada naranja = valor de referencia orientativo. Verificar los rangos de tu laboratorio.</p>';
+  }
+  var html='<div class="modal-box" style="max-width:620px"><h3>📈 Evolución — '+esc(pr.label)+'</h3>'+body+
+    '<div class="modal-actions"><button class="btn btn-outline btn-sm" onclick="closeModal(\'modalPara\')">Cerrar</button></div></div>';
+  _paraModal(html);
+}
 
 /* -- IMÁGENES -- */
 function renderPtImagenes(){
@@ -2654,6 +2873,7 @@ function confirmEgreso(){
     diasInternacion:daysBetween(p.ingreso,fecha),
     resultado: motivo==='Fallecimiento'?'Fallecido':'Vivo',
     mdr:isMDR(p.germen),
+    iaasConfirmada:(Array.isArray(p.iaasConfirmada)?p.iaasConfirmada.slice():[]),
     infecciones:patInfections(p).map(function(inf){ return Object.assign({},inf,{abg:Object.assign({},inf.abg||{})}); }),
     atb:(p.atb||[]).map(function(x){ return Object.assign({},x); }),
     evol:(p.evol||[]).map(function(x){ return Object.assign({},x); }),
@@ -3409,6 +3629,7 @@ function renderIaasSection(S,f,card,bar,bars,nodata){
     '<p style="font-size:11px;color:var(--muted);border-left:3px solid var(--amber);padding-left:8px;margin-top:4px">Las tasas institucionales se basan en criterios de screening clínico. Para tasas NHSN comparables se requiere implementar el protocolo de vigilancia CDC/NHSN 2026.</p>'+
     '<div class="filters" style="margin-top:8px;align-items:flex-end">'+
       '<div class="field-group" style="max-width:160px"><label>Umbral de alerta (%)</label><input type="number" min="0" step="0.5" value="'+esc(umbral)+'" onchange="setIaasUmbral(this.value);renderStats()"></div>'+
+      '<div class="field-group" style="max-width:220px"><label title="Ventana en la que un antecedente MDR genera alerta al reingreso">Período de vigilancia MDR (meses)</label><input type="number" min="1" step="1" value="'+esc(getMdrSurvMonths())+'" onchange="setMdrSurvMonths(this.value);if(typeof renderBeds===\'function\')renderBeds();renderStats()"></div>'+
     '</div>'+
     (supera?'<div class="alert-box danger" style="margin-top:8px">🔴 <b>Alerta:</b> el indicador institucional de IAAS ('+tasa+'%) supera el umbral establecido ('+umbral+'%).</div>'
            :'<div class="alert-box ok" style="margin-top:8px">✅ Indicador institucional de IAAS dentro del umbral ('+umbral+'%).</div>')+
