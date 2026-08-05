@@ -482,18 +482,19 @@ footer{text-align:center;padding:16px;color:var(--muted);font-size:11px;border-t
 
 <!-- ===================== AVISO / ADVERTENCIA ===================== -->
 <div id="modal-advertencia" role="dialog" aria-modal="true" style="position:fixed;inset:0;z-index:9999;background:rgba(8,14,24,.86);backdrop-filter:blur(5px);display:none;align-items:center;justify-content:center;padding:20px">
-  <div class="login-box" style="max-width:460px">
-    <div class="login-logo" style="margin-bottom:14px">
-      <div class="big" style="font-size:34px">InfectSmart</div>
-      <div class="sub">Gestión Infectológica</div>
+  <div class="login-box" style="max-width:460px;background:#fff;text-align:center;max-height:92vh;overflow:auto">
+    <div style="font-size:2.6rem;line-height:1;margin-bottom:6px">🦠</div>
+    <div style="font-size:1.7rem;font-weight:800;color:#14b8a6;letter-spacing:-.5px;margin-bottom:3px">InfectSmart</div>
+    <div style="font-size:.68rem;font-weight:700;letter-spacing:1.6px;color:#64748b;margin-bottom:18px">GESTIÓN INFECTOLÓGICA · CEIBOMED</div>
+    <h2 style="font-size:1.08rem;font-weight:800;color:#1a2a3a;margin-bottom:14px">⚕️ Aviso Legal</h2>
+    <div style="text-align:left;display:flex;flex-direction:column;gap:11px;margin-bottom:20px;color:#374151;font-size:.83rem;line-height:1.5">
+      <div>🔒 Los datos se guardan localmente en este dispositivo. No se transmiten a servidores.</div>
+      <div>⚕️ Los protocolos y recomendaciones son orientativos. Verificá con las guías institucionales vigentes.</div>
+      <div>📊 Los informes quedan en tu dispositivo. Realizá backups periódicos.</div>
+      <div>🛡️ Los desarrolladores no asumen responsabilidad por decisiones clínicas basadas en este software.</div>
     </div>
-    <h2 style="color:var(--yellow,#f5c842);font-size:17px;margin-bottom:12px">⚠️ Aviso de uso</h2>
-    <div style="background:rgba(245,200,66,.08);border:1px solid rgba(245,200,66,.3);border-radius:8px;padding:14px 16px;font-size:13px;line-height:1.65;color:var(--text)">
-      InfectSmart es una herramienta de apoyo clínico. No reemplaza el juicio médico profesional. El uso de esta aplicación implica la aceptación de estos términos.
-    </div>
-    <div style="display:flex;justify-content:flex-end;margin-top:18px">
-      <button class="btn btn-teal btn-sm" onclick="aceptarAdvertencia()">Acepto y continuar</button>
-    </div>
+    <button class="btn btn-teal" style="width:100%;min-height:44px;font-weight:700" onclick="aceptarAdvertencia()">✓ Entendido — Continuar</button>
+    <div style="margin-top:14px;font-size:.73rem;color:#64748b">CeiboMed · Tecnología clínica con raíces</div>
   </div>
 </div>
 
@@ -5409,26 +5410,7 @@ function openHelp(){ document.getElementById('modalHelp').style.display='flex'; 
 })();
 </script>
 <script>
-/* Aviso de datos locales (primer inicio) */
-(function(){
-  var KEY="infectsmart_aviso_datos_visto";
-  function show(){
-    try{ if(localStorage.getItem(KEY)==='1') return; }catch(e){}
-    var ov=document.createElement('div');
-    ov.setAttribute('role','dialog'); ov.setAttribute('aria-modal','true'); ov.setAttribute('aria-label','Aviso sobre datos locales');
-    ov.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:20px';
-    var box=document.createElement('div');
-    box.style.cssText='background:#fff;color:#1a2a3a;max-width:440px;width:100%;border-radius:14px;padding:22px 24px;box-shadow:0 20px 60px rgba(0,0,0,.4);font-family:system-ui,Segoe UI,sans-serif';
-    box.innerHTML='<div style="font-size:15px;font-weight:700;margin-bottom:10px">Aviso importante</div><div style="font-size:13.5px;line-height:1.6;color:#374151">⚠️ Los datos se guardan localmente en este navegador. Si borrás el navegador o cambiás de dispositivo, los datos se pierden. Exportá tu backup regularmente.</div>';
-    var btn=document.createElement('button');
-    btn.type='button'; btn.textContent='Entendido';
-    btn.style.cssText='margin-top:16px;width:100%;padding:11px;background:var(--teal,#0d9488);color:#fff;border:none;border-radius:9px;font-size:14px;font-weight:700;cursor:pointer;min-height:44px';
-    btn.onclick=function(){ try{localStorage.setItem(KEY,'1');}catch(e){} if(ov.parentNode)ov.parentNode.removeChild(ov); };
-    box.appendChild(btn); ov.appendChild(box); document.body.appendChild(ov);
-    setTimeout(function(){ try{btn.focus();}catch(e){} },40);
-  }
-  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',show); else show();
-})();
+/* Cartel de "Aviso importante" (datos locales) eliminado: reemplazado por el Aviso Legal post-login. */
 </script>
 <script>
 /* Estándar encabezado móvil: ≡ drawer de tabs + ⋮ menú de acciones (≤768px). */
