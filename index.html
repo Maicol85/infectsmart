@@ -134,9 +134,9 @@ label{font-size:12px;color:var(--muted);display:block;margin-bottom:3px}
 .panel{padding:14px;display:none}
 .panel.active{display:block}
 /* ===== ÁREAS / CAMAS ===== */
-.area-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
-.area-tab{background:var(--surface2);border:1px solid var(--border);color:var(--muted);border-radius:20px;padding:6px 14px;font-size:12px;transition:all .15s;display:flex;align-items:center;gap:5px}
-.area-tab:hover{border-color:var(--teal);color:var(--text)}
+.area-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:6px}
+.area-tab{background:transparent;border:1px solid transparent;color:var(--muted);border-radius:8px;padding:7px 13px;font-size:12.5px;font-weight:600;transition:all .15s;display:flex;align-items:center;gap:6px;cursor:pointer}
+.area-tab:hover{background:var(--surface2);color:var(--text)}
 .area-tab.active{background:var(--teal);color:#fff;border-color:var(--teal);font-weight:700}
 #bedsGrid.todos-view{display:block}
 .todos-section{margin-bottom:22px}
@@ -291,6 +291,14 @@ label{font-size:12px;color:var(--muted);display:block;margin-bottom:3px}
 .stats-section-title{font-size:13px;font-weight:700;color:var(--teal);text-transform:uppercase;letter-spacing:.5px;margin:18px 0 8px}
 .stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 @media(max-width:700px){.stats-grid{grid-template-columns:1fr}.field-row.four,.field-row.three{grid-template-columns:1fr 1fr}}
+.stats-acc{margin-bottom:10px;border:1px solid var(--border);border-radius:var(--r);background:var(--surface);box-shadow:var(--shadow);overflow:hidden}
+.stats-acc-head{cursor:pointer;user-select:none;display:flex;align-items:center;gap:8px;padding:13px 16px;font-size:13px;font-weight:800;color:var(--text);text-transform:uppercase;letter-spacing:.5px;transition:background .15s}
+.stats-acc-head:hover{background:var(--surface2)}
+.stats-acc-head .sec-caret{margin-left:auto;color:var(--muted);transition:transform .2s;font-size:12px}
+.stats-acc.open .stats-acc-head{color:var(--teal)}
+.stats-acc.open .stats-acc-head .sec-caret{transform:rotate(90deg)}
+.stats-acc-body{display:none;padding:2px 14px 14px}
+.stats-acc.open .stats-acc-body{display:block}
 /* ── Responsive: tablet (768px) y mobile (480px) ── */
 @media(max-width:768px){
   .beds-grid{grid-template-columns:repeat(auto-fill,minmax(170px,1fr))}
@@ -3641,28 +3649,24 @@ function renderStats(){
       '<div><div class="stats-big">'+S.counts.ocupacionPc+'%</div><div style="font-size:11px;color:var(--muted)">Ocupación ('+S.counts.ocupadas+'/'+S.counts.camas+')</div></div>'+
       '<div><div class="stats-big">'+(S.pac.diasProm!==null?S.pac.diasProm+'d':'—')+'</div><div style="font-size:11px;color:var(--muted)">Días internación prom.</div></div>'+
     '</div></div>'+
-    '<div class="stats-section-title">1 · Gérmenes</div>'+
-    '<div class="stats-grid">'+
+    statsAcc('1 · Gérmenes','<div class="stats-grid">'+
       card('🦠 Top-5 gérmenes (total)',germBars,'g_top')+
       card('🦠 Gérmenes por área',germAreaHtml,'g_area')+
       card('📈 Evolución por mes',germMonthBars,'g_month')+
       card('🗺️ Mapa de resistencia (ATB × germen)',resTable,'g_res')+
-    '</div>'+
-    '<div class="stats-section-title">2 · Antibióticos</div>'+
-    '<div class="stats-grid">'+
+    '</div>')+
+    statsAcc('2 · Antibióticos','<div class="stats-grid">'+
       card('💊 ATB más usados',atbUseBars,'a_use')+
       card('⏱️ Días ATB promedio por foco',atbFocoBars,'a_foco')+
       card('🔀 Escalamiento vs desescalamiento',escHtml,'a_esc')+
-    '</div>'+
-    '<div class="stats-section-title">3 · Infecciones</div>'+
-    '<div class="stats-grid">'+
+    '</div>')+
+    statsAcc('3 · Infecciones','<div class="stats-grid">'+
       card('🎯 Focos más frecuentes',focoBars,'i_foco')+
       card('💀 Mortalidad por foco',mortBars,'i_mort')+
       card('🔴 Tasa de infección cruzada por área',crossAreaBars,'i_cross')+
       card('🔁 Reingreso por mismo germen','<div class="stats-big">'+S.inf.readmSameGerm+'</div><p style="font-size:11px;color:var(--muted)">Cruzadas activas: '+S.inf.crossN+' · Reingresos: '+S.inf.reN+'</p>','i_readm')+
-    '</div>'+
-    '<div class="stats-section-title">4 · Pacientes</div>'+
-    '<div class="stats-grid">'+
+    '</div>')+
+    statsAcc('4 · Pacientes','<div class="stats-grid">'+
       card('🛏️ Ocupación ACTUAL por área',ocupActBars,'p_ocupact')+
       card('📊 Ocupación HISTÓRICA por área (ingresos)',ocupHistBars,'p_ocuphist')+
       card('📅 Días internación prom. por área',diasAreaBars,'p_diasarea')+
@@ -3672,16 +3676,17 @@ function renderStats(){
       card('🧮 Charlson promedio (versión institucional modificada)',charlsonHtml,'p_charlson')+
       card('🏥 Distribución por área',distBars,'p_dist')+
       card('👥 Población por etiqueta/cobertura',pobBars,'p_pob')+
-    '</div>'+
-    '<div class="stats-section-title">5 · Análisis por población (comparativo)</div>'+
-    pobComparHtml+
-    '<div class="stats-section-title">6 · 📋 IAAS (Infecciones Asociadas a la Atención Sanitaria)</div>'+
-    iaasHtml+
-    '<div class="stats-section-title">7 · 🦠 Brotes</div>'+broteHtml+
-    '<div class="stats-section-title">8 · 🧭 Reporte Epidemiológico (Comité de Infecciones)</div>'+
-    renderEpiSection(bar,nodata);
+    '</div>')+
+    statsAcc('5 · Análisis por población (comparativo)',pobComparHtml)+
+    statsAcc('6 · 📋 IAAS (Infecciones Asociadas a la Atención Sanitaria)',iaasHtml)+
+    statsAcc('7 · 🦠 Brotes',broteHtml)+
+    statsAcc('8 · 🧭 Reporte Epidemiológico (Comité de Infecciones)',renderEpiSection(bar,nodata));
   document.getElementById('panel-stats').innerHTML=rendered;
 }
+/* Estadísticas: cada categoría es un acordeón colapsado por defecto (evita volcar todo de golpe). */
+function statsAcc(title,body){return '<div class="stats-acc"><div class="stats-acc-head" onclick="toggleStatsAcc(this)"><span>'+title+'</span><span class="sec-caret">▸</span></div><div class="stats-acc-body">'+body+'</div></div>';}
+function toggleStatsAcc(el){el.parentNode.classList.toggle('open');}
+window.toggleStatsAcc=toggleStatsAcc;
 function computeBroteStats(f){var bs=getBrotes().filter(function(b){return(!f.desde||b.fechaInicio>=f.desde)&&(!f.hasta||b.fechaInicio<=f.hasta);}),conf=bs.filter(function(b){return b.estado==='confirmado'||b.estado==='cerrado';}),countsA={},countsS={},monthly={},dur=[];conf.forEach(function(b){countsA[b.agente]=(countsA[b.agente]||0)+1;countsS[b.areaName]=(countsS[b.areaName]||0)+1;if(b.fechaInicio)monthly[b.fechaInicio.slice(0,7)]=(monthly[b.fechaInicio.slice(0,7)]||0)+1;if(b.fechaFin){var d=daysBetween(b.fechaInicio,b.fechaFin);if(d!==null)dur.push(d);}});function top(m){return Object.keys(m).sort(function(a,b){return m[b]-m[a];})[0]||'';}return{negros:bs.filter(function(b){return b.estado==='pendiente'&&b.nivel==='negro';}).length,amarillos:bs.filter(function(b){return b.estado==='pendiente'&&(b.nivel==='amarillo'||!b.nivel);}).length,confirmados:conf.length,activos:bs.filter(function(b){return b.estado==='confirmado';}).length,cerrados:bs.filter(function(b){return b.estado==='cerrado';}).length,descartados:bs.filter(function(b){return b.estado==='descartado';}).length,casos:conf.reduce(function(n,b){return n+(b.casosIncluidos?b.casosIncluidos.length:(b.casos||[]).length);},0),duracion:dur.length?Math.round(dur.reduce(function(a,b){return a+b;},0)/dur.length):null,agente:top(countsA),servicio:top(countsS),mensual:Object.keys(monthly).sort().map(function(k){return{label:k,n:monthly[k]};})};}
 function brotesBars(arr,bar,nodata,col){if(!arr.length)return nodata();var mx=arr.reduce(function(m,x){return Math.max(m,x.n);},1);return arr.map(function(x){return bar(x.label,x.n,mx,col);}).join('');}
 /* ============================================================
